@@ -1,0 +1,5 @@
+certifi==2024.2.2
+click==8.1.7
+pulsar-client==3.4.0
+boto3==1.34.82
+requests==2.31.0
