@@ -11,6 +11,7 @@ import click
 import pulsar
 import pulsar.exceptions
 import boto3
+import botocore.exceptions
 
 import logging
 
@@ -43,19 +44,19 @@ logger.addHandler(ch)
 def cli(ctx, topic: str):
     ctx.ensure_object(dict)
     pulsar_url = os.getenv("PULSAR_URL", "")
+    logger.info(pulsar_url)
     ctx.obj["CLIENT"] = pulsar.Client(pulsar_url)
     ctx.obj["TOPIC"] = topic
     logger.info(f"Connecting to broker '{pulsar_url}' with topic '{topic}'")
 
 
-################################
-### DELETE FROM STAC FASTAPI ###
-################################
+##############################
+## DELETE FROM STAC FASTAPI ##
+##############################
 
 def delete_collection(api_url, collection_id):
     headers = {"accept": "application/json"}
     try:
-        logger.info("trying now")
         resp = requests.delete(
             f"{api_url}/collections/{collection_id}", 
             headers=headers,
@@ -93,9 +94,9 @@ def delete_item(api_url, collection_id, item_id):
     except:
         logger.warning("Something went wrong")
 
-##############################
-### UPDATE IN STAC FASTAPI ###
-##############################       
+############################
+## UPDATE IN STAC FASTAPI ##
+############################
 
 def update_collection(api_url, collection_id, data):
     headers = {"accept": "application/json", "Content-Type": "application/json"}
@@ -145,9 +146,9 @@ def update_item(api_url, collection_id, item_id, data):
         logger.warning("Something went wrong")
 
 
-################################
-### CREATE IN STAC FASTAPI ###
-################################
+############################
+## CREATE IN STAC FASTAPI ##
+############################
 
 def create_collection(api_url, collection_id, data):
     headers = {"accept": "application/json", "Content-Type": "application/json"}
@@ -181,7 +182,7 @@ def create_item(api_url, collection_id, item_id, data):
             logger.info(f"Created Item {item_id}")
             return True
         elif resp.status_code == 404:
-            ## Add files awaiting collection creation to the end of the list again
+            # Add files awaiting collection creation to the end of the list again
             logger.warning(f"Collection: {collection_id} not yet created, will try again in a bit.")
             return False
         elif resp.status_code == 409:
@@ -194,26 +195,41 @@ def create_item(api_url, collection_id, item_id, data):
         logger.warning("Something went wrong")
 
 
+def load_data_from_s3(client, file_uri):
+    try:
+        bucket, key = file_uri.replace("s3://","").split("/",1)
+        data = client.get_object(Bucket=bucket, Key=key)
+        data = json.loads(data['Body'].read())
+        return data
+    except botocore.exceptions.ParamValidationError:
+        logger.warning("Provided file uri is not supported.")
+        return False
+    except:
+        logger.error("Failed to load S3 object")
+
 def interpret_message(msg: str, api_url):
 
-    ## Configure boto3 client ready for data access
+    # Configure boto3 client ready for data access
     client = boto3.client("s3")
-
+    
+    # Ensure input data can be parsed as JSON
+    msg = msg.replace("'", '"')
     updates_json = json.loads(msg)
 
-    ## Extract file names into actions lists
+    # Extract file names into actions lists
     files_to_update = updates_json['updated_files'] if 'updated_files' in updates_json.keys() else []
     files_to_delete = updates_json['deleted_files'] if 'deleted_files' in updates_json.keys() else []
     files_to_create = updates_json['added_files'] if 'added_files' in updates_json.keys() else []
 
-    ## Delete items and collections
-    for file_url in files_to_delete:
-        ## We can track deleted collections as this will also delete all associated items so no need to call the delete items endpoint as well
+    # Delete items and collections
+    for file_uri in files_to_delete:
+
+        # We can track deleted collections as this will also delete all associated items so no need to call the delete items endpoint as well
         deleted_collections = set()
 
-        bucket, key = file_url.replace("s3://","").split("/",1)
-        data = client.get_object(Bucket=bucket, Key=key)
-        data = json.loads(data['Body'].read())
+        data = load_data_from_s3(client, file_uri)
+        if data == False:
+            continue
 
         if data['type'] == "Collection":
             collection_id = data['id']
@@ -229,18 +245,19 @@ def interpret_message(msg: str, api_url):
             logger.info(f"Deleting item {item_id} in collection {collection_id}")
             delete_item(api_url, collection_id, item_id)
 
-    ## Create new collections and items
+    # Create new collections and items
     num_files_to_create = len(files_to_create)
     files_count = 0
     
     for file_uri in files_to_create:
-        ## Variable to prevent endless looping, limits number of loops to at most 2
+
+        # Variable to prevent endless looping, limits number of loops to at most 2
         if files_count >= num_files_to_create * 2:
             break
 
-        bucket, key = file_uri.replace("s3://","").split("/",1)
-        data = client.get_object(Bucket=bucket, Key=key)
-        data = json.loads(data['Body'].read())
+        data = load_data_from_s3(client, file_uri)
+        if data == False:
+            continue
 
         if data['type'] == "Collection":
             collection_id = data['id']
@@ -252,19 +269,20 @@ def interpret_message(msg: str, api_url):
             item_id = data['id']
             logger.info(f"Creating item {item_id} in collection {collection_id}")
 
-            ## Handle case in which collection is not yet created for this item
+            # Handle case in which collection is not yet created for this item
             item_registered = create_item(api_url, collection_id, item_id, data)
             files_to_create.append(file_uri) if not item_registered else None
 
-        ## Increment loop counter
+        # Increment loop counter
         files_count+=1
             
 
-    ## Update collections and items
+    # Update collections and items
     for file_uri in files_to_update:
-        bucket, key = file_uri.replace("s3://","").split("/",1)
-        data = client.get_object(Bucket=bucket, Key=key)
-        data = json.loads(data['Body'].read())
+
+        data = load_data_from_s3(client, file_uri)
+        if data == False:
+            continue
 
         if data['type'] == "Collection":
             collection_id = data['id']
@@ -288,18 +306,22 @@ def subscribe(ctx, prefix: Optional[str] = None):
     """
 
     client: pulsar.Client = ctx.obj["CLIENT"]
+    logger.info(client)
     topic: str = ctx.obj["TOPIC"]
+    logger.info(topic)
     consumer = client.subscribe(topic=topic, subscription_name=prefix)
     api_url = os.getenv("FASTAPI_URL", "")
+    logger.info(api_url)
     try:
         while True:
             logger.info("Waiting for message")
             msg = consumer.receive()
-            interpret_message(msg.data(), api_url)
+            interpret_message(msg.data().decode("utf-8"), api_url)
             consumer.acknowledge(msg)
     except pulsar.exceptions.Interrupted:
         pass
     except Exception as e:
+        logger.error(repr(e))
         consumer.negative_acknowledge(msg)
     finally:
         consumer.close()
