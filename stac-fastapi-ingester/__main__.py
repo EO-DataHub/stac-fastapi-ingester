@@ -306,12 +306,9 @@ def subscribe(ctx, prefix: Optional[str] = None):
     """
 
     client: pulsar.Client = ctx.obj["CLIENT"]
-    logger.info(client)
     topic: str = ctx.obj["TOPIC"]
-    logger.info(topic)
     consumer = client.subscribe(topic=topic, subscription_name=prefix)
     api_url = os.getenv("FASTAPI_URL", "")
-    logger.info(api_url)
     try:
         while True:
             logger.info("Waiting for message")
