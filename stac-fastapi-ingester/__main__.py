@@ -200,16 +200,6 @@ def interpret_message(msg: str, api_url):
     files_to_delete = updates_json['deleted_files'] if 'deleted_files' in updates_json.keys() else []
     files_to_create = updates_json['added_files'] if 'added_files' in updates_json.keys() else []
 
-    ## Filter by file types - Collections and FeatureCollections
-    # files_to_create_collections = [file_uri for file_uri in files_to_create if file_uri.rsplit("/",2)[1] == "collections"]
-    # files_to_create_other = [file_uri for file_uri in files_to_create if file_uri.rsplit("/",2)[1] != "collections"]
-
-    # files_to_update_collections = [file_uri for file_uri in files_to_update if file_uri.rsplit("/",2)[1] == "collections"]
-    # files_to_update_other = [file_uri for file_uri in files_to_update if file_uri.rsplit("/",2)[1] != "collections"]
-
-    # files_to_delete_collections = [file_uri for file_uri in files_to_delete if file_uri.rsplit("/",2)[1] == "collections"]
-    # files_to_delete_other = [file_uri for file_uri in files_to_delete if file_uri.rsplit("/",2)[1] != "collections"]
-
     ## Delete items and collections
     for file_url in files_to_delete:
         ## We can track deleted collections as this will also delete all associated items so no need to call the delete items endpoint as well
