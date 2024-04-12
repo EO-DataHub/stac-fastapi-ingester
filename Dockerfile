@@ -5,10 +5,10 @@ RUN apt-get update && \
 
 WORKDIR /app
 
-COPY stac-fastapi-pulsar /app/stac-fastapi-pulsar
-
 COPY requirements.txt /app
 
 RUN pip install -r requirements.txt
+
+COPY /stac-fastapi-ingester /app/stac-fastapi-ingester
 
 CMD ["python", "-m", "stac-fastapi-ingester", "pulsar://127.0.0.1:6650", "transformed", "subscribe", "https://dev.eodatahub.org.uk/stac-fastapi", "--prefix", "stac-fastapi"]

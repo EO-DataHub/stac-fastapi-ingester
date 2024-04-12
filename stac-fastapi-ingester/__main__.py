@@ -2,6 +2,7 @@ from random import choice
 from string import ascii_uppercase
 from time import sleep
 from typing import Optional
+import os
 
 import json
 import requests
@@ -17,7 +18,7 @@ import logging
 logging.getLogger('botocore').setLevel(logging.CRITICAL)
 logging.getLogger('boto3').setLevel(logging.CRITICAL)
 
-# create logger
+# create logger for stac fastapi ingester
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 logging.basicConfig(filename='stac-fastapi-ingester.log', encoding='utf-8', level=logging.DEBUG)
@@ -37,11 +38,11 @@ logger.addHandler(ch)
 
 
 @click.group()
-@click.argument("pulsar_url", type=str)
 @click.argument("topic", type=str)
 @click.pass_context
-def cli(ctx, pulsar_url: str, topic: str):
+def cli(ctx, topic: str):
     ctx.ensure_object(dict)
+    pulsar_url = os.getenv("PULSAR_URL", "")
     ctx.obj["CLIENT"] = pulsar.Client(pulsar_url)
     ctx.obj["TOPIC"] = topic
     logger.info(f"Connecting to broker '{pulsar_url}' with topic '{topic}'")
@@ -54,6 +55,7 @@ def cli(ctx, pulsar_url: str, topic: str):
 def delete_collection(api_url, collection_id):
     headers = {"accept": "application/json"}
     try:
+        logger.info("trying now")
         resp = requests.delete(
             f"{api_url}/collections/{collection_id}", 
             headers=headers,
@@ -105,6 +107,7 @@ def update_collection(api_url, collection_id, data):
         )
         if resp.status_code == 200:
             logger.info(f"Status code: {resp.status_code}")
+            logger.info(f"Updated Collection {collection_id}")
         elif resp.status_code == 409:
             logger.warning(f"Status code: {resp.status_code}")
         elif resp.status_code == 404:
@@ -125,6 +128,7 @@ def update_item(api_url, collection_id, item_id, data):
         )
         if resp.status_code == 200:
             logger.info(f"Status code: {resp.status_code}")
+            logger.info(f"Updated Item {item_id}")
         elif resp.status_code == 409:
             logger.warning(f"Status code: {resp.status_code}")
         elif resp.status_code == 404:
@@ -155,6 +159,7 @@ def create_collection(api_url, collection_id, data):
         )
         if resp.status_code == 200:
             logger.info(f"Status code: {resp.status_code}")
+            logger.info(f"Created Collection {collection_id}")
         elif resp.status_code == 409:
             logger.warning(f"Status code: {resp.status_code}")
             logger.warning(f"Collection: {collection_id} already exists")
@@ -173,6 +178,7 @@ def create_item(api_url, collection_id, item_id, data):
         )
         if resp.status_code == 200:
             logger.info(f"Status code: {resp.status_code}")
+            logger.info(f"Created Item {item_id}")
             return True
         elif resp.status_code == 404:
             ## Add files awaiting collection creation to the end of the list again
@@ -274,18 +280,17 @@ def interpret_message(msg: str, api_url):
 
 
 @cli.command()
-@click.argument("api_url", type=str)
 @click.option("--prefix", type=str, default=None)
 @click.pass_context
-def subscribe(ctx, api_url: str, prefix: Optional[str] = None):
+def subscribe(ctx, prefix: Optional[str] = None):
     """
     Subscribe to messages from a Pulsar broker.
     """
 
-    prefix = prefix or "".join(choice(ascii_uppercase) for _ in range(6))
     client: pulsar.Client = ctx.obj["CLIENT"]
     topic: str = ctx.obj["TOPIC"]
     consumer = client.subscribe(topic=topic, subscription_name=prefix)
+    api_url = os.getenv("FASTAPI_URL", "")
     try:
         while True:
             logger.info("Waiting for message")
