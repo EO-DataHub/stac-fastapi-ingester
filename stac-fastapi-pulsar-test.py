@@ -38,14 +38,30 @@ def publish(ctx, prefix: Optional[str] = None, n: Optional[int] = 100):
     client: pulsar.Client = ctx.obj["CLIENT"]
     topic: str = ctx.obj["TOPIC"]
     producer: pulsar.Producer = client.create_producer(topic=topic, producer_name=prefix)
-    harvested_dict = {"added_keys": ["catalogue-data/supported/collections/cmip6/items/CMIP6.ScenarioMIP.CSIRO-ARCCSS.ACCESS-CM2.ssp126.r1i1p1f1.day.tasmin.gn.v20210317.json", 
-                                      "catalogue-data/supported/collections/cmip6/items/CMIP6.ScenarioMIP.CSIRO-ARCCSS.ACCESS-CM2.ssp126.r1i1p1f1.day.pr.gn.v20210317.json", 
-                                      "catalogue-data/supported/collections/cmip6.json", 
-                                      "catalogue-data/supported/collections/cordex.json",],
-                      "updatedkeys": ["catalogue-data/supported/collections/cmip6/items/CMIP6.ScenarioMIP.CSIRO-ARCCSS.ACCESS-CM2.ssp126.r1i1p1f1.day.pr.gn.v20210317.json",],
-                      "deleted_keys": ["catalogue-data/supported/collections/cordex.json",],
-                      "bucket_name": "catalogue-data",
-                    }
+    harvested_dict = {
+        "added_keys": [
+            (
+                "catalogue-data/supported/collections/cmip6/items/CMIP6.ScenarioMIP.CSIRO"
+                "-ARCCSS.ACCESS-CM2.ssp126.r1i1p1f1.day.tasmin.gn.v20210317.json"
+            ),
+            (
+                "catalogue-data/supported/collections/cmip6/items/CMIP6.ScenarioMIP.CSIRO-ARCCSS"
+                ".ACCESS-CM2.ssp126.r1i1p1f1.day.pr.gn.v20210317.json"
+            ),
+            "catalogue-data/supported/collections/cmip6.json",
+            "catalogue-data/supported/collections/cordex.json",
+        ],
+        "updatedkeys": [
+            (
+                "catalogue-data/supported/collections/cmip6/items/CMIP6.ScenarioMIP.CSI"
+                "RO-ARCCSS.ACCESS-CM2.ssp126.r1i1p1f1.day.pr.gn.v20210317.json"
+            ),
+        ],
+        "deleted_keys": [
+            "catalogue-data/supported/collections/cordex.json",
+        ],
+        "bucket_name": "catalogue-data",
+    }
 
     harvested_string = json.dumps(harvested_dict)
     try:
