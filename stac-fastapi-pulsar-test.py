@@ -1,10 +1,9 @@
+import json
+import os
 from random import choice
 from string import ascii_uppercase
 from time import sleep
 from typing import Optional
-import os
-
-import json
 
 import click
 import pulsar
