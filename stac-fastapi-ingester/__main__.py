@@ -1,11 +1,9 @@
-from random import choice
-from string import ascii_uppercase
-from time import sleep
 from typing import Optional
 import os
 
 import json
 import requests
+from http import HTTPStatus
 
 import click
 import pulsar
@@ -54,7 +52,7 @@ def cli(ctx, topic: str):
 ## DELETE FROM STAC FASTAPI ##
 ##############################
 
-def delete_collection(api_url, collection_id):
+def delete_collection(api_url: str, collection_id: str):
     headers = {"accept": "application/json"}
     try:
         resp = requests.delete(
@@ -62,19 +60,19 @@ def delete_collection(api_url, collection_id):
             headers=headers,
         )
         if resp.status_code == 200:
-            logger.info(f"Status code: {resp.status_code}")
+            logger.info(f"Status code: {HTTPStatus.OK}")
             logger.info(f"Deleted collection {collection_id}")
         elif resp.status_code == 409:
-            logger.warning(f"Status code: {resp.status_code}")
+            logger.warning(f"Status code: {HTTPStatus.CONFLICT}")
         elif resp.status_code == 404:
-            logger.warning(f"Status code: {resp.status_code}")
+            logger.warning(f"Status code: {HTTPStatus.NOT_FOUND}")
             logger.warning(f"Collection: {collection_id} does not exist.")
     except requests.ConnectionError:
         click.secho("failed to connect")
     except:
         logger.warning("Something went wrong")
 
-def delete_item(api_url, collection_id, item_id):
+def delete_item(api_url: str, collection_id: str, item_id: str):
     headers = {"accept": "application/json"}
     try:
         resp = requests.delete(
@@ -82,12 +80,12 @@ def delete_item(api_url, collection_id, item_id):
             headers=headers,
         )
         if resp.status_code == 200:
-            logger.info(f"Status code: {resp.status_code}")
+            logger.info(f"Status code: {HTTPStatus.OK}")
             logger.info(f"Deleted item {item_id}")
         elif resp.status_code == 409:
-            logger.warning(f"Status code: {resp.status_code}")
+            logger.warning(f"Status code: {HTTPStatus.CONFLICT}")
         elif resp.status_code == 404:
-            logger.warning(f"Status code: {resp.status_code}")
+            logger.warning(f"Status code: {HTTPStatus.NOT_FOUND}")
             logger.warning(f"Item: {item_id} in Collection: {collection_id} does not exist.")
     except requests.ConnectionError:
         logger.warning("failed to connect")
@@ -98,7 +96,7 @@ def delete_item(api_url, collection_id, item_id):
 ## UPDATE IN STAC FASTAPI ##
 ############################
 
-def update_collection(api_url, collection_id, data):
+def update_collection(api_url: str, collection_id: str, data: dict):
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     try:
         resp = requests.put(
@@ -107,19 +105,19 @@ def update_collection(api_url, collection_id, data):
             json=data,
         )
         if resp.status_code == 200:
-            logger.info(f"Status code: {resp.status_code}")
+            logger.info(f"Status code: {HTTPStatus.OK}")
             logger.info(f"Updated Collection {collection_id}")
         elif resp.status_code == 409:
-            logger.warning(f"Status code: {resp.status_code}")
+            logger.warning(f"Status code: {HTTPStatus.CONFLICT}")
         elif resp.status_code == 404:
-            logger.warning(f"Status code: {resp.status_code}")
+            logger.warning(f"Status code: {HTTPStatus.NOT_FOUND}")
             logger.warning(f"Collection {collection_id} not updated as doesn't exist.")
     except requests.ConnectionError:
         logger.warning("failed to connect")
     except:
         logger.warning("Something went wrong")
 
-def update_item(api_url, collection_id, item_id, data):
+def update_item(api_url: str, collection_id: str, item_id, data: dict):
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     try:
         resp = requests.put(
@@ -128,12 +126,12 @@ def update_item(api_url, collection_id, item_id, data):
             json=data,
         )
         if resp.status_code == 200:
-            logger.info(f"Status code: {resp.status_code}")
+            logger.info(f"Status code: {HTTPStatus.OK}")
             logger.info(f"Updated Item {item_id}")
         elif resp.status_code == 409:
-            logger.warning(f"Status code: {resp.status_code}")
+            logger.warning(f"Status code: {HTTPStatus.CONFLICT}")
         elif resp.status_code == 404:
-            logger.warning(f"Status code: {resp.status_code}")
+            logger.warning(f"Status code: {HTTPStatus.NOT_FOUND}")
             response_decoded = json.loads(resp.content.decode())
             response_decoded_description = response_decoded['description']
             if "Item" in response_decoded_description:
@@ -150,7 +148,7 @@ def update_item(api_url, collection_id, item_id, data):
 ## CREATE IN STAC FASTAPI ##
 ############################
 
-def create_collection(api_url, collection_id, data):
+def create_collection(api_url: str, collection_id: str, data: dict):
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     try:
         resp = requests.post(
@@ -159,17 +157,17 @@ def create_collection(api_url, collection_id, data):
             json=data,
         )
         if resp.status_code == 200:
-            logger.info(f"Status code: {resp.status_code}")
+            logger.info(f"Status code: {HTTPStatus.OK}")
             logger.info(f"Created Collection {collection_id}")
         elif resp.status_code == 409:
-            logger.warning(f"Status code: {resp.status_code}")
+            logger.warning(f"Status code: {HTTPStatus.CONFLICT}")
             logger.warning(f"Collection: {collection_id} already exists")
     except requests.ConnectionError:
         logger.warning("failed to connect")
     except:
         logger.warning("Something went wrong")
 
-def create_item(api_url, collection_id, item_id, data):
+def create_item(api_url: str, collection_id: str, item_id: str, data: dict):
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     try:
         resp = requests.post(
@@ -178,7 +176,7 @@ def create_item(api_url, collection_id, item_id, data):
             json=data,
         )
         if resp.status_code == 200:
-            logger.info(f"Status code: {resp.status_code}")
+            logger.info(f"Status code: {HTTPStatus.OK}")
             logger.info(f"Created Item {item_id}")
             return True
         elif resp.status_code == 404:
@@ -186,7 +184,7 @@ def create_item(api_url, collection_id, item_id, data):
             logger.warning(f"Collection: {collection_id} not yet created, will try again in a bit.")
             return False
         elif resp.status_code == 409:
-            logger.warning(f"Status code: {resp.status_code}")
+            logger.warning(f"Status code: {HTTPStatus.CONFLICT}")
             logger.warning(f"Item: {item_id} in Collection: {collection_id} already exists")
             return True
     except requests.ConnectionError:
@@ -195,7 +193,7 @@ def create_item(api_url, collection_id, item_id, data):
         logger.warning("Something went wrong")
 
 
-def load_data_from_s3(client, bucket_name, file_key):
+def load_data_from_s3(client: botocore.client.S3, bucket_name: str, file_key: str):
     try:
         data = client.get_object(Bucket=bucket_name, Key=file_key)
         data = json.loads(data['Body'].read())
@@ -206,7 +204,7 @@ def load_data_from_s3(client, bucket_name, file_key):
     except:
         logger.error("Failed to load S3 object")
 
-def interpret_message(msg: str, api_url):
+def interpret_message(msg: str, api_url: str):
 
     # Configure boto3 client ready for data access
     client = boto3.client("s3")
