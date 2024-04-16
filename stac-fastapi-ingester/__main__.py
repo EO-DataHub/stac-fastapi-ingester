@@ -195,14 +195,13 @@ def create_item(api_url, collection_id, item_id, data):
         logger.warning("Something went wrong")
 
 
-def load_data_from_s3(client, file_uri):
+def load_data_from_s3(client, bucket_name, file_key):
     try:
-        bucket, key = file_uri.replace("s3://","").split("/",1)
-        data = client.get_object(Bucket=bucket, Key=key)
+        data = client.get_object(Bucket=bucket_name, Key=file_key)
         data = json.loads(data['Body'].read())
         return data
     except botocore.exceptions.ParamValidationError:
-        logger.warning("Provided file uri is not supported.")
+        logger.warning("Provided bucket name or file key is not supported.")
         return False
     except:
         logger.error("Failed to load S3 object")
@@ -211,10 +210,12 @@ def interpret_message(msg: str, api_url):
 
     # Configure boto3 client ready for data access
     client = boto3.client("s3")
-    
-    # Ensure input data can be parsed as JSON
-    msg = msg.replace("'", '"')
+
+    # Extract as JSON dictionary
     updates_json = json.loads(msg)
+
+    # Extract bucket name from message
+    bucket_name = updates_json['bucket_name']
 
     # Extract file names into actions lists
     files_to_update = updates_json['updated_files'] if 'updated_files' in updates_json.keys() else []
@@ -222,12 +223,12 @@ def interpret_message(msg: str, api_url):
     files_to_create = updates_json['added_files'] if 'added_files' in updates_json.keys() else []
 
     # Delete items and collections
-    for file_uri in files_to_delete:
+    for file_key in files_to_delete:
 
         # We can track deleted collections as this will also delete all associated items so no need to call the delete items endpoint as well
         deleted_collections = set()
 
-        data = load_data_from_s3(client, file_uri)
+        data = load_data_from_s3(client, bucket_name, file_key)
         if data == False:
             continue
 
@@ -249,13 +250,13 @@ def interpret_message(msg: str, api_url):
     num_files_to_create = len(files_to_create)
     files_count = 0
     
-    for file_uri in files_to_create:
+    for file_key in files_to_create:
 
         # Variable to prevent endless looping, limits number of loops to at most 2
         if files_count >= num_files_to_create * 2:
             break
 
-        data = load_data_from_s3(client, file_uri)
+        data = load_data_from_s3(client, file_key)
         if data == False:
             continue
 
@@ -271,16 +272,16 @@ def interpret_message(msg: str, api_url):
 
             # Handle case in which collection is not yet created for this item
             item_registered = create_item(api_url, collection_id, item_id, data)
-            files_to_create.append(file_uri) if not item_registered else None
+            files_to_create.append(file_key) if not item_registered else None
 
         # Increment loop counter
         files_count+=1
             
 
     # Update collections and items
-    for file_uri in files_to_update:
+    for file_key in files_to_update:
 
-        data = load_data_from_s3(client, file_uri)
+        data = load_data_from_s3(client, file_key)
         if data == False:
             continue
 
