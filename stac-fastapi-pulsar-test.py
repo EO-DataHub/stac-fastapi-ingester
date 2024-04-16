@@ -18,7 +18,7 @@ INTERVAL = 1
 @click.group()
 @click.argument("topic", type=str)
 @click.pass_context
-def cli(ctx, pulsar_url: str, topic: str):
+def cli(ctx, topic: str):
     ctx.ensure_object(dict)
     pulsar_url = os.getenv("PULSAR_URL", "")
     ctx.obj["CLIENT"] = pulsar.Client(pulsar_url)
@@ -44,7 +44,7 @@ def publish(ctx, prefix: Optional[str] = None, n: Optional[int] = 100):
                                       "catalogue-data/supported/collections/cordex.json",],
                       "updatedkeys": ["catalogue-data/supported/collections/cmip6/items/CMIP6.ScenarioMIP.CSIRO-ARCCSS.ACCESS-CM2.ssp126.r1i1p1f1.day.pr.gn.v20210317.json",],
                       "deleted_keys": ["catalogue-data/supported/collections/cordex.json",],
-                      "bucket_name": {"catalogue-data"}
+                      "bucket_name": "catalogue-data",
                     }
 
     harvested_string = json.dumps(harvested_dict)
