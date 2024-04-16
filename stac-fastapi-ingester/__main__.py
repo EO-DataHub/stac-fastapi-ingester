@@ -59,7 +59,6 @@ def delete_collection(api_url: str, collection_id: str):
             f"{api_url}/collections/{collection_id}", 
             headers=headers,
         )
-        print(resp.status_code)
         if resp.status_code == HTTPStatus.OK or resp.status_code == HTTPStatus.NO_CONTENT:
             logger.info(f"Status code: OK")
             logger.info(f"Deleted collection {collection_id}")
@@ -80,7 +79,7 @@ def delete_item(api_url: str, collection_id: str, item_id: str):
             f"{api_url}/collections/{collection_id}/items/{item_id}", 
             headers=headers,
         )
-        if resp.status_code == HTTPStatus.OK:
+        if resp.status_code == HTTPStatus.OK or resp.status_code == HTTPStatus.NO_CONTENT:
             logger.info(f"Status code: OK")
             logger.info(f"Deleted item {item_id}")
         elif resp.status_code == HTTPStatus.CONFLICT:
@@ -112,7 +111,7 @@ def update_collection(api_url: str, collection_id: str, data: dict):
             logger.warning(f"Status code: CONFLICT")
         elif resp.status_code == HTTPStatus.NOT_FOUND:
             logger.warning(f"Status code: NOT_FOUND")
-            logger.warning(f"Collection {collection_id} not updated as doesn't exist.")
+            logger.warning(f"Collection: {collection_id} not updated as doesn't exist.")
     except requests.ConnectionError:
         logger.warning("failed to connect")
     except:
