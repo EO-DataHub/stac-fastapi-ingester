@@ -65,7 +65,7 @@ def publish(ctx, prefix: Optional[str] = None, n: Optional[int] = 100):
 
     harvested_string = json.dumps(harvested_dict)
     try:
-        for ii in range(n):
+        for _ in range(n):
             msg = harvested_string
             click.echo(msg)
             producer.send(msg.encode("utf-8"))
