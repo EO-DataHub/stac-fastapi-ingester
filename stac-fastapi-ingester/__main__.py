@@ -1,17 +1,15 @@
-from typing import Optional
-import os
-
 import json
-import requests
+import logging
+import os
 from http import HTTPStatus
+from typing import Optional
 
+import boto3
+import botocore.exceptions
 import click
 import pulsar
 import pulsar.exceptions
-import boto3
-import botocore.exceptions
-
-import logging
+import requests
 
 # configure boto3 logging
 logging.getLogger("botocore").setLevel(logging.CRITICAL)
