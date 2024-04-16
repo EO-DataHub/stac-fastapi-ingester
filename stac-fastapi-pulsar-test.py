@@ -5,12 +5,10 @@ from typing import Optional
 import os
 
 import json
-import requests
 
 import click
 import pulsar
 import pulsar.exceptions
-import boto3
 
 INTERVAL = 1
 

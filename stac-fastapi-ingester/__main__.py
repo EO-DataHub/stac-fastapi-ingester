@@ -61,16 +61,16 @@ def delete_collection(api_url: str, collection_id: str):
             headers=headers,
         )
         if resp.status_code == HTTPStatus.OK or resp.status_code == HTTPStatus.NO_CONTENT:
-            logger.info(f"Status code: OK")
+            logger.info("Status code: OK")
             logger.info(f"Deleted collection {collection_id}")
         elif resp.status_code == HTTPStatus.CONFLICT:
-            logger.warning(f"Status code: CONFLICT")
+            logger.warning("Status code: CONFLICT")
         elif resp.status_code == HTTPStatus.NOT_FOUND:
-            logger.warning(f"Status code: NOT_FOUND")
+            logger.warning("Status code: NOT_FOUND")
             logger.warning(f"Collection: {collection_id} does not exist.")
     except requests.ConnectionError:
         click.secho("failed to connect")
-    except:
+    except Exception as err:
         logger.warning("Something went wrong")
 
 
@@ -82,16 +82,16 @@ def delete_item(api_url: str, collection_id: str, item_id: str):
             headers=headers,
         )
         if resp.status_code == HTTPStatus.OK or resp.status_code == HTTPStatus.NO_CONTENT:
-            logger.info(f"Status code: OK")
+            logger.info("Status code: OK")
             logger.info(f"Deleted item {item_id}")
         elif resp.status_code == HTTPStatus.CONFLICT:
-            logger.warning(f"Status code: CONFLICT")
+            logger.warning("Status code: CONFLICT")
         elif resp.status_code == HTTPStatus.NOT_FOUND:
-            logger.warning(f"Status code: NOT_FOUND")
+            logger.warning("Status code: NOT_FOUND")
             logger.warning(f"Item: {item_id} in Collection: {collection_id} does not exist.")
     except requests.ConnectionError:
         logger.warning("failed to connect")
-    except:
+    except Exception as err:
         logger.warning("Something went wrong")
 
 
@@ -109,16 +109,16 @@ def update_collection(api_url: str, collection_id: str, data: dict):
             json=data,
         )
         if resp.status_code == HTTPStatus.OK:
-            logger.info(f"Status code: OK")
+            logger.info("Status code: OK")
             logger.info(f"Updated Collection {collection_id}")
         elif resp.status_code == HTTPStatus.CONFLICT:
-            logger.warning(f"Status code: CONFLICT")
+            logger.warning("Status code: CONFLICT")
         elif resp.status_code == HTTPStatus.NOT_FOUND:
-            logger.warning(f"Status code: NOT_FOUND")
+            logger.warning("Status code: NOT_FOUND")
             logger.warning(f"Collection: {collection_id} not updated as doesn't exist.")
     except requests.ConnectionError:
         logger.warning("failed to connect")
-    except:
+    except Exception as err:
         logger.warning("Something went wrong")
 
 
@@ -131,12 +131,12 @@ def update_item(api_url: str, collection_id: str, item_id, data: dict):
             json=data,
         )
         if resp.status_code == HTTPStatus.OK:
-            logger.info(f"Status code: OK")
+            logger.info("Status code: OK")
             logger.info(f"Updated Item {item_id}")
         elif resp.status_code == HTTPStatus.CONFLICT:
-            logger.warning(f"Status code: CONFLICT")
+            logger.warning("Status code: CONFLICT")
         elif resp.status_code == HTTPStatus.NOT_FOUND:
-            logger.warning(f"Status code: NOT_FOUND")
+            logger.warning("Status code: NOT_FOUND")
             response_decoded = json.loads(resp.content.decode())
             response_decoded_description = response_decoded["description"]
             if "Item" in response_decoded_description:
@@ -151,7 +151,7 @@ def update_item(api_url: str, collection_id: str, item_id, data: dict):
                 )
     except requests.ConnectionError:
         logger.warning("failed to connect")
-    except:
+    except Exception as err:
         logger.warning("Something went wrong")
 
 
@@ -169,14 +169,14 @@ def create_collection(api_url: str, collection_id: str, data: dict):
             json=data,
         )
         if resp.status_code == HTTPStatus.OK:
-            logger.info(f"Status code: OK")
+            logger.info("Status code: OK")
             logger.info(f"Created Collection {collection_id}")
         elif resp.status_code == HTTPStatus.CONFLICT:
-            logger.warning(f"Status code: CONFLICT")
+            logger.warning("Status code: CONFLICT")
             logger.warning(f"Collection: {collection_id} already exists")
     except requests.ConnectionError:
         logger.warning("failed to connect")
-    except:
+    except Exception as err:
         logger.warning("Something went wrong")
 
 
@@ -189,7 +189,7 @@ def create_item(api_url: str, collection_id: str, item_id: str, data: dict):
             json=data,
         )
         if resp.status_code == HTTPStatus.OK:
-            logger.info(f"Status code: OK")
+            logger.info("Status code: OK")
             logger.info(f"Created Item {item_id}")
             return True
         elif resp.status_code == HTTPStatus.NOT_FOUND:
@@ -197,12 +197,12 @@ def create_item(api_url: str, collection_id: str, item_id: str, data: dict):
             logger.warning(f"Collection: {collection_id} not yet created, will try again in a bit")
             return False
         elif resp.status_code == HTTPStatus.CONFLICT:
-            logger.warning(f"Status code: CONFLICT")
+            logger.warning("Status code: CONFLICT")
             logger.warning(f"Item: {item_id} in Collection: {collection_id} already exists")
             return True
     except requests.ConnectionError:
         logger.warning("failed to connect")
-    except:
+    except Exception as err:
         logger.warning("Something went wrong")
 
 
@@ -214,7 +214,7 @@ def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str):
     except botocore.exceptions.ParamValidationError:
         logger.warning("Provided bucket name or file key is not supported.")
         return False
-    except:
+    except Exception as err:
         logger.error("Failed to load S3 object")
 
 
@@ -242,7 +242,7 @@ def interpret_message(msg: str, api_url: str):
         deleted_collections = set()
 
         data = load_data_from_s3(client, bucket_name, file_key)
-        if data == False:
+        if not data:
             continue
 
         if data["type"] == "Collection":
@@ -270,7 +270,7 @@ def interpret_message(msg: str, api_url: str):
             break
 
         data = load_data_from_s3(client, bucket_name, file_key)
-        if data == False:
+        if not data:
             continue
 
         if data["type"] == "Collection":
@@ -294,7 +294,7 @@ def interpret_message(msg: str, api_url: str):
     for file_key in files_to_update:
 
         data = load_data_from_s3(client, bucket_name, file_key)
-        if data == False:
+        if not data:
             continue
 
         if data["type"] == "Collection":
