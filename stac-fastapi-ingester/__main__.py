@@ -59,13 +59,14 @@ def delete_collection(api_url: str, collection_id: str):
             f"{api_url}/collections/{collection_id}", 
             headers=headers,
         )
-        if resp.status_code == 200:
-            logger.info(f"Status code: {HTTPStatus.OK}")
+        print(resp.status_code)
+        if resp.status_code == HTTPStatus.OK or resp.status_code == HTTPStatus.NO_CONTENT:
+            logger.info(f"Status code: OK")
             logger.info(f"Deleted collection {collection_id}")
-        elif resp.status_code == 409:
-            logger.warning(f"Status code: {HTTPStatus.CONFLICT}")
-        elif resp.status_code == 404:
-            logger.warning(f"Status code: {HTTPStatus.NOT_FOUND}")
+        elif resp.status_code == HTTPStatus.CONFLICT:
+            logger.warning(f"Status code: CONFLICT")
+        elif resp.status_code == HTTPStatus.NOT_FOUND:
+            logger.warning(f"Status code: NOT_FOUND")
             logger.warning(f"Collection: {collection_id} does not exist.")
     except requests.ConnectionError:
         click.secho("failed to connect")
@@ -79,13 +80,13 @@ def delete_item(api_url: str, collection_id: str, item_id: str):
             f"{api_url}/collections/{collection_id}/items/{item_id}", 
             headers=headers,
         )
-        if resp.status_code == 200:
-            logger.info(f"Status code: {HTTPStatus.OK}")
+        if resp.status_code == HTTPStatus.OK:
+            logger.info(f"Status code: OK")
             logger.info(f"Deleted item {item_id}")
-        elif resp.status_code == 409:
-            logger.warning(f"Status code: {HTTPStatus.CONFLICT}")
-        elif resp.status_code == 404:
-            logger.warning(f"Status code: {HTTPStatus.NOT_FOUND}")
+        elif resp.status_code == HTTPStatus.CONFLICT:
+            logger.warning(f"Status code: CONFLICT")
+        elif resp.status_code == HTTPStatus.NOT_FOUND:
+            logger.warning(f"Status code: NOT_FOUND")
             logger.warning(f"Item: {item_id} in Collection: {collection_id} does not exist.")
     except requests.ConnectionError:
         logger.warning("failed to connect")
@@ -104,13 +105,13 @@ def update_collection(api_url: str, collection_id: str, data: dict):
             headers=headers,
             json=data,
         )
-        if resp.status_code == 200:
-            logger.info(f"Status code: {HTTPStatus.OK}")
+        if resp.status_code == HTTPStatus.OK:
+            logger.info(f"Status code: OK")
             logger.info(f"Updated Collection {collection_id}")
-        elif resp.status_code == 409:
-            logger.warning(f"Status code: {HTTPStatus.CONFLICT}")
-        elif resp.status_code == 404:
-            logger.warning(f"Status code: {HTTPStatus.NOT_FOUND}")
+        elif resp.status_code == HTTPStatus.CONFLICT:
+            logger.warning(f"Status code: CONFLICT")
+        elif resp.status_code == HTTPStatus.NOT_FOUND:
+            logger.warning(f"Status code: NOT_FOUND")
             logger.warning(f"Collection {collection_id} not updated as doesn't exist.")
     except requests.ConnectionError:
         logger.warning("failed to connect")
@@ -125,13 +126,13 @@ def update_item(api_url: str, collection_id: str, item_id, data: dict):
             headers=headers,
             json=data,
         )
-        if resp.status_code == 200:
-            logger.info(f"Status code: {HTTPStatus.OK}")
+        if resp.status_code == HTTPStatus.OK:
+            logger.info(f"Status code: OK")
             logger.info(f"Updated Item {item_id}")
-        elif resp.status_code == 409:
-            logger.warning(f"Status code: {HTTPStatus.CONFLICT}")
-        elif resp.status_code == 404:
-            logger.warning(f"Status code: {HTTPStatus.NOT_FOUND}")
+        elif resp.status_code == HTTPStatus.CONFLICT:
+            logger.warning(f"Status code: CONFLICT")
+        elif resp.status_code == HTTPStatus.NOT_FOUND:
+            logger.warning(f"Status code: NOT_FOUND")
             response_decoded = json.loads(resp.content.decode())
             response_decoded_description = response_decoded['description']
             if "Item" in response_decoded_description:
@@ -156,11 +157,11 @@ def create_collection(api_url: str, collection_id: str, data: dict):
             headers=headers,
             json=data,
         )
-        if resp.status_code == 200:
-            logger.info(f"Status code: {HTTPStatus.OK}")
+        if resp.status_code == HTTPStatus.OK:
+            logger.info(f"Status code: OK")
             logger.info(f"Created Collection {collection_id}")
-        elif resp.status_code == 409:
-            logger.warning(f"Status code: {HTTPStatus.CONFLICT}")
+        elif resp.status_code == HTTPStatus.CONFLICT:
+            logger.warning(f"Status code: CONFLICT")
             logger.warning(f"Collection: {collection_id} already exists")
     except requests.ConnectionError:
         logger.warning("failed to connect")
@@ -175,16 +176,16 @@ def create_item(api_url: str, collection_id: str, item_id: str, data: dict):
             headers=headers,
             json=data,
         )
-        if resp.status_code == 200:
-            logger.info(f"Status code: {HTTPStatus.OK}")
+        if resp.status_code == HTTPStatus.OK:
+            logger.info(f"Status code: OK")
             logger.info(f"Created Item {item_id}")
             return True
-        elif resp.status_code == 404:
+        elif resp.status_code == HTTPStatus.NOT_FOUND:
             # Add files awaiting collection creation to the end of the list again
             logger.warning(f"Collection: {collection_id} not yet created, will try again in a bit.")
             return False
-        elif resp.status_code == 409:
-            logger.warning(f"Status code: {HTTPStatus.CONFLICT}")
+        elif resp.status_code == HTTPStatus.CONFLICT:
+            logger.warning(f"Status code: CONFLICT")
             logger.warning(f"Item: {item_id} in Collection: {collection_id} already exists")
             return True
     except requests.ConnectionError:
@@ -193,7 +194,7 @@ def create_item(api_url: str, collection_id: str, item_id: str, data: dict):
         logger.warning("Something went wrong")
 
 
-def load_data_from_s3(client: botocore.client.S3, bucket_name: str, file_key: str):
+def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str):
     try:
         data = client.get_object(Bucket=bucket_name, Key=file_key)
         data = json.loads(data['Body'].read())
@@ -216,9 +217,9 @@ def interpret_message(msg: str, api_url: str):
     bucket_name = updates_json['bucket_name']
 
     # Extract file names into actions lists
-    files_to_update = updates_json['updated_files'] if 'updated_files' in updates_json.keys() else []
-    files_to_delete = updates_json['deleted_files'] if 'deleted_files' in updates_json.keys() else []
-    files_to_create = updates_json['added_files'] if 'added_files' in updates_json.keys() else []
+    files_to_update = updates_json['updated_keys'] if 'updated_keys' in updates_json.keys() else []
+    files_to_delete = updates_json['deleted_keys'] if 'deleted_keys' in updates_json.keys() else []
+    files_to_create = updates_json['added_keys'] if 'added_keys' in updates_json.keys() else []
 
     # Delete items and collections
     for file_key in files_to_delete:
@@ -254,7 +255,7 @@ def interpret_message(msg: str, api_url: str):
         if files_count >= num_files_to_create * 2:
             break
 
-        data = load_data_from_s3(client, file_key)
+        data = load_data_from_s3(client, bucket_name, file_key)
         if data == False:
             continue
 
@@ -279,7 +280,7 @@ def interpret_message(msg: str, api_url: str):
     # Update collections and items
     for file_key in files_to_update:
 
-        data = load_data_from_s3(client, file_key)
+        data = load_data_from_s3(client, bucket_name, file_key)
         if data == False:
             continue
 
