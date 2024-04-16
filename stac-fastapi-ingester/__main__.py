@@ -72,6 +72,7 @@ def delete_collection(api_url: str, collection_id: str):
         click.secho("failed to connect")
     except Exception as err:
         logger.warning("Something went wrong")
+        print(repr(err))
 
 
 def delete_item(api_url: str, collection_id: str, item_id: str):
@@ -93,6 +94,7 @@ def delete_item(api_url: str, collection_id: str, item_id: str):
         logger.warning("failed to connect")
     except Exception as err:
         logger.warning("Something went wrong")
+        print(repr(err))
 
 
 ############################
@@ -120,6 +122,7 @@ def update_collection(api_url: str, collection_id: str, data: dict):
         logger.warning("failed to connect")
     except Exception as err:
         logger.warning("Something went wrong")
+        print(repr(err))
 
 
 def update_item(api_url: str, collection_id: str, item_id, data: dict):
@@ -153,6 +156,7 @@ def update_item(api_url: str, collection_id: str, item_id, data: dict):
         logger.warning("failed to connect")
     except Exception as err:
         logger.warning("Something went wrong")
+        print(repr(err))
 
 
 ############################
@@ -178,6 +182,7 @@ def create_collection(api_url: str, collection_id: str, data: dict):
         logger.warning("failed to connect")
     except Exception as err:
         logger.warning("Something went wrong")
+        print(repr(err))
 
 
 def create_item(api_url: str, collection_id: str, item_id: str, data: dict):
@@ -204,6 +209,7 @@ def create_item(api_url: str, collection_id: str, item_id: str, data: dict):
         logger.warning("failed to connect")
     except Exception as err:
         logger.warning("Something went wrong")
+        print(repr(err))
 
 
 def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str):
@@ -216,6 +222,7 @@ def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str):
         return False
     except Exception as err:
         logger.error("Failed to load S3 object")
+        print(repr(err))
 
 
 def interpret_message(msg: str, api_url: str):
