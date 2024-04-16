@@ -2,6 +2,7 @@ from random import choice
 from string import ascii_uppercase
 from time import sleep
 from typing import Optional
+import os
 
 import json
 import requests
@@ -15,11 +16,11 @@ INTERVAL = 1
 
 
 @click.group()
-@click.argument("pulsar_url", type=str)
 @click.argument("topic", type=str)
 @click.pass_context
 def cli(ctx, pulsar_url: str, topic: str):
     ctx.ensure_object(dict)
+    pulsar_url = os.getenv("PULSAR_URL", "")
     ctx.obj["CLIENT"] = pulsar.Client(pulsar_url)
     ctx.obj["TOPIC"] = topic
     click.echo(f"Connecting to broker '{pulsar_url}' with topic '{topic}'")
