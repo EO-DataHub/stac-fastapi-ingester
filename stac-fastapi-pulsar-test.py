@@ -37,19 +37,12 @@ def publish(ctx, prefix: Optional[str] = None, n: Optional[int] = 100):
     client: pulsar.Client = ctx.obj["CLIENT"]
     topic: str = ctx.obj["TOPIC"]
     producer: pulsar.Producer = client.create_producer(topic=topic, producer_name=prefix)
-    harvested_dict = {"added_keys": ["catalogue-data/supported/collections/cordex/items/CORDEX.output.EUR-11.MOHC.MOHC-HadGEM2-ES.rcp26.r1i1p1.MOHC-HadREM3-GA7-05.v1.3hr.pr.v20201111.json",
-                                      "catalogue-data/supported/collections/cordex/items/CORDEX.output.EUR-11.MOHC.MOHC-HadGEM2-ES.rcp26.r1i1p1.MOHC-HadREM3-GA7-05.v1.day.rsus.v20201111.json",
-                                      "catalogue-data/supported/collections/cmip6/items/CMIP6.ScenarioMIP.CSIRO-ARCCSS.ACCESS-CM2.ssp126.r1i1p1f1.day.tasmin.gn.v20210317.json", 
+    harvested_dict = {"added_keys": ["catalogue-data/supported/collections/cmip6/items/CMIP6.ScenarioMIP.CSIRO-ARCCSS.ACCESS-CM2.ssp126.r1i1p1f1.day.tasmin.gn.v20210317.json", 
                                       "catalogue-data/supported/collections/cmip6/items/CMIP6.ScenarioMIP.CSIRO-ARCCSS.ACCESS-CM2.ssp126.r1i1p1f1.day.pr.gn.v20210317.json", 
-                                      "catalogue-data/supported/collections/sentinel2_ard/items/neodc.sentinel_ard.data.sentinel_2.2023.11.20.S2A_20231120_latn510lonw0036_T30UVB_ORB037_20231120132420_utm30n_osgb.json", 
-                                      "catalogue-data/supported/collections/sentinel2_ard/items/neodc.sentinel_ard.data.sentinel_2.2023.11.20.S2A_20231120_latn518lonw0008_T30UXC_ORB037_20231120132420_utm30n_osgb.json", 
-                                      "catalogue-data/supported/collections/cordex.json", 
                                       "catalogue-data/supported/collections/cmip6.json", 
-                                      "catalogue-data/supported/collections/sentinel2_ard.json"],
-                      "updatedkeys": ["catalogue-data/supported/collections/cordex.json", 
-                                      "catalogue-data/supported/collections/sentinel2_ard/items/neodc.sentinel_ard.data.sentinel_2.2023.11.20.S2A_20231120_latn518lonw0008_T30UXC_ORB037_20231120132420_utm30n_osgb.json", ],
-                      "deleted_keys": ["catalogue-data/supported/collections/cordex/items/CORDEX.output.EUR-11.MOHC.MOHC-HadGEM2-ES.rcp26.r1i1p1.MOHC-HadREM3-GA7-05.v1.day.rsus.v20201111.json",
-                                      "catalogue-data/supported/collections/cmip6.json",],
+                                      "catalogue-data/supported/collections/cordex.json",],
+                      "updatedkeys": ["catalogue-data/supported/collections/cmip6/items/CMIP6.ScenarioMIP.CSIRO-ARCCSS.ACCESS-CM2.ssp126.r1i1p1f1.day.pr.gn.v20210317.json",],
+                      "deleted_keys": ["catalogue-data/supported/collections/cordex.json",],
                       "bucket_name": {"catalogue-data"}
                     }
 
