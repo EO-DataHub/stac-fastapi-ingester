@@ -212,7 +212,7 @@ def create_item(api_url: str, collection_id: str, item_id: str, data: dict):
 
 
 def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str) -> dict:
-    print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa')
+    print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa")
     try:
         data = client.get_object(Bucket=bucket_name, Key=file_key)
         data = json.loads(data["Body"].read())
