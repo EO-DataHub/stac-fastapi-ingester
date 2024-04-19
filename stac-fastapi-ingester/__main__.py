@@ -69,7 +69,7 @@ def delete_collection(api_url: str, collection_id: str):
             logger.warning(f"Collection: {collection_id} does not exist.")
     except requests.ConnectionError:
         click.secho("failed to connect")
-    except Exception as err:
+    except Exception:
         print(traceback.format_exc())
         logger.warning("Something went wrong")
 
@@ -91,7 +91,7 @@ def delete_item(api_url: str, collection_id: str, item_id: str):
             logger.warning(f"Item: {item_id} in Collection: {collection_id} does not exist.")
     except requests.ConnectionError:
         logger.warning("failed to connect")
-    except Exception as err:
+    except Exception:
         print(traceback.format_exc())
         logger.warning("Something went wrong")
 
@@ -119,7 +119,7 @@ def update_collection(api_url: str, collection_id: str, data: dict):
             logger.warning(f"Collection: {collection_id} not updated as doesn't exist.")
     except requests.ConnectionError:
         logger.warning("failed to connect")
-    except Exception as err:
+    except Exception:
         logger.warning("Something went wrong")
         print(traceback.format_exc())
 
@@ -153,7 +153,7 @@ def update_item(api_url: str, collection_id: str, item_id, data: dict):
                 )
     except requests.ConnectionError:
         logger.warning("failed to connect")
-    except Exception as err:
+    except Exception:
         print(traceback.format_exc())
         logger.warning("Something went wrong")
 
@@ -179,7 +179,7 @@ def create_collection(api_url: str, collection_id: str, data: dict):
             logger.warning(f"Collection: {collection_id} already exists")
     except requests.ConnectionError:
         logger.warning("failed to connect")
-    except Exception as err:
+    except Exception:
         print(traceback.format_exc())
         logger.warning("Something went wrong")
 
@@ -206,7 +206,7 @@ def create_item(api_url: str, collection_id: str, item_id: str, data: dict):
             return True
     except requests.ConnectionError:
         logger.warning("failed to connect")
-    except Exception as err:
+    except Exception:
         print(traceback.format_exc())
         logger.warning("Something went wrong")
 
@@ -219,7 +219,7 @@ def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str) 
     except botocore.exceptions.ParamValidationError:
         logger.warning("Provided bucket name or file key is not supported.")
         return False
-    except Exception as err:
+    except Exception:
         print(traceback.format_exc())
         logger.error("Failed to load S3 object")
 
