@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import traceback
 from http import HTTPStatus
 from typing import Optional
 
@@ -69,8 +70,8 @@ def delete_collection(api_url: str, collection_id: str):
     except requests.ConnectionError:
         click.secho("failed to connect")
     except Exception as err:
+        print(traceback.format_exc())
         logger.warning("Something went wrong")
-        print(repr(err))
 
 
 def delete_item(api_url: str, collection_id: str, item_id: str):
@@ -91,8 +92,8 @@ def delete_item(api_url: str, collection_id: str, item_id: str):
     except requests.ConnectionError:
         logger.warning("failed to connect")
     except Exception as err:
+        print(traceback.format_exc())
         logger.warning("Something went wrong")
-        print(repr(err))
 
 
 ############################
@@ -120,7 +121,7 @@ def update_collection(api_url: str, collection_id: str, data: dict):
         logger.warning("failed to connect")
     except Exception as err:
         logger.warning("Something went wrong")
-        print(repr(err))
+        print(traceback.format_exc())
 
 
 def update_item(api_url: str, collection_id: str, item_id, data: dict):
@@ -153,8 +154,8 @@ def update_item(api_url: str, collection_id: str, item_id, data: dict):
     except requests.ConnectionError:
         logger.warning("failed to connect")
     except Exception as err:
+        print(traceback.format_exc())
         logger.warning("Something went wrong")
-        print(repr(err))
 
 
 ############################
@@ -179,8 +180,8 @@ def create_collection(api_url: str, collection_id: str, data: dict):
     except requests.ConnectionError:
         logger.warning("failed to connect")
     except Exception as err:
+        print(traceback.format_exc())
         logger.warning("Something went wrong")
-        print(repr(err))
 
 
 def create_item(api_url: str, collection_id: str, item_id: str, data: dict):
@@ -206,11 +207,11 @@ def create_item(api_url: str, collection_id: str, item_id: str, data: dict):
     except requests.ConnectionError:
         logger.warning("failed to connect")
     except Exception as err:
+        print(traceback.format_exc())
         logger.warning("Something went wrong")
-        print(repr(err))
 
 
-def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str):
+def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str) -> dict:
     try:
         data = client.get_object(Bucket=bucket_name, Key=file_key)
         data = json.loads(data["Body"].read())
@@ -219,8 +220,8 @@ def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str):
         logger.warning("Provided bucket name or file key is not supported.")
         return False
     except Exception as err:
+        print(traceback.format_exc())
         logger.error("Failed to load S3 object")
-        print(repr(err))
 
 
 def interpret_message(msg: str, api_url: str):
@@ -250,13 +251,13 @@ def interpret_message(msg: str, api_url: str):
         if not data:
             continue
 
-        if data["type"] == "Collection":
+        if data.get("type") == "Collection":
             collection_id = data["id"]
             logger.info(f"Deleting collection {collection_id}")
             deleted_collections.add(collection_id)
             delete_collection(api_url, collection_id)
 
-        elif data["type"] == "Feature":
+        elif data.get("type") == "Feature":
             collection_id = data["collection"]
             if collection_id in deleted_collections:
                 continue
@@ -278,12 +279,12 @@ def interpret_message(msg: str, api_url: str):
         if not data:
             continue
 
-        if data["type"] == "Collection":
+        if data.get("type") == "Collection":
             collection_id = data["id"]
             logger.info(f"Creating collection {collection_id}")
             create_collection(api_url, collection_id, data)
 
-        elif data["type"] == "Feature":
+        elif data.get("type") == "Feature":
             collection_id = data["collection"]
             item_id = data["id"]
             logger.info(f"Creating item {item_id} in collection {collection_id}")
@@ -302,12 +303,12 @@ def interpret_message(msg: str, api_url: str):
         if not data:
             continue
 
-        if data["type"] == "Collection":
+        if data.get("type") == "Collection":
             collection_id = data["id"]
             logger.info(f"Updating collection {collection_id}")
             update_collection(api_url, collection_id, data)
 
-        elif data["type"] == "Feature":
+        elif data.get("type") == "Feature":
             collection_id = data["collection"]
             item_id = data["id"]
             logger.info(f"Updating item {item_id} in collection {collection_id}")
@@ -335,7 +336,7 @@ def subscribe(ctx, prefix: Optional[str] = None):
     except pulsar.exceptions.Interrupted:
         pass
     except Exception as e:
-        logger.error(repr(e))
+        logger.error(traceback.format_exc())
         consumer.negative_acknowledge(msg)
     finally:
         consumer.close()
