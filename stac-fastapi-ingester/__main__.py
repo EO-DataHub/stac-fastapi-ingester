@@ -331,7 +331,7 @@ def subscribe(ctx, prefix: Optional[str] = None):
             consumer.acknowledge(msg)
     except pulsar.exceptions.Interrupted:
         pass
-    except Exception as e:
+    except Exception:
         logger.error(traceback.format_exc())
         consumer.negative_acknowledge(msg)
     finally:
