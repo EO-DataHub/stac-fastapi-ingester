@@ -225,7 +225,6 @@ def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str) 
 
 
 def interpret_message(msg: str, api_url: str):
-
     # Configure boto3 client ready for data access
     client = boto3.client("s3")
 
@@ -242,7 +241,6 @@ def interpret_message(msg: str, api_url: str):
 
     # Delete items and collections
     for file_key in files_to_delete:
-
         # We can track deleted collections as this will also delete all associated items so no need
         # to call the delete items endpoint as well
         deleted_collections = set()
@@ -270,7 +268,6 @@ def interpret_message(msg: str, api_url: str):
     files_count = 0
 
     for file_key in files_to_create:
-
         # Variable to prevent endless looping, limits number of loops to at most 2
         if files_count >= num_files_to_create * 2:
             break
@@ -298,7 +295,6 @@ def interpret_message(msg: str, api_url: str):
 
     # Update collections and items
     for file_key in files_to_update:
-
         data = load_data_from_s3(client, bucket_name, file_key)
         if not data:
             continue
