@@ -226,7 +226,16 @@ def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str) 
 
 def interpret_message(msg: str, api_url: str):
     # Configure boto3 client ready for data access
-    client = boto3.client("s3")
+
+    if os.getenv("AWS_ACCESS_KEY") and os.getenv("AWS_SECRET_ACCESS_KEY"):
+        session = boto3.session.Session(
+            aws_access_key_id=os.environ["AWS_ACCESS_KEY"],
+            aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
+        )
+        client = session.client("s3")
+
+    else:
+        client = boto3.client("s3")
 
     # Extract as JSON dictionary
     updates_json = json.loads(msg)
