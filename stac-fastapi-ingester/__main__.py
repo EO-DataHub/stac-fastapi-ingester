@@ -67,11 +67,16 @@ def delete_collection(api_url: str, collection_id: str):
         elif resp.status_code == HTTPStatus.NOT_FOUND:
             logger.warning("Status code: NOT_FOUND")
             logger.warning(f"Collection: {collection_id} does not exist.")
-    except requests.ConnectionError:
+    except requests.ConnectionError as err:
         click.secho("failed to connect")
-    except Exception:
-        print(traceback.format_exc())
+        logger.warning("failed to connect")
+        logger.error(err)
+        raise
+    except Exception as err:
         logger.warning("Something went wrong")
+        logger.debug(traceback.format_exc())
+        logger.error(err)
+        raise
 
 
 def delete_item(api_url: str, collection_id: str, item_id: str):
@@ -89,11 +94,15 @@ def delete_item(api_url: str, collection_id: str, item_id: str):
         elif resp.status_code == HTTPStatus.NOT_FOUND:
             logger.warning("Status code: NOT_FOUND")
             logger.warning(f"Item: {item_id} in Collection: {collection_id} does not exist.")
-    except requests.ConnectionError:
+    except requests.ConnectionError as err:
         logger.warning("failed to connect")
-    except Exception:
-        print(traceback.format_exc())
+        logger.error(err)
+        raise
+    except Exception as err:
         logger.warning("Something went wrong")
+        logger.debug(traceback.format_exc())
+        logger.warning(err)
+        raise
 
 
 ############################
@@ -117,11 +126,15 @@ def update_collection(api_url: str, collection_id: str, data: dict):
         elif resp.status_code == HTTPStatus.NOT_FOUND:
             logger.warning("Status code: NOT_FOUND")
             logger.warning(f"Collection: {collection_id} not updated as doesn't exist.")
-    except requests.ConnectionError:
+    except requests.ConnectionError as err:
         logger.warning("failed to connect")
-    except Exception:
+        logger.error(err)
+        raise
+    except Exception as err:
         logger.warning("Something went wrong")
-        print(traceback.format_exc())
+        logger.debug(traceback.format_exc())
+        logger.warning(err)
+        raise
 
 
 def update_item(api_url: str, collection_id: str, item_id, data: dict):
@@ -151,11 +164,15 @@ def update_item(api_url: str, collection_id: str, item_id, data: dict):
                     f"Item: {item_id} in Collection: {collection_id} not updated as collection "
                     "doesn't exist."
                 )
-    except requests.ConnectionError:
+    except requests.ConnectionError as err:
         logger.warning("failed to connect")
-    except Exception:
-        print(traceback.format_exc())
+        logger.error(err)
+        raise
+    except Exception as err:
         logger.warning("Something went wrong")
+        logger.debug(traceback.format_exc())
+        logger.warning(err)
+        raise
 
 
 ############################
@@ -177,11 +194,15 @@ def create_collection(api_url: str, collection_id: str, data: dict):
         elif resp.status_code == HTTPStatus.CONFLICT:
             logger.warning("Status code: CONFLICT")
             logger.warning(f"Collection: {collection_id} already exists")
-    except requests.ConnectionError:
+    except requests.ConnectionError as err:
         logger.warning("failed to connect")
-    except Exception:
-        print(traceback.format_exc())
+        logger.error(err)
+        raise
+    except Exception as err:
         logger.warning("Something went wrong")
+        logger.debug(traceback.format_exc())
+        logger.warning(err)
+        raise
 
 
 def create_item(api_url: str, collection_id: str, item_id: str, data: dict):
@@ -204,11 +225,15 @@ def create_item(api_url: str, collection_id: str, item_id: str, data: dict):
             logger.warning("Status code: CONFLICT")
             logger.warning(f"Item: {item_id} in Collection: {collection_id} already exists")
             return True
-    except requests.ConnectionError:
+    except requests.ConnectionError as err:
         logger.warning("failed to connect")
-    except Exception:
-        print(traceback.format_exc())
+        logger.error(err)
+        raise
+    except Exception as err:
         logger.warning("Something went wrong")
+        logger.debug(traceback.format_exc())
+        logger.warning(err)
+        raise
 
 
 def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str) -> dict:
@@ -219,9 +244,11 @@ def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str) 
     except botocore.exceptions.ParamValidationError:
         logger.warning("Provided bucket name or file key is not supported.")
         return False
-    except Exception:
-        print(traceback.format_exc())
+    except Exception as err:
+        logger.debug(traceback.format_exc())
+        logger.warning(err)
         logger.error("Failed to load S3 object")
+        raise
 
 
 def interpret_message(msg: str, api_url: str):
@@ -340,8 +367,9 @@ def subscribe(ctx, prefix: Optional[str] = None):
             consumer.acknowledge(msg)
     except pulsar.exceptions.Interrupted:
         pass
-    except Exception:
-        logger.error(traceback.format_exc())
+    except Exception as err:
+        logger.debug(traceback.format_exc())
+        logger.error(err)
         consumer.negative_acknowledge(msg)
     finally:
         consumer.close()
