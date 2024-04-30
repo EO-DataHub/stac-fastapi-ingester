@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import traceback
 from http import HTTPStatus
 from typing import Optional
 
@@ -66,11 +67,13 @@ def delete_collection(api_url: str, collection_id: str):
         elif resp.status_code == HTTPStatus.NOT_FOUND:
             logger.warning("Status code: NOT_FOUND")
             logger.warning(f"Collection: {collection_id} does not exist.")
-    except requests.ConnectionError:
+    except requests.ConnectionError as err:
         click.secho("failed to connect")
+        logger.error(err)
+        raise
     except Exception as err:
-        logger.warning("Something went wrong")
-        print(repr(err))
+        logger.error(err)
+        raise
 
 
 def delete_item(api_url: str, collection_id: str, item_id: str):
@@ -88,11 +91,9 @@ def delete_item(api_url: str, collection_id: str, item_id: str):
         elif resp.status_code == HTTPStatus.NOT_FOUND:
             logger.warning("Status code: NOT_FOUND")
             logger.warning(f"Item: {item_id} in Collection: {collection_id} does not exist.")
-    except requests.ConnectionError:
-        logger.warning("failed to connect")
     except Exception as err:
-        logger.warning("Something went wrong")
-        print(repr(err))
+        logger.error(err)
+        raise
 
 
 ############################
@@ -116,11 +117,9 @@ def update_collection(api_url: str, collection_id: str, data: dict):
         elif resp.status_code == HTTPStatus.NOT_FOUND:
             logger.warning("Status code: NOT_FOUND")
             logger.warning(f"Collection: {collection_id} not updated as doesn't exist.")
-    except requests.ConnectionError:
-        logger.warning("failed to connect")
     except Exception as err:
-        logger.warning("Something went wrong")
-        print(repr(err))
+        logger.error(err)
+        raise
 
 
 def update_item(api_url: str, collection_id: str, item_id, data: dict):
@@ -150,11 +149,9 @@ def update_item(api_url: str, collection_id: str, item_id, data: dict):
                     f"Item: {item_id} in Collection: {collection_id} not updated as collection "
                     "doesn't exist."
                 )
-    except requests.ConnectionError:
-        logger.warning("failed to connect")
     except Exception as err:
-        logger.warning("Something went wrong")
-        print(repr(err))
+        logger.error(err)
+        raise
 
 
 ############################
@@ -176,11 +173,9 @@ def create_collection(api_url: str, collection_id: str, data: dict):
         elif resp.status_code == HTTPStatus.CONFLICT:
             logger.warning("Status code: CONFLICT")
             logger.warning(f"Collection: {collection_id} already exists")
-    except requests.ConnectionError:
-        logger.warning("failed to connect")
     except Exception as err:
-        logger.warning("Something went wrong")
-        print(repr(err))
+        logger.error(err)
+        raise
 
 
 def create_item(api_url: str, collection_id: str, item_id: str, data: dict):
@@ -203,14 +198,12 @@ def create_item(api_url: str, collection_id: str, item_id: str, data: dict):
             logger.warning("Status code: CONFLICT")
             logger.warning(f"Item: {item_id} in Collection: {collection_id} already exists")
             return True
-    except requests.ConnectionError:
-        logger.warning("failed to connect")
     except Exception as err:
-        logger.warning("Something went wrong")
-        print(repr(err))
+        logger.error(err)
+        raise
 
 
-def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str):
+def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str) -> dict:
     try:
         data = client.get_object(Bucket=bucket_name, Key=file_key)
         data = json.loads(data["Body"].read())
@@ -219,14 +212,23 @@ def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str):
         logger.warning("Provided bucket name or file key is not supported.")
         return False
     except Exception as err:
+        logger.error(err)
         logger.error("Failed to load S3 object")
-        print(repr(err))
+        raise
 
 
 def interpret_message(msg: str, api_url: str):
-
     # Configure boto3 client ready for data access
-    client = boto3.client("s3")
+
+    if os.getenv("AWS_ACCESS_KEY") and os.getenv("AWS_SECRET_ACCESS_KEY"):
+        session = boto3.session.Session(
+            aws_access_key_id=os.environ["AWS_ACCESS_KEY"],
+            aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
+        )
+        client = session.client("s3")
+
+    else:
+        client = boto3.client("s3")
 
     # Extract as JSON dictionary
     updates_json = json.loads(msg)
@@ -241,7 +243,6 @@ def interpret_message(msg: str, api_url: str):
 
     # Delete items and collections
     for file_key in files_to_delete:
-
         # We can track deleted collections as this will also delete all associated items so no need
         # to call the delete items endpoint as well
         deleted_collections = set()
@@ -250,13 +251,13 @@ def interpret_message(msg: str, api_url: str):
         if not data:
             continue
 
-        if data["type"] == "Collection":
+        if data.get("type") == "Collection":
             collection_id = data["id"]
             logger.info(f"Deleting collection {collection_id}")
             deleted_collections.add(collection_id)
             delete_collection(api_url, collection_id)
 
-        elif data["type"] == "Feature":
+        elif data.get("type") == "Feature":
             collection_id = data["collection"]
             if collection_id in deleted_collections:
                 continue
@@ -269,7 +270,6 @@ def interpret_message(msg: str, api_url: str):
     files_count = 0
 
     for file_key in files_to_create:
-
         # Variable to prevent endless looping, limits number of loops to at most 2
         if files_count >= num_files_to_create * 2:
             break
@@ -278,12 +278,12 @@ def interpret_message(msg: str, api_url: str):
         if not data:
             continue
 
-        if data["type"] == "Collection":
+        if data.get("type") == "Collection":
             collection_id = data["id"]
             logger.info(f"Creating collection {collection_id}")
             create_collection(api_url, collection_id, data)
 
-        elif data["type"] == "Feature":
+        elif data.get("type") == "Feature":
             collection_id = data["collection"]
             item_id = data["id"]
             logger.info(f"Creating item {item_id} in collection {collection_id}")
@@ -297,17 +297,16 @@ def interpret_message(msg: str, api_url: str):
 
     # Update collections and items
     for file_key in files_to_update:
-
         data = load_data_from_s3(client, bucket_name, file_key)
         if not data:
             continue
 
-        if data["type"] == "Collection":
+        if data.get("type") == "Collection":
             collection_id = data["id"]
             logger.info(f"Updating collection {collection_id}")
             update_collection(api_url, collection_id, data)
 
-        elif data["type"] == "Feature":
+        elif data.get("type") == "Feature":
             collection_id = data["collection"]
             item_id = data["id"]
             logger.info(f"Updating item {item_id} in collection {collection_id}")
@@ -334,8 +333,9 @@ def subscribe(ctx, prefix: Optional[str] = None):
             consumer.acknowledge(msg)
     except pulsar.exceptions.Interrupted:
         pass
-    except Exception as e:
-        logger.error(repr(e))
+    except Exception as err:
+        logger.debug(traceback.format_exc())
+        logger.error(err)
         consumer.negative_acknowledge(msg)
     finally:
         consumer.close()
