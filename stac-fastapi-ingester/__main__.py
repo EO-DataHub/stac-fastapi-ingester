@@ -5,9 +5,8 @@ import traceback
 from http import HTTPStatus
 from typing import Optional
 
-import botocore.client
-
 import boto3
+import botocore.client
 import botocore.exceptions
 import click
 import pulsar
@@ -201,18 +200,18 @@ def update_item(
             response_decoded_description = response_decoded["description"]
             if "Item" in response_decoded_description:
                 logger.warning(
-                    f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_id} not updated as item "
-                    "doesn't exist."
+                    f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_id} not "
+                    "updated as item doesn't exist."
                 )
             elif "Collection" in response_decoded_description:
                 logger.warning(
-                    f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_id} not updated as collection "
-                    "doesn't exist."
+                    f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_id} not "
+                    "updated as collection doesn't exist."
                 )
             elif "Catalog" in response_decoded_description:
                 logger.warning(
-                    f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_id} not updated as catalog "
-                    "doesn't exist."
+                    f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_id} not "
+                    "updated as catalog doesn't exist."
                 )
     except Exception as err:
         logger.error(err)
@@ -239,12 +238,8 @@ def create_catalog(api_url: str, data: dict, catalog_id: str):
             logger.warning("Status code: CONFLICT")
             logger.warning(f"Catalog: {catalog_id} already exists")
         else:
-            logger.warning(
-                f"Catalog: {catalog_id} not created"
-            )
-            logger.warning(
-                f"Status Code: {resp.status_code} on url: {api_url}/catalogs"
-            )
+            logger.warning(f"Catalog: {catalog_id} not created")
+            logger.warning(f"Status Code: {resp.status_code} on url: {api_url}/catalogs")
             print(data)
     except Exception as err:
         logger.error(err)
@@ -274,9 +269,7 @@ def create_collection(
             logger.warning(f"Collection: {collection_id} in Catalog: {catalog_id} already exists")
             return True
         else:
-            logger.warning(
-                f"Collection: {collection_id} in Catalog: {catalog_id} not created"
-            )
+            logger.warning(f"Collection: {collection_id} in Catalog: {catalog_id} not created")
             logger.warning(
                 f"Status Code: {resp.status_code} on url: {api_url}/catalogs/{catalog_id}/collections"
             )
@@ -302,7 +295,8 @@ def create_item(
         elif resp.status_code == HTTPStatus.NOT_FOUND:
             # Add files awaiting catalog/collection creation to the end of the list again
             logger.warning(
-                f"Collection: {collection_id} or Catalog: {catalog_id} not yet created, will try again in a bit"
+                f"Collection: {collection_id} or Catalog: {catalog_id} not yet created, will "
+                "try again in a bit"
             )
             return False
         elif resp.status_code == HTTPStatus.CONFLICT:
@@ -316,7 +310,8 @@ def create_item(
                 f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_id} not created"
             )
             logger.warning(
-                f"Status Code: {resp.status_code} on url: {api_url}/catalogs/{catalog_id}/collections/{collection_id}/items"
+                f"Status Code: {resp.status_code} on url: {api_url}/catalogs/{catalog_id}/"
+                "collections/{collection_id}/items"
             )
     except Exception as err:
         logger.error(err)
@@ -416,7 +411,8 @@ def interpret_message(msg: str, api_url: str):
     files_count = 0
 
     for file_key in files_to_create:
-        # Variable to prevent endless looping, limits number of loops to at most 3 to allow catalogs and collections to be created
+        # Variable to prevent endless looping, limits number of loops to at most 3 to allow
+        # catalogs and collections to be created
         if files_count >= num_files_to_create * 3:
             break
 
