@@ -167,8 +167,6 @@ def update_catalog(api_url: str, data: dict, catalog_id: str):
         else:
             logger.warning(f"Catalog: {catalog_id} not udpated")
             logger.warning(f"Status Code: {resp.status_code} on url: {api_url}/catalogs/{catalog_id}")
-            logger.warning("data is")
-            logger.warning(data)
     except Exception as err:
         logger.error(err)
         raise
@@ -199,8 +197,6 @@ def update_collection(
             logger.warning(f"Collection: {collection_id} in Catalog: {catalog_id} not updated")
             logger.warning(f"Status Code: {resp.status_code} on url: "
                            f"{api_url}/catalogs/{catalog_id}/collections")
-            # logger.warning("data is")
-            # logger.warning(data)
     except Exception as err:
         logger.error(err)
         raise
