@@ -73,8 +73,9 @@ def delete_catalog(api_url: str, catalog_id: str):
             logger.warning(f"Catalog: {catalog_id} does not exist.")
         else:
             logger.warning(f"Catalog: {catalog_id} not updated")
-            logger.warning(f"Status Code: {resp.status_code} on url: "
-                           f"{api_url}/catalogs/{catalog_id}")
+            logger.warning(
+                f"Status Code: {resp.status_code} on url: " f"{api_url}/catalogs/{catalog_id}"
+            )
     except requests.ConnectionError as err:
         click.secho("failed to connect")
         logger.error(err)
@@ -98,12 +99,15 @@ def delete_collection(api_url: str, collection_id: str, catalog_id: str = "defau
             logger.warning("Status code: CONFLICT")
         elif resp.status_code == HTTPStatus.NOT_FOUND:
             logger.warning("Status code: NOT_FOUND")
-            logger.warning(f"Collection: {collection_id} in Catalog: {catalog_id} does not "
-                           "exist.")
+            logger.warning(
+                f"Collection: {collection_id} in Catalog: {catalog_id} does not " "exist."
+            )
         else:
             logger.warning(f"Collection: {collection_id} in Catalog: {catalog_id} not updated")
-            logger.warning(f"Status Code: {resp.status_code} on url: "
-                           f"{api_url}/catalogs/{catalog_id}/collections/{collection_id}")
+            logger.warning(
+                f"Status Code: {resp.status_code} on url: "
+                f"{api_url}/catalogs/{catalog_id}/collections/{collection_id}"
+            )
     except requests.ConnectionError as err:
         click.secho("failed to connect")
         logger.error(err)
@@ -134,10 +138,14 @@ def delete_item(
                 "not exist."
             )
         else:
-            logger.warning(f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_id} not updated")
-            logger.warning(f"Status Code: {resp.status_code} on url: "
-                           f"{api_url}/catalogs/{catalog_id}/collections/{collection_id}/"
-                           f"items/{item_id}")
+            logger.warning(
+                f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_id} not updated"
+            )
+            logger.warning(
+                f"Status Code: {resp.status_code} on url: "
+                f"{api_url}/catalogs/{catalog_id}/collections/{collection_id}/"
+                f"items/{item_id}"
+            )
     except Exception as err:
         logger.error(err)
         raise
@@ -166,7 +174,9 @@ def update_catalog(api_url: str, data: dict, catalog_id: str):
             logger.warning(f"Catalog: {catalog_id} not updated as doesn't exist.")
         else:
             logger.warning(f"Catalog: {catalog_id} not udpated")
-            logger.warning(f"Status Code: {resp.status_code} on url: {api_url}/catalogs/{catalog_id}")
+            logger.warning(
+                f"Status Code: {resp.status_code} on url: {api_url}/catalogs/{catalog_id}"
+            )
     except Exception as err:
         logger.error(err)
         raise
@@ -184,7 +194,9 @@ def update_collection(
         )
         if resp.status_code == HTTPStatus.OK:
             logger.info("Status code: OK")
-            logger.info(f"Updated Collection {collection_id} in Catalog {catalog_id}/{collection_id}")
+            logger.info(
+                f"Updated Collection {collection_id} in Catalog {catalog_id}/{collection_id}"
+            )
         elif resp.status_code == HTTPStatus.CONFLICT:
             logger.warning("Status code: CONFLICT")
         elif resp.status_code == HTTPStatus.NOT_FOUND:
@@ -195,8 +207,10 @@ def update_collection(
             )
         else:
             logger.warning(f"Collection: {collection_id} in Catalog: {catalog_id} not updated")
-            logger.warning(f"Status Code: {resp.status_code} on url: "
-                           f"{api_url}/catalogs/{catalog_id}/collections")
+            logger.warning(
+                f"Status Code: {resp.status_code} on url: "
+                f"{api_url}/catalogs/{catalog_id}/collections"
+            )
     except Exception as err:
         logger.error(err)
         raise
@@ -237,10 +251,14 @@ def update_item(
                     "updated as catalog doesn't exist."
                 )
         else:
-            logger.warning(f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_id} not updated")
-            logger.warning(f"Status Code: {resp.status_code} on url: "
-                           f"{api_url}/catalogs/{catalog_id}/collections/{collection_id}/"
-                           f"items/{item_id}")
+            logger.warning(
+                f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_id} not updated"
+            )
+            logger.warning(
+                f"Status Code: {resp.status_code} on url: "
+                f"{api_url}/catalogs/{catalog_id}/collections/{collection_id}/"
+                f"items/{item_id}"
+            )
     except Exception as err:
         logger.error(err)
         raise
