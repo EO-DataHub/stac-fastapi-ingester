@@ -35,6 +35,7 @@ ch.setFormatter(formatter)
 # add ch to logger
 logger.addHandler(ch)
 
+
 @click.group()
 @click.argument("topic", type=str)
 @click.pass_context
@@ -430,13 +431,19 @@ def identify_catalog_from_links(data: dict, open_catalogs: dict) -> str:
                     return catalog_json["id"]
     except KeyError as e:
         logger.warning(e)
-        logger.warning(f"Failed to find required links in file for {data['id']}. Instead using 'default-catalog'")
+        logger.warning(
+            f"Failed to find required links in file for {data['id']}. Instead using 'default-catalog'"
+        )
     except json.decoder.JSONDecodeError as e:
         logger.warning(e)
-        logger.warning(f"Failed to load catalog file for {data['id']}. Instead using 'default-catalog'")
+        logger.warning(
+            f"Failed to load catalog file for {data['id']}. Instead using 'default-catalog'"
+        )
     except Exception as e:
         logger.warning(e)
-        logger.warning(f"Failed to identify catalog id for {data['id']}. Instead using 'default-catalog'")
+        logger.warning(
+            f"Failed to identify catalog id for {data['id']}. Instead using 'default-catalog'"
+        )
     # If no catalog is specified, select default-catalog
     return "default-catalog"
 
@@ -568,7 +575,9 @@ def interpret_message(msg: str, api_url: str):
             collection_id = data["collection"]
             catalog_id = identify_catalog_from_links(data, open_catalogs)
             item_id = data["id"]
-            logger.info(f"Updating Item {item_id} in Collection {collection_id} in Catalog {catalog_id}")
+            logger.info(
+                f"Updating Item {item_id} in Collection {collection_id} in Catalog {catalog_id}"
+            )
 
             # Handle case in which catalog and/or collection is not yet updated/created for this item
             item_updated = update_item(api_url, collection_id, item_id, data, catalog_id)
