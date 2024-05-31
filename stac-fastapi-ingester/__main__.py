@@ -35,10 +35,6 @@ ch.setFormatter(formatter)
 # add ch to logger
 logger.addHandler(ch)
 
-# Define variable for previously opened Catalogs
-open_catalogs = {}
-
-
 @click.group()
 @click.argument("topic", type=str)
 @click.pass_context
@@ -72,15 +68,17 @@ def delete_catalog(api_url: str, catalog_id: str):
             logger.warning("Status code: NOT_FOUND")
             logger.warning(f"Catalog: {catalog_id} does not exist.")
         else:
-            logger.warning(f"Catalog: {catalog_id} not updated")
+            logger.warning(f"Catalog: {catalog_id} not deleted")
             logger.warning(
                 f"Status Code: {resp.status_code} on url: " f"{api_url}/catalogs/{catalog_id}"
             )
     except requests.ConnectionError as err:
         click.secho("failed to connect")
+        logger.warning(f"Catalog: {catalog_id} not deleted")
         logger.error(err)
         raise
     except Exception as err:
+        logger.warning(f"Catalog: {catalog_id} not deleted")
         logger.error(err)
         raise
 
@@ -110,9 +108,11 @@ def delete_collection(api_url: str, collection_id: str, catalog_id: str = "defau
             )
     except requests.ConnectionError as err:
         click.secho("failed to connect")
+        logger.warning(f"Collection: {collection_id} not deleted")
         logger.error(err)
         raise
     except Exception as err:
+        logger.warning(f"Collection: {collection_id} not deleted")
         logger.error(err)
         raise
 
@@ -147,6 +147,7 @@ def delete_item(
                 f"items/{item_id}"
             )
     except Exception as err:
+        logger.warning(f"Item: {item_id} not deleted")
         logger.error(err)
         raise
 
@@ -173,18 +174,21 @@ def update_catalog(api_url: str, data: dict, catalog_id: str):
             logger.warning("Status code: NOT_FOUND")
             logger.warning(f"Catalog: {catalog_id} not updated as doesn't exist.")
         else:
-            logger.warning(f"Catalog: {catalog_id} not udpated")
+            logger.warning(f"Catalog: {catalog_id} not updated")
             logger.warning(
                 f"Status Code: {resp.status_code} on url: {api_url}/catalogs/{catalog_id}"
             )
+            logger.warning("data is")
+            logger.warning(data)
     except Exception as err:
+        logger.warning(f"Catalog: {catalog_id} not updated")
         logger.error(err)
         raise
 
 
 def update_collection(
     api_url: str, collection_id: str, data: dict, catalog_id: str = "default-catalog"
-):
+) -> bool:
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     try:
         resp = requests.put(
@@ -197,28 +201,36 @@ def update_collection(
             logger.info(
                 f"Updated Collection {collection_id} in Catalog {catalog_id}/{collection_id}"
             )
+            return True
         elif resp.status_code == HTTPStatus.CONFLICT:
             logger.warning("Status code: CONFLICT")
+            return True
         elif resp.status_code == HTTPStatus.NOT_FOUND:
             logger.warning("Status code: NOT_FOUND")
             logger.warning(
                 f"Collection: {collection_id} not updated as doesn't exist in Catalog "
                 f"{catalog_id}."
             )
+            return False
         else:
             logger.warning(f"Collection: {collection_id} in Catalog: {catalog_id} not updated")
             logger.warning(
                 f"Status Code: {resp.status_code} on url: "
                 f"{api_url}/catalogs/{catalog_id}/collections"
             )
+            logger.warning("data is")
+            logger.warning(data)
+            # return but don't try again
+            return True
     except Exception as err:
+        logger.warning(f"Collection: {collection_id} not updated")
         logger.error(err)
         raise
 
 
 def update_item(
     api_url: str, collection_id: str, item_id, data: dict, catalog_id: str = "default-catalog"
-):
+) -> bool:
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     try:
         resp = requests.put(
@@ -229,8 +241,10 @@ def update_item(
         if resp.status_code == HTTPStatus.OK:
             logger.info("Status code: OK")
             logger.info(f"Updated Item {item_id}")
+            return True
         elif resp.status_code == HTTPStatus.CONFLICT:
             logger.warning("Status code: CONFLICT")
+            return True
         elif resp.status_code == HTTPStatus.NOT_FOUND:
             logger.warning("Status code: NOT_FOUND")
             response_decoded = json.loads(resp.content.decode())
@@ -250,6 +264,7 @@ def update_item(
                     f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_id} not "
                     "updated as catalog doesn't exist."
                 )
+            return False
         else:
             logger.warning(
                 f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_id} not updated"
@@ -259,7 +274,12 @@ def update_item(
                 f"{api_url}/catalogs/{catalog_id}/collections/{collection_id}/"
                 f"items/{item_id}"
             )
+            logger.warning("data is")
+            logger.warning(data)
+            # return but don't try again
+            return True
     except Exception as err:
+        logger.warning(f"Item: {item_id} not updated")
         logger.error(err)
         raise
 
@@ -289,13 +309,14 @@ def create_catalog(api_url: str, data: dict, catalog_id: str):
             logger.warning("data is")
             logger.warning(data)
     except Exception as err:
+        logger.warning(f"Catalog: {catalog_id} not created")
         logger.error(err)
         raise
 
 
 def create_collection(
     api_url: str, collection_id: str, data: dict, catalog_id: str = "default-catalog"
-):
+) -> bool:
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     try:
         resp = requests.post(
@@ -322,14 +343,17 @@ def create_collection(
             )
             logger.warning("data is")
             logger.warning(data)
+            # return but don't try again
+            return True
     except Exception as err:
+        logger.warning(f"Collection: {collection_id} not created")
         logger.error(err)
         raise
 
 
 def create_item(
     api_url: str, collection_id: str, item_id: str, data: dict, catalog_id: str = "default-catalog"
-):
+) -> bool:
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     try:
         resp = requests.post(
@@ -363,7 +387,12 @@ def create_item(
                 f"Status Code: {resp.status_code} on url: {api_url}/catalogs/{catalog_id}/"
                 f"collections/{collection_id}/items"
             )
+            logger.warning("data is")
+            logger.warning(data)
+            # return but don't try again
+            return True
     except Exception as err:
+        logger.warning(f"Item: {item_id} not created")
         logger.error(err)
         raise
 
@@ -387,17 +416,27 @@ def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str) 
 
 
 def identify_catalog_from_links(data: dict, open_catalogs: dict) -> str:
-    links = data["links"]
-    for link in links:
-        if link["rel"] == "root":
-            root_href = link["href"]
-            if root_href not in open_catalogs:
-                catalog_json = json.loads(requests.get(root_href).content)
-                open_catalogs.update({root_href: catalog_json})
-                return catalog_json["id"]
-            else:
-                catalog_json = open_catalogs[root_href]
-                return catalog_json["id"]
+    try:
+        links = data["links"]
+        for link in links:
+            if link["rel"] == "root":
+                root_href = link["href"]
+                if root_href not in open_catalogs:
+                    catalog_json = json.loads(requests.get(root_href).content)
+                    open_catalogs.update({root_href: catalog_json})
+                    return catalog_json["id"]
+                else:
+                    catalog_json = open_catalogs[root_href]
+                    return catalog_json["id"]
+    except KeyError as e:
+        logger.warning(e)
+        logger.warning(f"Failed to find required links in file for {data['id']}. Instead using 'default-catalog'")
+    except json.decoder.JSONDecodeError as e:
+        logger.warning(e)
+        logger.warning(f"Failed to load catalog file for {data['id']}. Instead using 'default-catalog'")
+    except Exception as e:
+        logger.warning(e)
+        logger.warning(f"Failed to identify catalog id for {data['id']}. Instead using 'default-catalog'")
     # If no catalog is specified, select default-catalog
     return "default-catalog"
 
@@ -426,7 +465,7 @@ def interpret_message(msg: str, api_url: str):
     files_to_delete = updates_json["deleted_keys"] if "deleted_keys" in updates_json.keys() else []
     files_to_create = updates_json["added_keys"] if "added_keys" in updates_json.keys() else []
 
-    # Delete items and collections
+    # Delete catalogs, collections and items
     for file_key in files_to_delete:
         # We can track deleted collections as this will also delete all associated items so no need
         # to call the delete items endpoint as well
@@ -457,7 +496,7 @@ def interpret_message(msg: str, api_url: str):
             logger.info(f"Deleting Catalog {catalog_id}")
             delete_catalog(api_url, catalog_id)
 
-    # Create new collections and items
+    # Create new catalogs, collections and items
     num_files_to_create = len(files_to_create)
     files_count = 0
 
@@ -500,8 +539,16 @@ def interpret_message(msg: str, api_url: str):
         # Increment loop counter
         files_count += 1
 
-    # Update collections and items
+    # Update catalogs, collections and items
+    num_files_to_update = len(files_to_update)
+    files_count = 0
+
     for file_key in files_to_update:
+        # Variable to prevent endless looping, limits number of loops to at most 3 to allow
+        # catalogs and collections to be created
+        if files_count >= num_files_to_update * 3:
+            break
+
         data = load_data_from_s3(client, bucket_name, file_key)
         if not data:
             continue
@@ -509,23 +556,32 @@ def interpret_message(msg: str, api_url: str):
         if data.get("type") == "Collection":
             collection_id = data["id"]
             catalog_id = identify_catalog_from_links(data, open_catalogs)
-            logger.info(f"Updating Collection {collection_id}")
-            update_collection(api_url, collection_id, data, catalog_id)
+            logger.info(f"Updating Collection {collection_id} in Catalog {catalog_id}")
+
+            # Handle case in which catalog is not yet updated/created for this collection
+            collection_updated = update_collection(api_url, collection_id, data, catalog_id)
+            files_to_update.append(file_key) if not collection_updated else None
 
         elif data.get("type") == "Feature":
             collection_id = data["collection"]
             catalog_id = identify_catalog_from_links(data, open_catalogs)
             item_id = data["id"]
-            logger.info(f"Updating Item {item_id} in collection {collection_id}")
-            update_item(api_url, collection_id, item_id, data, catalog_id)
+            logger.info(f"Updating Item {item_id} in Collection {collection_id} in Catalog {catalog_id}")
+
+            # Handle case in which catalog and/or collection is not yet updated/created for this item
+            item_updated = update_item(api_url, collection_id, item_id, data, catalog_id)
+            files_to_update.append(file_key) if not item_updated else None
 
         elif data.get("type") == "Catalog":
             catalog_id = data["id"]
             logger.info(f"Updating Catalog {catalog_id}")
             update_catalog(api_url, data, catalog_id)
 
-        # Clear open_catalogs dictionary cache
-        open_catalogs = {}
+        # Increment loop counter
+        files_count += 1
+
+    # Clear open_catalogs dictionary cache
+    open_catalogs = {}
 
 
 @cli.command()
