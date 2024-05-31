@@ -498,12 +498,13 @@ def interpret_message(msg: str, api_url: str):
 
     # Create new catalogs, collections and items
     num_files_to_create = len(files_to_create)
+    limit = num_files_to_create * 3
     files_count = 0
 
     for file_key in files_to_create:
         # Variable to prevent endless looping, limits number of loops to at most 3 to allow
         # catalogs and collections to be created
-        if files_count >= num_files_to_create * 3:
+        if files_count >= limit:
             break
 
         data = load_data_from_s3(client, bucket_name, file_key)
@@ -541,12 +542,13 @@ def interpret_message(msg: str, api_url: str):
 
     # Update catalogs, collections and items
     num_files_to_update = len(files_to_update)
+    limit = num_files_to_update * 3
     files_count = 0
 
     for file_key in files_to_update:
         # Variable to prevent endless looping, limits number of loops to at most 3 to allow
         # catalogs and collections to be created
-        if files_count >= num_files_to_update * 3:
+        if files_count >= limit:
             break
 
         data = load_data_from_s3(client, bucket_name, file_key)
