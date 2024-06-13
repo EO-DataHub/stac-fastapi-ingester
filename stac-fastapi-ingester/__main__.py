@@ -112,7 +112,7 @@ def delete_collection(api_url: str, collection_id: str, catalog_path: str):
                 f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}"
             )
     except requests.ConnectionError as err:
-        click.secho("failed to connect")
+        click.secho("Failed to connect")
         logger.warning(f"Collection: {collection_id} not deleted")
         logger.error(err)
         raise
@@ -476,6 +476,11 @@ def interpret_message(msg: str, api_url: str):
             delete_collection(api_url, collection_id, catalog_path)
 
         elif data.get("type") == "Feature":
+            if catalog_path == "":
+                logger.warning(
+                f"Cannot delete Item {data["id"]} without catalog being specified, skipping."
+                )
+                continue
             # For items, we need to cut down the catalog path ignoring the 'collection' directory
             # Expected format is 'catalog/collection/item', we only need 'catalog'
             catalog_path_list = catalog_path.split("/")
@@ -527,6 +532,11 @@ def interpret_message(msg: str, api_url: str):
             files_to_create.append(file_key) if not item_registered else None
 
         elif data.get("type") == "Feature":
+            if catalog_path == "":
+                logger.warning(
+                f"Cannot create Item {data["id"]} without catalog being specified, skipping."
+                )
+                continue
             # For items, we need to cut down the catalog path ignoring the 'collection' directory
             # Expected format is 'catalog/collection/item', we only need 'catalog'
             catalog_path_list = catalog_path.split("/")
@@ -587,6 +597,11 @@ def interpret_message(msg: str, api_url: str):
             files_to_update.append(file_key) if not collection_updated else None
 
         elif data.get("type") == "Feature":
+            if catalog_path == "":
+                logger.warning(
+                f"Cannot update Item {data["id"]} without catalog being specified, skipping."
+                )
+                continue
             # For items, we need to cut down the catalog path ignoring the 'collection' directory
             # Expected format is 'catalog/collection/item', we only need 'catalog'
             catalog_path_list = catalog_path.split("/")
