@@ -476,9 +476,10 @@ def interpret_message(msg: str, api_url: str):
             delete_collection(api_url, collection_id, catalog_path)
 
         elif data.get("type") == "Feature":
+            item_id = data["id"]
             if catalog_path == "":
                 logger.warning(
-                f"Cannot delete Item {data["id"]} without catalog being specified, skipping."
+                    f"Cannot delete Item {item_id} without catalog being specified, skipping."
                 )
                 continue
             # For items, we need to cut down the catalog path ignoring the 'collection' directory
@@ -489,7 +490,6 @@ def interpret_message(msg: str, api_url: str):
             collection_id = data["collection"]
             if collection_id in deleted_collections:
                 continue
-            item_id = data["id"]
             logger.info(f"Deleting item {item_id} in collection {collection_id}")
             delete_item(api_url, collection_id, item_id, catalog_path)
 
@@ -532,9 +532,10 @@ def interpret_message(msg: str, api_url: str):
             files_to_create.append(file_key) if not item_registered else None
 
         elif data.get("type") == "Feature":
+            item_id = data["id"]
             if catalog_path == "":
                 logger.warning(
-                f"Cannot create Item {data["id"]} without catalog being specified, skipping."
+                    f"Cannot create Item {item_id} without catalog being specified, skipping."
                 )
                 continue
             # For items, we need to cut down the catalog path ignoring the 'collection' directory
@@ -543,7 +544,6 @@ def interpret_message(msg: str, api_url: str):
             catalog_path = catalog_path_list[:-1]  # Remove 'collection' directory
             catalog_path = "/".join(catalog_path)
             collection_id = data["collection"]
-            item_id = data["id"]
             logger.info(
                 f"Creating Item {item_id} in collection {collection_id} in catalog {catalog_path}"
             )
@@ -597,9 +597,10 @@ def interpret_message(msg: str, api_url: str):
             files_to_update.append(file_key) if not collection_updated else None
 
         elif data.get("type") == "Feature":
+            item_id = data["id"]
             if catalog_path == "":
                 logger.warning(
-                f"Cannot update Item {data["id"]} without catalog being specified, skipping."
+                    f"Cannot update Item {item_id} without catalog being specified, skipping."
                 )
                 continue
             # For items, we need to cut down the catalog path ignoring the 'collection' directory
@@ -608,7 +609,6 @@ def interpret_message(msg: str, api_url: str):
             catalog_path = catalog_path_list[:-1]  # Remove 'collection' directory
             catalog_path = "/".join(catalog_path)
             collection_id = data["collection"]
-            item_id = data["id"]
             logger.info(
                 f"Updating Item {item_id} in Collection {collection_id} in Catalog {catalog_path}"
             )
