@@ -432,41 +432,7 @@ def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str) 
         logger.error(f"Failed to load S3 object with key: {file_key}")
         raise
 
-
-def identify_catalog_from_links(data: dict, open_catalogs: dict) -> str:
-    try:
-        links = data["links"]
-        for link in links:
-            if link["rel"] == "root":
-                root_href = link["href"]
-                if root_href not in open_catalogs:
-                    catalog_json = json.loads(requests.get(root_href).content)
-                    open_catalogs.update({root_href: catalog_json})
-                    return catalog_json["id"]
-                else:
-                    catalog_json = open_catalogs[root_href]
-                    return catalog_json["id"]
-    except KeyError as e:
-        logger.warning(e)
-        logger.warning(
-            f"Failed to find required links in file for {data['id']}. Instead using 'default-catalog'"
-        )
-    except json.decoder.JSONDecodeError as e:
-        logger.warning(e)
-        logger.warning(
-            f"Failed to load catalog file for {data['id']}. Instead using 'default-catalog'"
-        )
-    except Exception as e:
-        logger.warning(e)
-        logger.warning(
-            f"Failed to identify catalog id for {data['id']}. Instead using 'default-catalog'"
-        )
-    # If no catalog is specified, select default-catalog
-    return "default-catalog"
-
-
 def interpret_message(msg: str, api_url: str):
-    open_catalogs = {}
     # Configure boto3 client ready for data access
     if os.getenv("AWS_ACCESS_KEY") and os.getenv("AWS_SECRET_ACCESS_KEY"):
         session = boto3.session.Session(
@@ -517,6 +483,11 @@ def interpret_message(msg: str, api_url: str):
             delete_collection(api_url, collection_id, catalog_path)
 
         elif data.get("type") == "Feature":
+            # For items, we need to cut down the catalog path ignoring the 'collection' directory
+            # Expected format is 'catalog/collection/item', we only need 'catalog'
+            catalog_path_list = catalog_path.split("/")
+            catalog_path = catalog_path_list[:-1] # Remove 'collection' directory
+            catalog_path = "/".join(catalog_path)
             collection_id = data["collection"]
             if collection_id in deleted_collections:
                 continue
@@ -563,6 +534,11 @@ def interpret_message(msg: str, api_url: str):
             files_to_create.append(file_key) if not item_registered else None
 
         elif data.get("type") == "Feature":
+            # For items, we need to cut down the catalog path ignoring the 'collection' directory
+            # Expected format is 'catalog/collection/item', we only need 'catalog'
+            catalog_path_list = catalog_path.split("/")
+            catalog_path = catalog_path_list[:-1] # Remove 'collection' directory
+            catalog_path = "/".join(catalog_path)
             collection_id = data["collection"]
             item_id = data["id"]
             logger.info(
@@ -574,7 +550,10 @@ def interpret_message(msg: str, api_url: str):
             files_to_create.append(file_key) if not item_registered else None
 
         elif data.get("type") == "Catalog":
-            logger.info(f"Creating Catalog {catalog_path}")
+            if catalog_path:
+                logger.info(f"Creating Catalog {data['id']} in catalog {catalog_path}")
+            else:
+                logger.info(f"Creating a new base catalog, {data['id']}")
             create_catalog(api_url, data, catalog_path)
 
         # Increment loop counter
@@ -615,6 +594,11 @@ def interpret_message(msg: str, api_url: str):
             files_to_update.append(file_key) if not collection_updated else None
 
         elif data.get("type") == "Feature":
+            # For items, we need to cut down the catalog path ignoring the 'collection' directory
+            # Expected format is 'catalog/collection/item', we only need 'catalog'
+            catalog_path_list = catalog_path.split("/")
+            catalog_path = catalog_path_list[:-1] # Remove 'collection' directory
+            catalog_path = "/".join(catalog_path)
             collection_id = data["collection"]
             item_id = data["id"]
             logger.info(
@@ -631,9 +615,6 @@ def interpret_message(msg: str, api_url: str):
 
         # Increment loop counter
         files_count += 1
-
-    # Clear open_catalogs dictionary cache
-    open_catalogs = {}
 
 
 @cli.command()
