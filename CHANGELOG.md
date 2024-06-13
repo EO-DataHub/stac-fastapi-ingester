@@ -1,7 +1,7 @@
 # Changelog
 
 ## v0.1.3 (13-06-2024)
-- Added support for arbitrarilly nested catalogs
+- Added support for arbitrarily nested catalogs
 - Updated code correctly identify parent catalogs from the keys in the provided Pulsar message
 - Updated endpoint logic to correctly pass catalog paths to STAC-Fastapi for ingesting
 - Removed unnecessary function and variables for previous catalog identification method
