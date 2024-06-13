@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import time
 import traceback
 from http import HTTPStatus
 from typing import Optional
@@ -12,7 +13,6 @@ import click
 import pulsar
 import pulsar.exceptions
 import requests
-import time
 
 # configure boto3 logging
 logging.getLogger("botocore").setLevel(logging.CRITICAL)
@@ -122,9 +122,7 @@ def delete_collection(api_url: str, collection_id: str, catalog_path: str):
         raise
 
 
-def delete_item(
-    api_url: str, collection_id: str, item_id: str, catalog_path: str
-):
+def delete_item(api_url: str, collection_id: str, item_id: str, catalog_path: str):
     headers = {"accept": "application/json"}
     try:
         resp = requests.delete(
@@ -191,9 +189,7 @@ def update_catalog(api_url: str, data: dict, catalog_path: str):
         raise
 
 
-def update_collection(
-    api_url: str, collection_id: str, data: dict, catalog_path: str
-) -> bool:
+def update_collection(api_url: str, collection_id: str, data: dict, catalog_path: str) -> bool:
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     try:
         resp = requests.put(
@@ -233,9 +229,7 @@ def update_collection(
         raise
 
 
-def update_item(
-    api_url: str, collection_id: str, item_id, data: dict, catalog_path: str
-) -> bool:
+def update_item(api_url: str, collection_id: str, item_id, data: dict, catalog_path: str) -> bool:
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     try:
         resp = requests.put(
@@ -324,9 +318,7 @@ def create_catalog(api_url: str, data: dict, catalog_path: Optional[str]):
         raise
 
 
-def create_collection(
-    api_url: str, collection_id: str, data: dict, catalog_path: str
-) -> bool:
+def create_collection(api_url: str, collection_id: str, data: dict, catalog_path: str) -> bool:
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     try:
         resp = requests.post(
@@ -432,6 +424,7 @@ def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str) 
         logger.error(f"Failed to load S3 object with key: {file_key}")
         raise
 
+
 def interpret_message(msg: str, api_url: str):
     # Configure boto3 client ready for data access
     if os.getenv("AWS_ACCESS_KEY") and os.getenv("AWS_SECRET_ACCESS_KEY"):
@@ -453,7 +446,7 @@ def interpret_message(msg: str, api_url: str):
     # Extract file names into actions lists
     files_to_update = updates_json["updated_keys"] if "updated_keys" in updates_json.keys() else []
     files_to_delete = updates_json["deleted_keys"] if "deleted_keys" in updates_json.keys() else []
-    files_to_create = updates_json["added_keys"] if "added_keys" in updates_json.keys() else []    
+    files_to_create = updates_json["added_keys"] if "added_keys" in updates_json.keys() else []
 
     # Delete catalogs, collections and items
     for file_key in files_to_delete:
@@ -464,7 +457,7 @@ def interpret_message(msg: str, api_url: str):
         data = load_data_from_s3(client, bucket_name, file_key)
         if not data:
             continue
-        
+
         # Extract catalog path for this file
         catalog_path_list = file_key.split("/")
         catalog_path_list = catalog_path_list[:-1]
@@ -486,7 +479,7 @@ def interpret_message(msg: str, api_url: str):
             # For items, we need to cut down the catalog path ignoring the 'collection' directory
             # Expected format is 'catalog/collection/item', we only need 'catalog'
             catalog_path_list = catalog_path.split("/")
-            catalog_path = catalog_path_list[:-1] # Remove 'collection' directory
+            catalog_path = catalog_path_list[:-1]  # Remove 'collection' directory
             catalog_path = "/".join(catalog_path)
             collection_id = data["collection"]
             if collection_id in deleted_collections:
@@ -537,7 +530,7 @@ def interpret_message(msg: str, api_url: str):
             # For items, we need to cut down the catalog path ignoring the 'collection' directory
             # Expected format is 'catalog/collection/item', we only need 'catalog'
             catalog_path_list = catalog_path.split("/")
-            catalog_path = catalog_path_list[:-1] # Remove 'collection' directory
+            catalog_path = catalog_path_list[:-1]  # Remove 'collection' directory
             catalog_path = "/".join(catalog_path)
             collection_id = data["collection"]
             item_id = data["id"]
@@ -597,7 +590,7 @@ def interpret_message(msg: str, api_url: str):
             # For items, we need to cut down the catalog path ignoring the 'collection' directory
             # Expected format is 'catalog/collection/item', we only need 'catalog'
             catalog_path_list = catalog_path.split("/")
-            catalog_path = catalog_path_list[:-1] # Remove 'collection' directory
+            catalog_path = catalog_path_list[:-1]  # Remove 'collection' directory
             catalog_path = "/".join(catalog_path)
             collection_id = data["collection"]
             item_id = data["id"]
