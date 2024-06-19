@@ -449,8 +449,8 @@ def interpret_message(msg: str, api_url: str):
     files_to_create = updates_json["added_keys"] if "added_keys" in updates_json.keys() else []
 
     # Sort by key length to ensure that catalogs are created before collections and items
-    files_to_update.sort(key=lambda s: s.count('/'))
-    files_to_create.sort(key=lambda s: s.count('/'))
+    files_to_update.sort(key=lambda s: s.count("/"))
+    files_to_create.sort(key=lambda s: s.count("/"))
 
     # Delete catalogs, collections and items
     for file_key in files_to_delete:
