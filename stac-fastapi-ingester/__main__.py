@@ -303,17 +303,17 @@ def create_catalog(api_url: str, data: dict, catalog_path: Optional[str]):
         )
         if resp.status_code == HTTPStatus.OK:
             logger.info("Status code: OK")
-            logger.info(f"Created Catalog {catalog_path}")
+            logger.info(f"Created Catalog {data['id']} in catalog {catalog_path}")
         elif resp.status_code == HTTPStatus.CONFLICT:
             logger.warning("Status code: CONFLICT")
-            logger.warning(f"Catalog: {catalog_path} already exists")
+            logger.warning(f"Catalog: {data['id']} already exists in {catalog_path}")
         else:
-            logger.warning(f"Catalog: {catalog_path} not created")
+            logger.warning(f"Catalog: {data['id']} not created in {catalog_path}")
             logger.warning(f"Status Code: {resp.status_code} on url: {api_url}/catalogs")
             logger.warning("data is")
             logger.warning(data)
     except Exception as err:
-        logger.warning(f"Catalog: {catalog_path} not created")
+        logger.warning(f"Catalog: {data['id']} not created")
         logger.error(err)
         raise
 
@@ -622,7 +622,7 @@ def interpret_message(msg: str, api_url: str):
             files_to_update.append(file_key) if not item_updated else None
 
         elif data.get("type") == "Catalog":
-            logger.info(f"Updating Catalog {catalog_path}")
+            logger.info(f"Updating Catalog {data['id']} in Catalog {catalog_path}")
             update_catalog(api_url, data, catalog_path)
 
         # Increment loop counter
