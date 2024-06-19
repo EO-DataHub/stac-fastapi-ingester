@@ -452,7 +452,6 @@ def interpret_message(msg: str, api_url: str):
     files_to_update.sort(key=lambda s: s.count('/'))
     files_to_create.sort(key=lambda s: s.count('/'))
 
-
     # Delete catalogs, collections and items
     for file_key in files_to_delete:
         # We can track deleted collections as this will also delete all associated items so no need
