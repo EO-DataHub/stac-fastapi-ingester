@@ -303,17 +303,17 @@ def create_catalog(api_url: str, data: dict, catalog_path: Optional[str]):
         )
         if resp.status_code == HTTPStatus.OK:
             logger.info("Status code: OK")
-            logger.info(f"Created Catalog {catalog_path}")
+            logger.info(f"Created Catalog {data['id']} in catalog {catalog_path}")
         elif resp.status_code == HTTPStatus.CONFLICT:
             logger.warning("Status code: CONFLICT")
-            logger.warning(f"Catalog: {catalog_path} already exists")
+            logger.warning(f"Catalog: {data['id']} already exists in {catalog_path}")
         else:
-            logger.warning(f"Catalog: {catalog_path} not created")
+            logger.warning(f"Catalog: {data['id']} not created in {catalog_path}")
             logger.warning(f"Status Code: {resp.status_code} on url: {api_url}/catalogs")
             logger.warning("data is")
             logger.warning(data)
     except Exception as err:
-        logger.warning(f"Catalog: {catalog_path} not created")
+        logger.warning(f"Catalog: {data['id']} not created")
         logger.error(err)
         raise
 
@@ -447,6 +447,10 @@ def interpret_message(msg: str, api_url: str):
     files_to_update = updates_json["updated_keys"] if "updated_keys" in updates_json.keys() else []
     files_to_delete = updates_json["deleted_keys"] if "deleted_keys" in updates_json.keys() else []
     files_to_create = updates_json["added_keys"] if "added_keys" in updates_json.keys() else []
+
+    # Sort by key length to ensure that catalogs are created before collections and items
+    files_to_update.sort(key=lambda s: s.count("/"))
+    files_to_create.sort(key=lambda s: s.count("/"))
 
     # Delete catalogs, collections and items
     for file_key in files_to_delete:
@@ -618,7 +622,7 @@ def interpret_message(msg: str, api_url: str):
             files_to_update.append(file_key) if not item_updated else None
 
         elif data.get("type") == "Catalog":
-            logger.info(f"Updating Catalog {catalog_path}")
+            logger.info(f"Updating Catalog {data['id']} in Catalog {catalog_path}")
             update_catalog(api_url, data, catalog_path)
 
         # Increment loop counter
