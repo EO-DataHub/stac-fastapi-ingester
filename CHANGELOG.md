@@ -3,7 +3,9 @@
 ## v0.1.4 (12-07-2024)
 
 Efficiency Improvements
-- Sort input lists `added_keys` and `updated_keys` by path length (number of "/") to ensure higher-level catalogs and collections are ingested before their nested datasets (child catalogs, collections and items).
+- Update code to sort input lists `added_keys` and `updated_keys` by path length (number of "/") to ensure higher-level catalogs and collections are ingested before their nested datasets (child catalogs, collections and items).
+Code cleanup
+- Update logging outputs to better identify catalog ids
 
 ## v0.1.3 (13-06-2024)
 - Added support for arbitrarily nested catalogs
