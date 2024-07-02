@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.4 (12-07-2024)
+
+Efficiency Improvements
+- Sort input lists `added_keys` and `updated_keys` by path length (number of "/") to ensure higher-level catalogs and collections are ingested before their nested datasets (child catalogs, collections and items).
+
 ## v0.1.3 (13-06-2024)
 - Added support for arbitrarily nested catalogs
 - Updated code correctly identify parent catalogs from the keys in the provided Pulsar message
