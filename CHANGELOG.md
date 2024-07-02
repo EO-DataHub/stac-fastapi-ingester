@@ -4,6 +4,7 @@
 
 Efficiency Improvements
 - Update code to sort input lists `added_keys` and `updated_keys` by path length (number of "/") to ensure higher-level catalogs and collections are ingested before their nested datasets (child catalogs, collections and items).
+
 Code cleanup
 - Update logging outputs to better identify catalog ids
 
