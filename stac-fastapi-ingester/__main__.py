@@ -160,11 +160,11 @@ def delete_item(api_url: str, collection_id: str, item_id: str, catalog_path: st
 ############################
 
 
-def update_catalog(api_url: str, data: dict, catalog_path: str):
+def update_catalog(api_url: str, data: dict, catalog_path: str, catalog_id: str):
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     try:
         resp = requests.put(
-            f"{api_url}/catalogs/{catalog_path}",
+            f"{api_url}/catalogs/{catalog_path}/{catalog_id}",
             headers=headers,
             json=data,
         )
@@ -623,7 +623,7 @@ def interpret_message(msg: str, api_url: str):
 
         elif data.get("type") == "Catalog":
             logger.info(f"Updating Catalog {data['id']} in Catalog {catalog_path}")
-            update_catalog(api_url, data, catalog_path)
+            update_catalog(api_url, data, catalog_path, data['id'])
 
         # Increment loop counter
         files_count += 1
