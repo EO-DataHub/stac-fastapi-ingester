@@ -623,7 +623,7 @@ def interpret_message(msg: str, api_url: str):
 
         elif data.get("type") == "Catalog":
             logger.info(f"Updating Catalog {data['id']} in Catalog {catalog_path}")
-            update_catalog(api_url, data, catalog_path, data['id'])
+            update_catalog(api_url, data, catalog_path, data["id"])
 
         # Increment loop counter
         files_count += 1
