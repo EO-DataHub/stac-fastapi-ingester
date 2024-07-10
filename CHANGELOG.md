@@ -1,6 +1,11 @@
 # Changelog
 
-## v0.1.4 (12-07-2024)
+## v0.1.5 (08-07-2024)
+
+Bugfix
+- Corrected update_catalog functionality to ensure full catalog path, including current catalog_id, is used in the request to update the catalog
+
+## v0.1.4 (02-07-2024)
 
 Efficiency Improvements
 - Update code to sort input lists `added_keys` and `updated_keys` by path length (number of "/") to ensure higher-level catalogs and collections are ingested before their nested datasets (child catalogs, collections and items).
