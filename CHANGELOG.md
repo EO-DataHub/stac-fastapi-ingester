@@ -2,8 +2,14 @@
 
 ## v0.1.5 (08-07-2024)
 
-Bugfix
-- Corrected update_catalog functionality to ensure full catalog path, including current catalog_id, is used in the request to update the catalog
+Bugfixes
+- Corrected update_catalog and delete_catalog functionality to ensure full catalog path, including current catalog_id, is used in the request to update the catalog.
+- Updated logging outputs to match
+- Code cleanup to support better unit testing
+- Updated logging for https responses
+- Updated handling of botocore ClientError exception
+
+Added unit tests
 
 ## v0.1.4 (02-07-2024)
 
