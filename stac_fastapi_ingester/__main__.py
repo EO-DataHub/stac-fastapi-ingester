@@ -449,10 +449,15 @@ def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str) 
         # File is not json so ignore this file
         logger.warning(f"File {file_key} is not a JSON file. Ignoring.")
         return False
-    except client.exceptions.NoSuchKey:
-        # File key does not exist
-        logger.warning(f"File {file_key} does not exist in S3. Ignoring.")
-        return False
+    except botocore.exceptions.ClientError as err:
+        if err.response['Error']['Code'] == 'NoSuchKey':
+            # File key does not exist
+            logger.warning(f"File {file_key} does not exist in S3. Ignoring.")
+            return False
+        else:
+            logger.error(err)
+            logger.error(f"Failed to load S3 object with key: {file_key}")
+            raise
     except Exception as err:
         logger.error(err)
         logger.error(f"Failed to load S3 object with key: {file_key}")
