@@ -437,7 +437,7 @@ def create_item(
     except Exception as err:
         logger.warning(
             f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} "
-            "not created not created"
+            "not created"
         )
         logger.error(err)
         raise
@@ -638,8 +638,6 @@ def interpret_message(msg: str, api_url: str):
         data = load_data_from_s3(client, bucket_name, file_key)
         if not data:
             continue
-
-        print(data)
 
         # Extract catalog path for this file
         catalog_path_list = file_key.split("/")
