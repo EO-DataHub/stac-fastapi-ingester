@@ -1,6 +1,10 @@
 import os
 from unittest import mock
 from unittest.mock import patch
+import botocore
+from botocore.exceptions import ClientError
+from io import BytesIO
+import json
 
 import pytest
 import requests
@@ -18,6 +22,7 @@ from stac_fastapi_ingester.__main__ import (
     update_catalog,
     update_collection,
     update_item,
+    load_data_from_s3,
 )
 
 #########################
@@ -2036,6 +2041,11 @@ def test_interpret_message_delete_item(mock_load_data_from_s3, mock_delete_item)
     )
 
 
+##############
+## Test CLI ##
+##############
+
+
 @patch.dict(os.environ, {"PULSAR_URL": "pulsar://test-url", "FASTAPI_URL": "https://test-url/api"})
 @patch("stac_fastapi_ingester.__main__.interpret_message")
 @patch("pulsar.Client")
@@ -2076,3 +2086,134 @@ def test_cli_with_topic_and_pulsar_url(mock_pulsar_client, mock_interpret_messag
     )  # note, this errors on second run to terminate loop
     mock_interpret_message.assert_called_once_with("this is a test message", "https://test-url/api")
     mock_pulsar_client_consumer.acknowledge.assert_called_once_with(mock_received_message)
+
+############################
+## Test Load Data from S3 ##
+############################
+
+def test_load_data_from_s3_success(caplog):
+
+    # Set test variables
+    bucket_name = "test_bucket"
+    file_key = "test_key"
+
+    # Create mocks
+    mock_botocore_client = mock.Mock()
+    byte_string = b"""{"id": "test_id"}"""
+    mock_botocore_client.get_object.return_value = {
+        "Body": 
+            BytesIO(byte_string)
+    }
+
+    # Call the function under test
+    result = load_data_from_s3(mock_botocore_client, bucket_name, file_key)
+
+    assert result == {"id": "test_id"}
+
+
+def test_load_data_from_s3_param_error(caplog):
+
+    # Set test variables
+    bucket_name = "test_bucket"
+    file_key = "test_key"
+
+    # Create mocks
+    mock_botocore_client = mock.Mock()
+    mock_botocore_client.get_object.side_effect = botocore.exceptions.ParamValidationError(report='Invalid parameters')
+
+    # Call the function under test
+    result = load_data_from_s3(mock_botocore_client, bucket_name, file_key)
+
+    # Assert that warning is raised correctly
+    assert result == False
+    assert "Provided bucket name or file key is not supported." in caplog.text
+
+def test_load_data_from_s3_json_decode_error(caplog):
+
+    # Set test variables
+    bucket_name = "test_bucket"
+    file_key = "test_key"
+
+    # Create mocks
+    mock_botocore_client = mock.Mock()
+    mock_botocore_client.get_object.side_effect = json.decoder.JSONDecodeError(msg="Invalid JSON", doc="", pos=0)
+
+    # Call the function under test
+    result = load_data_from_s3(mock_botocore_client, bucket_name, file_key)
+
+    # Assert that warning is raised correctly
+    assert result == False
+    assert f"File {file_key} is not a JSON file. Ignoring." in caplog.text
+
+
+def test_load_data_from_s3_unicode_decode_error(caplog):
+
+    # Set test variables
+    bucket_name = "test_bucket"
+    file_key = "test_key"
+
+    # Create mocks
+    mock_botocore_client = mock.Mock()
+    mock_botocore_client.get_object.side_effect = UnicodeDecodeError('utf-8', b'', 0, 1, 'invalid start byte')
+
+    # Call the function under test
+    result = load_data_from_s3(mock_botocore_client, bucket_name, file_key)
+
+    # Assert that warning is raised correctly
+    assert result == False
+    assert f"File {file_key} is not a JSON file. Ignoring." in caplog.text
+
+def test_load_data_from_s3_other_error(caplog):
+
+    # Set test variables
+    bucket_name = "test_bucket"
+    file_key = "test_key"
+
+    # Create mocks
+    mock_botocore_client = mock.Mock()
+    mock_botocore_client.get_object.side_effect = Exception()
+
+    # Call the function under test
+    with pytest.raises(Exception):
+        result = load_data_from_s3(mock_botocore_client, bucket_name, file_key)
+    
+    # Assert that warning is raised correctly
+    assert f"Failed to load S3 object with key: {file_key}" in caplog.text
+
+
+def test_load_data_from_s3_botocore_key_error(caplog):
+
+    # Set test variables
+    bucket_name = "test_bucket"
+    file_key = "test_key"
+
+    # Create mocks
+    mock_botocore_client = mock.Mock()
+    error_response = {'Error': {'Code': 'NoSuchKey', 'Message': 'The specified key does not exist.'}}
+    mock_botocore_client.get_object.side_effect = ClientError(error_response, 'GetObject')
+
+    # Call the function under test
+    result = load_data_from_s3(mock_botocore_client, bucket_name, file_key)
+
+    # Assert that warning is raised correctly
+    assert result == False
+    assert f"File {file_key} does not exist in S3. Ignoring." in caplog.text
+
+
+def test_load_data_from_s3_botocore_error(caplog):
+
+    # Set test variables
+    bucket_name = "test_bucket"
+    file_key = "test_key"
+
+    # Create mocks
+    mock_botocore_client = mock.Mock()
+    error_response = {'Error': {'Code': 'Other', 'Message': 'The specified key does not exist.'}}
+    mock_botocore_client.get_object.side_effect = ClientError(error_response, 'GetObject')
+
+    # Call the function under test
+    with pytest.raises(ClientError):
+        result = load_data_from_s3(mock_botocore_client, bucket_name, file_key)
+
+    # Assert that warning is raised correctly
+    assert f"Failed to load S3 object with key: {file_key}" in caplog.text
