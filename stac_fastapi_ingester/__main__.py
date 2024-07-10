@@ -74,23 +74,27 @@ def delete_catalog(api_url: str, catalog_path: str, catalog_id: str):
         if resp.status_code == HTTPStatus.OK or resp.status_code == HTTPStatus.NO_CONTENT:
             logger.info("Status code: OK")
             logger.info(
-                f"Deleted Catalog {catalog_id} {f'from {catalog_path}' if catalog_path else 'from top-level'}"
+                f"Deleted Catalog {catalog_id} "
+                f"{f'from {catalog_path}' if catalog_path else 'from top-level'}"
             )
         elif resp.status_code == HTTPStatus.CONFLICT:
             logger.warning("Status code: CONFLICT")
         elif resp.status_code == HTTPStatus.NOT_FOUND:
             logger.warning("Status code: NOT_FOUND")
             logger.warning(
-                f"Catalog: {catalog_id} does not exist {f'at {catalog_path}' if catalog_path else 'at top-level'}."
+                f"Catalog: {catalog_id} does not exist "
+                f"{f'at {catalog_path}' if catalog_path else 'at top-level'}."
             )
         else:
             logger.warning(
-                f"Catalog: {catalog_id} not deleted {f'from {catalog_path}' if catalog_path else 'from top-level'}"
+                f"Catalog: {catalog_id} not deleted "
+                f"{f'from {catalog_path}' if catalog_path else 'from top-level'}"
             )
             logger.warning(f"Status Code: {resp.status_code} on url: {combined_url}")
     except Exception as err:
         logger.warning(
-            f"Catalog: {catalog_id} not deleted {f'from {catalog_path}' if catalog_path else 'from top-level'}"
+            f"Catalog: {catalog_id} not deleted "
+            f"{f'from {catalog_path}' if catalog_path else 'from top-level'}"
         )
         logger.error(err)
         raise
@@ -190,18 +194,21 @@ def update_catalog(api_url: str, data: dict, catalog_path: str, catalog_id: str)
         elif resp.status_code == HTTPStatus.NOT_FOUND:
             logger.warning("Status code: NOT_FOUND")
             logger.warning(
-                f"Catalog: {catalog_id} {f'at {catalog_path}' if catalog_path else 'at top-level'} not updated as doesn't exist."
+                f"Catalog: {catalog_id} {f'at {catalog_path}' if catalog_path else 'at top-level'} "
+                "not updated as doesn't exist."
             )
         else:
             logger.warning(
-                f"Catalog: {catalog_id} {f'at {catalog_path}' if catalog_path else 'at top-level'} not updated"
+                f"Catalog: {catalog_id} {f'at {catalog_path}' if catalog_path else 'at top-level'} "
+                "not updated"
             )
             logger.warning(f"Status Code: {resp.status_code} on url: {combined_url}")
             logger.warning("data is")
             logger.warning(data)
     except Exception as err:
         logger.warning(
-            f"Catalog: {catalog_id} {f'at {catalog_path}' if catalog_path else 'at top-level'} not updated"
+            f"Catalog: {catalog_id} {f'at {catalog_path}' if catalog_path else 'at top-level'} "
+            "not updated"
         )
         logger.error(err)
         raise
@@ -330,14 +337,16 @@ def create_catalog(api_url: str, data: dict, catalog_path: Optional[str]):
         elif resp.status_code == HTTPStatus.CONFLICT:
             logger.warning("Status code: CONFLICT")
             logger.warning(
-                f"Catalog: {data['id']} already exists {f'in {catalog_path}' if catalog_path else 'at top-level'}"
+                f"Catalog: {data['id']} already exists "
+                f"{f'in {catalog_path}' if catalog_path else 'at top-level'}"
             )
         elif resp.status_code == HTTPStatus.NOT_FOUND:
             logger.warning("Status code: NOT_FOUND")
             logger.warning(f"Catalog: {catalog_path} does not exist.")
         else:
             logger.warning(
-                f"Catalog: {data['id']} not created {f'in {catalog_path}' if catalog_path else 'at top-level'}"
+                f"Catalog: {data['id']} not created "
+                f"{f'in {catalog_path}' if catalog_path else 'at top-level'}"
             )
             logger.warning(f"Status Code: {resp.status_code} on url: {combined_url}")
             logger.warning("data is")
@@ -427,7 +436,8 @@ def create_item(
             return True
     except Exception as err:
         logger.warning(
-            f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} not created not created"
+            f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} "
+            "not created not created"
         )
         logger.error(err)
         raise
@@ -450,7 +460,7 @@ def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str) 
         logger.warning(f"File {file_key} is not a JSON file. Ignoring.")
         return False
     except botocore.exceptions.ClientError as err:
-        if err.response['Error']['Code'] == 'NoSuchKey':
+        if err.response["Error"]["Code"] == "NoSuchKey":
             # File key does not exist
             logger.warning(f"File {file_key} does not exist in S3. Ignoring.")
             return False
@@ -505,7 +515,8 @@ def interpret_message(msg: str, api_url: str):
         catalog_path_list = file_key.split("/")
         catalog_path_list = catalog_path_list[:-1]
 
-        # In future we can use: file_id = catalog_path_list[-1] to extract current file name (doesn't work for collections)
+        # In future we can use:
+        # file_id = catalog_path_list[-1] to extract current file name (doesn't work for collections)
 
         # Remove first key in catalog path (expected to be "transformed")
         if len(catalog_path_list) == 1:
