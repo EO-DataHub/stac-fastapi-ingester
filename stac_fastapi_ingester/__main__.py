@@ -72,15 +72,15 @@ def delete_catalog(api_url: str, catalog_path: str, catalog_id: str):
             headers=headers,
         )
         if resp.status_code == HTTPStatus.OK or resp.status_code == HTTPStatus.NO_CONTENT:
-            logger.info("Status code: OK")
+            logger.info("Status Code: OK")
             logger.info(
                 f"Deleted Catalog {catalog_id} "
                 f"{f'from {catalog_path}' if catalog_path else 'from top-level'}"
             )
         elif resp.status_code == HTTPStatus.CONFLICT:
-            logger.warning("Status code: CONFLICT")
+            logger.warning("Status Code: CONFLICT")
         elif resp.status_code == HTTPStatus.NOT_FOUND:
-            logger.warning("Status code: NOT_FOUND")
+            logger.warning("Status Code: NOT_FOUND")
             logger.warning(
                 f"Catalog: {catalog_id} does not exist "
                 f"{f'at {catalog_path}' if catalog_path else 'at top-level'}."
@@ -108,12 +108,12 @@ def delete_collection(api_url: str, collection_id: str, catalog_path: str):
             headers=headers,
         )
         if resp.status_code == HTTPStatus.OK or resp.status_code == HTTPStatus.NO_CONTENT:
-            logger.info("Status code: OK")
+            logger.info("Status Code: OK")
             logger.info(f"Deleted Collection {collection_id}")
         elif resp.status_code == HTTPStatus.CONFLICT:
-            logger.warning("Status code: CONFLICT")
+            logger.warning("Status Code: CONFLICT")
         elif resp.status_code == HTTPStatus.NOT_FOUND:
-            logger.warning("Status code: NOT_FOUND")
+            logger.warning("Status Code: NOT_FOUND")
             logger.warning(
                 f"Collection: {collection_id} in Catalog: {catalog_path} does not exist."
             )
@@ -137,12 +137,12 @@ def delete_item(api_url: str, collection_id: str, item_id: str, catalog_path: st
             headers=headers,
         )
         if resp.status_code == HTTPStatus.OK or resp.status_code == HTTPStatus.NO_CONTENT:
-            logger.info("Status code: OK")
+            logger.info("Status Code: OK")
             logger.info(f"Deleted Item {item_id}")
         elif resp.status_code == HTTPStatus.CONFLICT:
-            logger.warning("Status code: CONFLICT")
+            logger.warning("Status Code: CONFLICT")
         elif resp.status_code == HTTPStatus.NOT_FOUND:
-            logger.warning("Status code: NOT_FOUND")
+            logger.warning("Status Code: NOT_FOUND")
             logger.warning(
                 f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} does "
                 "not exist."
@@ -185,14 +185,14 @@ def update_catalog(api_url: str, data: dict, catalog_path: str, catalog_id: str)
             json=data,
         )
         if resp.status_code == HTTPStatus.OK:
-            logger.info("Status code: OK")
+            logger.info("Status Code: OK")
             logger.info(
                 f"Updated Catalog {catalog_id} {f'at {catalog_path}' if catalog_path else 'at top-level'}"
             )
         elif resp.status_code == HTTPStatus.CONFLICT:
-            logger.warning("Status code: CONFLICT")
+            logger.warning("Status Code: CONFLICT")
         elif resp.status_code == HTTPStatus.NOT_FOUND:
-            logger.warning("Status code: NOT_FOUND")
+            logger.warning("Status Code: NOT_FOUND")
             logger.warning(
                 f"Catalog: {catalog_id} {f'at {catalog_path}' if catalog_path else 'at top-level'} "
                 "not updated as doesn't exist."
@@ -223,14 +223,14 @@ def update_collection(api_url: str, collection_id: str, data: dict, catalog_path
             json=data,
         )
         if resp.status_code == HTTPStatus.OK:
-            logger.info("Status code: OK")
+            logger.info("Status Code: OK")
             logger.info(f"Updated Collection {collection_id} in Catalog: {catalog_path}")
             return True
         elif resp.status_code == HTTPStatus.CONFLICT:
-            logger.warning("Status code: CONFLICT")
+            logger.warning("Status Code: CONFLICT")
             return True
         elif resp.status_code == HTTPStatus.NOT_FOUND:
-            logger.warning("Status code: NOT_FOUND")
+            logger.warning("Status Code: NOT_FOUND")
             logger.warning(
                 f"Collection: {collection_id} not updated as doesn't exist in Catalog "
                 f"{catalog_path}."
@@ -261,14 +261,14 @@ def update_item(api_url: str, collection_id: str, item_id, data: dict, catalog_p
             json=data,
         )
         if resp.status_code == HTTPStatus.OK:
-            logger.info("Status code: OK")
+            logger.info("Status Code: OK")
             logger.info(f"Updated Item {item_id}")
             return True
         elif resp.status_code == HTTPStatus.CONFLICT:
-            logger.warning("Status code: CONFLICT")
+            logger.warning("Status Code: CONFLICT")
             return True
         elif resp.status_code == HTTPStatus.NOT_FOUND:
-            logger.warning("Status code: NOT_FOUND")
+            logger.warning("Status Code: NOT_FOUND")
             response_decoded = json.loads(resp.content.decode())
             response_decoded_description = response_decoded["description"]
             if "Item" in response_decoded_description:
@@ -330,18 +330,18 @@ def create_catalog(api_url: str, data: dict, catalog_path: Optional[str]):
             json=data,
         )
         if resp.status_code == HTTPStatus.OK:
-            logger.info("Status code: OK")
+            logger.info("Status Code: OK")
             logger.info(
                 f"Created Catalog {data['id']} {f'in {catalog_path}' if catalog_path else 'at top-level'}"
             )
         elif resp.status_code == HTTPStatus.CONFLICT:
-            logger.warning("Status code: CONFLICT")
+            logger.warning("Status Code: CONFLICT")
             logger.warning(
                 f"Catalog: {data['id']} already exists "
                 f"{f'in {catalog_path}' if catalog_path else 'at top-level'}"
             )
         elif resp.status_code == HTTPStatus.NOT_FOUND:
-            logger.warning("Status code: NOT_FOUND")
+            logger.warning("Status Code: NOT_FOUND")
             logger.warning(f"Catalog: {catalog_path} does not exist.")
         else:
             logger.warning(
@@ -368,7 +368,7 @@ def create_collection(api_url: str, collection_id: str, data: dict, catalog_path
             json=data,
         )
         if resp.status_code == HTTPStatus.OK:
-            logger.info("Status code: OK")
+            logger.info("Status Code: OK")
             logger.info(f"Created Collection {collection_id}")
             return True
         elif resp.status_code == HTTPStatus.NOT_FOUND:
@@ -376,7 +376,7 @@ def create_collection(api_url: str, collection_id: str, data: dict, catalog_path
             logger.warning(f"Catalog: {catalog_path} not yet created, will try again in a bit")
             return False
         elif resp.status_code == HTTPStatus.CONFLICT:
-            logger.warning("Status code: CONFLICT")
+            logger.warning("Status Code: CONFLICT")
             logger.warning(f"Collection: {collection_id} in Catalog: {catalog_path} already exists")
             return True
         else:
@@ -405,7 +405,7 @@ def create_item(
             json=data,
         )
         if resp.status_code == HTTPStatus.OK:
-            logger.info("Status code: OK")
+            logger.info("Status Code: OK")
             logger.info(f"Created Item {item_id}")
             return True
         elif resp.status_code == HTTPStatus.NOT_FOUND:
@@ -416,7 +416,7 @@ def create_item(
             )
             return False
         elif resp.status_code == HTTPStatus.CONFLICT:
-            logger.warning("Status code: CONFLICT")
+            logger.warning("Status Code: CONFLICT")
             logger.warning(
                 f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} "
                 "already exists"
