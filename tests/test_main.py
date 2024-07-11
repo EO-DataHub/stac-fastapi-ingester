@@ -25,1491 +25,985 @@ from stac_fastapi_ingester.__main__ import (
     update_item,
 )
 
-#########################
-## Test Create Catalog ##
-#########################
+###################
+## Test Catalogs ##
+###################
 
 
+@pytest.mark.parametrize(
+    "http_method, status_code, api_url, data, catalog_path, "
+    "call_count, expected_url, expected_headers, expected_log",
+    [
+        (  ## create_catalog_success
+            "post",
+            200,
+            "https://test-url/api",
+            {"id": "test_catalog_id"},
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            "Status Code: OK",
+        ),
+        (  # create_catalog_conflict
+            "post",
+            409,
+            "https://test-url/api",
+            {"id": "test_catalog_id"},
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            "Status Code: CONFLICT",
+        ),
+        (  # create_catalog_not_found
+            "post",
+            404,
+            "https://test-url/api",
+            {"id": "test_catalog_id"},
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            "Status Code: NOT_FOUND",
+        ),
+        (  # create_catalog_error
+            "post",
+            400,
+            "https://test-url/api",
+            {"id": "test_catalog_id"},
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            "Status Code: 400",
+        ),
+        (  # update_catalog_success
+            "put",
+            200,
+            "https://test-url/api",
+            {"id": "test_catalog_id"},
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/test_catalog_id",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            "Status Code: OK",
+        ),
+        (  # update_catalog_conflict
+            "put",
+            409,
+            "https://test-url/api",
+            {"id": "test_catalog_id"},
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/test_catalog_id",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            "Status Code: CONFLICT",
+        ),
+        (  # update_catalog_not_found
+            "put",
+            404,
+            "https://test-url/api",
+            {"id": "test_catalog_id"},
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/test_catalog_id",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            "Status Code: NOT_FOUND",
+        ),
+        (  # update_catalog_error
+            "put",
+            400,
+            "https://test-url/api",
+            {"id": "test_catalog_id"},
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/test_catalog_id",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            "Status Code: 400",
+        ),
+        (  # delete_catalog_success
+            "delete",
+            200,
+            "https://test-url/api",
+            {"id": "test_catalog_id"},
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/test_catalog_id",
+            {"accept": "application/json"},
+            "Status Code: OK",
+        ),
+        (  # delete_catalog_conflict
+            "delete",
+            409,
+            "https://test-url/api",
+            {"id": "test_catalog_id"},
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/test_catalog_id",
+            {"accept": "application/json"},
+            "Status Code: CONFLICT",
+        ),
+        (  # delete_catalog_not_found
+            "delete",
+            404,
+            "https://test-url/api",
+            {"id": "test_catalog_id"},
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/test_catalog_id",
+            {"accept": "application/json"},
+            "Status Code: NOT_FOUND",
+        ),
+        (  # delete_catalog_error
+            "delete",
+            400,
+            "https://test-url/api",
+            {"id": "test_catalog_id"},
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/test_catalog_id",
+            {"accept": "application/json"},
+            "Status Code: 400",
+        ),
+    ],
+)
+@patch("requests.delete")
+@patch("requests.put")
 @patch("requests.post")
-def test_create_catalog_success(mock_requests_post, caplog):
+def test_handle_catalogs(
+    mock_requests_post,
+    mock_requests_put,
+    mock_requests_delete,
+    caplog,
+    http_method,
+    status_code,
+    api_url,
+    data,
+    catalog_path,
+    call_count,
+    expected_url,
+    expected_headers,
+    expected_log,
+):
 
-    # Set test variables
-    api_url = "https://test-url/api"
-    data = {"id": "test_id"}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
+    # Setup mocks based on the http_method parameter
+    if http_method == "post":
+        mock_requests = mock_requests_post
+    elif http_method == "put":
+        mock_requests = mock_requests_put
+    elif http_method == "delete":
+        mock_requests = mock_requests_delete
+    else:
+        raise ValueError("Unsupported HTTP method")
 
     # Create mocks
     mock_object = mock.Mock()
-    mock_object.status_code = 200
-    mock_requests_post.return_value = mock_object
+    mock_object.status_code = status_code
+    mock_requests.return_value = mock_object
 
-    create_catalog(api_url, data, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_post.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_post.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert "Status code: OK" in caplog.text
-
-
-@patch("requests.post")
-def test_create_catalog_conflict(mock_requests_post, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    data = {"id": "test_id"}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 409
-    mock_requests_post.return_value = mock_object
-
-    create_catalog(api_url, data, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_post.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_post.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert "Status code: CONFLICT" in caplog.text
-
-
-@patch("requests.post")
-def test_create_catalog_not_found(mock_requests_post, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    data = {"id": "test_id"}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 404
-    mock_requests_post.return_value = mock_object
-
-    create_catalog(api_url, data, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_post.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_post.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert "Status code: NOT_FOUND" in caplog.text
-
-
-@patch("requests.post")
-def test_create_catalog_error(mock_requests_post, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    data = {"id": "test_id"}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 400
-    mock_requests_post.return_value = mock_object
-
-    create_catalog(api_url, data, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_post.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_post.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert "Status Code: 400" in caplog.text
-
-
-@patch("requests.post")
-def test_create_catalog_connection_error(mock_requests_post, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    test_id = "test_id"
-    data = {"id": test_id}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 200
-    mock_requests_post.side_effect = requests.ConnectionError
-
-    # Execute and assert that requests.ConnectionError is raised
-    with pytest.raises(requests.ConnectionError):
+    if http_method == "post":
         create_catalog(api_url, data, catalog_path)
+        expected_kwargs = {"headers": expected_headers, "json": data}
+    elif http_method == "put":
+        update_catalog(api_url, data, catalog_path, "test_catalog_id")
+        expected_kwargs = {"headers": expected_headers, "json": data}
+    elif http_method == "delete":
+        delete_catalog(api_url, catalog_path, "test_catalog_id")
+        expected_kwargs = {"headers": expected_headers}
 
     # Assert that the requests.post function was called once
-    assert mock_requests_post.call_count == 1
+    assert mock_requests.call_count == call_count
 
     # Check requests.post was called correctly
-    calls = mock_requests_post.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
+    calls = mock_requests.call_args_list
+    assert calls[0].args[0] == expected_url
+    assert calls[0].kwargs == expected_kwargs
 
     # Check output log is correct
-    assert f"Catalog: {test_id} not created" in caplog.text
+    assert expected_log in caplog.text
 
 
-#########################
-## Test Update Catalog ##
-#########################
-
-
-@patch("requests.put")
-def test_update_catalog_success(mock_requests_put, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    test_id = "test_id"
-    data = {"id": test_id}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/{test_id}"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 200
-    mock_requests_put.return_value = mock_object
-
-    update_catalog(api_url, data, catalog_path, test_id)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_put.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_put.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert "Status code: OK" in caplog.text
-
-
-@patch("requests.put")
-def test_update_catalog_conflict(mock_requests_put, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    test_id = "test_id"
-    data = {"id": test_id}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/{test_id}"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 409
-    mock_requests_put.return_value = mock_object
-
-    update_catalog(api_url, data, catalog_path, test_id)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_put.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_put.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert "Status code: CONFLICT" in caplog.text
-
-
-@patch("requests.put")
-def test_update_catalog_not_found(mock_requests_put, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    test_id = "test_id"
-    data = {"id": test_id}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/{test_id}"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 404
-    mock_requests_put.return_value = mock_object
-
-    update_catalog(api_url, data, catalog_path, test_id)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_put.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_put.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert "Status code: NOT_FOUND" in caplog.text
-
-
-@patch("requests.put")
-def test_update_catalog_error(mock_requests_put, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    test_id = "test_id"
-    data = {"id": test_id}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/{test_id}"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 400
-    mock_requests_put.return_value = mock_object
-
-    update_catalog(api_url, data, catalog_path, test_id)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_put.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_put.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert "Status Code: 400" in caplog.text
-
-
-@patch("requests.put")
-def test_update_catalog_connection_error(mock_requests_put, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    test_id = "test_id"
-    data = {"id": test_id}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/{test_id}"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 200
-    mock_requests_put.side_effect = requests.ConnectionError
-
-    # Execute and assert that requests.ConnectionError is raised
-    with pytest.raises(requests.ConnectionError):
-        update_catalog(api_url, data, catalog_path, test_id)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_put.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_put.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert f"Catalog: {test_id} at {catalog_path} not updated" in caplog.text
-
-
-#########################
-## Test Delete Catalog ##
-#########################
-
-
+@pytest.mark.parametrize(
+    "http_method, api_url, data, catalog_id, catalog_path, "
+    "call_count, expected_url, expected_headers, expected_log",
+    [
+        (  # create
+            "post",
+            "https://test-url/api",
+            {"id": "test_catalog_id"},
+            "test_catalog_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            "Catalog: test_catalog_id not created",
+        ),
+        (  # update
+            "put",
+            "https://test-url/api",
+            {"id": "test_catalog_id"},
+            "test_catalog_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/test_catalog_id",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            "Catalog: test_catalog_id at example/path/to/catalog not updated",
+        ),
+        (  # delete
+            "delete",
+            "https://test-url/api",
+            {"id": "test_catalog_id"},
+            "test_catalog_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/test_catalog_id",
+            {"accept": "application/json"},
+            "Catalog: test_catalog_id not deleted",
+        ),
+    ],
+)
 @patch("requests.delete")
-def test_delete_catalog_success(mock_requests_delete, caplog):
+@patch("requests.put")
+@patch("requests.post")
+def test_catalog_connection_error(
+    mock_requests_post,
+    mock_requests_put,
+    mock_requests_delete,
+    caplog,
+    http_method,
+    api_url,
+    data,
+    catalog_id,
+    catalog_path,
+    call_count,
+    expected_url,
+    expected_headers,
+    expected_log,
+):
 
-    # Set test variables
-    api_url = "https://test-url/api"
-    test_id = "test_id"
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/{test_id}"
-    test_headers = {"accept": "application/json"}
+    # Setup mocks based on the http_method parameter
+    if http_method == "post":
+        mock_requests = mock_requests_post
+    elif http_method == "put":
+        mock_requests = mock_requests_put
+    elif http_method == "delete":
+        mock_requests = mock_requests_delete
+    else:
+        raise ValueError("Unsupported HTTP method")
 
     # Create mocks
     mock_object = mock.Mock()
     mock_object.status_code = 200
-    mock_requests_delete.return_value = mock_object
+    mock_requests.side_effect = requests.ConnectionError
 
-    delete_catalog(api_url, catalog_path, test_id)
+    if http_method == "post":
+        with pytest.raises(requests.ConnectionError):
+            create_catalog(api_url, data, catalog_path)
+        expected_kwargs = {"headers": expected_headers, "json": data}
+    elif http_method == "put":
+        with pytest.raises(requests.ConnectionError):
+            update_catalog(api_url, data, catalog_path, catalog_id)
+        expected_kwargs = {"headers": expected_headers, "json": data}
+    elif http_method == "delete":
+        with pytest.raises(requests.ConnectionError):
+            delete_catalog(api_url, catalog_path, catalog_id)
+        expected_kwargs = {"headers": expected_headers}
 
     # Assert that the requests.post function was called once
-    assert mock_requests_delete.call_count == 1
+    assert mock_requests.call_count == call_count
 
     # Check requests.post was called correctly
-    calls = mock_requests_delete.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers}
+    calls = mock_requests.call_args_list
+    assert calls[0].args[0] == expected_url
+    assert calls[0].kwargs == expected_kwargs
 
     # Check output log is correct
-    assert "Status code: OK" in caplog.text
+    assert expected_log in caplog.text
 
 
+######################
+## Test Collections ##
+######################
+
+
+@pytest.mark.parametrize(
+    "http_method, status_code, api_url, data, collection_id, catalog_path, "
+    "call_count, expected_url, expected_headers, expected_log",
+    [
+        (  # create_collection_success
+            "post",
+            200,
+            "https://test-url/api",
+            {"id": "test_collection_id"},
+            "test_collection_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            "Status Code: OK",
+        ),
+        (  # create_collection_conflict
+            "post",
+            409,
+            "https://test-url/api",
+            {"id": "test_collection_id"},
+            "test_collection_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            "Status Code: CONFLICT",
+        ),
+        (  # create_collection_not_found
+            "post",
+            404,
+            "https://test-url/api",
+            {"id": "test_collection_id"},
+            "test_collection_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            "Catalog: example/path/to/catalog not yet created",
+        ),
+        (  # create_collection_error
+            "post",
+            400,
+            "https://test-url/api",
+            {"id": "test_collection_id"},
+            "test_collection_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            "Status Code: 400",
+        ),
+        (  # update_collection_success
+            "put",
+            200,
+            "https://test-url/api",
+            {"id": "test_collection_id"},
+            "test_collection_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            "Status Code: OK",
+        ),
+        (  # update_collection_conflict
+            "put",
+            409,
+            "https://test-url/api",
+            {"id": "test_collection_id"},
+            "test_collection_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            "Status Code: CONFLICT",
+        ),
+        (  # update_collection_not_found
+            "put",
+            404,
+            "https://test-url/api",
+            {"id": "test_collection_id"},
+            "test_collection_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            "Status Code: NOT_FOUND",
+        ),
+        (  # update_collection_error
+            "put",
+            400,
+            "https://test-url/api",
+            {"id": "test_collection_id"},
+            "test_collection_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            "Status Code: 400",
+        ),
+        (  # delete_collection_success
+            "delete",
+            200,
+            "https://test-url/api",
+            {"id": "test_collection_id"},
+            "test_collection_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id",
+            {"accept": "application/json"},
+            "Status Code: OK",
+        ),
+        (  # delete_collection_conflict
+            "delete",
+            409,
+            "https://test-url/api",
+            {"id": "test_collection_id"},
+            "test_collection_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id",
+            {"accept": "application/json"},
+            "Status Code: CONFLICT",
+        ),
+        (  # delete_collection_not_found
+            "delete",
+            404,
+            "https://test-url/api",
+            {"id": "test_collection_id"},
+            "test_collection_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id",
+            {"accept": "application/json"},
+            "Status Code: NOT_FOUND",
+        ),
+        (  # delete_collection_error
+            "delete",
+            400,
+            "https://test-url/api",
+            {"id": "test_collection_id"},
+            "test_collection_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id",
+            {"accept": "application/json"},
+            "Status Code: 400",
+        ),
+    ],
+)
 @patch("requests.delete")
-def test_delete_catalog_conflict(mock_requests_delete, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    test_id = "test_id"
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/{test_id}"
-    test_headers = {"accept": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 409
-    mock_requests_delete.return_value = mock_object
-
-    delete_catalog(api_url, catalog_path, test_id)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_delete.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_delete.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers}
-
-    # Check output log is correct
-    assert "Status code: CONFLICT" in caplog.text
-
-
-@patch("requests.delete")
-def test_delete_catalog_not_found(mock_requests_delete, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    test_id = "test_id"
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/{test_id}"
-    test_headers = {"accept": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 404
-    mock_requests_delete.return_value = mock_object
-
-    delete_catalog(api_url, catalog_path, test_id)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_delete.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_delete.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers}
-
-    # Check output log is correct
-    assert "Status code: NOT_FOUND" in caplog.text
-
-
-@patch("requests.delete")
-def test_delete_catalog_error(mock_requests_delete, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    test_id = "test_id"
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/{test_id}"
-    test_headers = {"accept": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 400
-    mock_requests_delete.return_value = mock_object
-
-    delete_catalog(api_url, catalog_path, test_id)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_delete.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_delete.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers}
-
-    # Check output log is correct
-    assert "Status Code: 400" in caplog.text
-
-
-@patch("requests.delete")
-def test_delete_catalog_connection_error(mock_requests_delete, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    test_id = "test_id"
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/{test_id}"
-    test_headers = {"accept": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 200
-    mock_requests_delete.side_effect = requests.ConnectionError
-
-    # Execute and assert that requests.ConnectionError is raised
-    with pytest.raises(requests.ConnectionError):
-        delete_catalog(api_url, catalog_path, test_id)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_delete.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_delete.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers}
-
-    # Check output log is correct
-    assert f"Catalog: {test_id} not deleted" in caplog.text
-
-
-############################
-## Test Create Collection ##
-############################
-
-
+@patch("requests.put")
 @patch("requests.post")
-def test_create_collection_success(mock_requests_post, caplog):
+def test_handle_collections(
+    mock_requests_post,
+    mock_requests_put,
+    mock_requests_delete,
+    caplog,
+    http_method,
+    status_code,
+    api_url,
+    data,
+    collection_id,
+    catalog_path,
+    call_count,
+    expected_url,
+    expected_headers,
+    expected_log,
+):
 
-    # Set test variables
-    api_url = "https://test-url/api"
-    collection_id = "test_collection"
-    data = {"id": "test_id"}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 200
-    mock_requests_post.return_value = mock_object
-
-    create_collection(api_url, collection_id, data, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_post.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_post.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert "Status code: OK" in caplog.text
-
-
-@patch("requests.post")
-def test_create_collection_conflict(mock_requests_post, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    collection_id = "test_collection"
-    data = {"id": "test_id"}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
+    # Setup mocks based on the http_method parameter
+    if http_method == "post":
+        mock_requests = mock_requests_post
+    elif http_method == "put":
+        mock_requests = mock_requests_put
+    elif http_method == "delete":
+        mock_requests = mock_requests_delete
+    else:
+        raise ValueError("Unsupported HTTP method")
 
     # Create mocks
     mock_object = mock.Mock()
-    mock_object.status_code = 409
-    mock_requests_post.return_value = mock_object
+    mock_object.status_code = status_code
+    mock_requests.return_value = mock_object
 
-    create_collection(api_url, collection_id, data, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_post.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_post.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert "Status code: CONFLICT" in caplog.text
-
-
-@patch("requests.post")
-def test_create_collection_not_found(mock_requests_post, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    collection_id = "test_collection"
-    data = {"id": "test_id"}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 404
-    mock_requests_post.return_value = mock_object
-
-    create_collection(api_url, collection_id, data, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_post.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_post.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert f"Catalog: {catalog_path} not yet created" in caplog.text
-
-
-@patch("requests.post")
-def test_create_collection_error(mock_requests_post, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    collection_id = "test_collection"
-    data = {"id": "test_id"}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 400
-    mock_requests_post.return_value = mock_object
-
-    create_collection(api_url, collection_id, data, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_post.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_post.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert "Status Code: 400" in caplog.text
-
-
-@patch("requests.post")
-def test_create_collection_connection_error(mock_requests_post, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    collection_id = "test_collection"
-    data = {"id": "test_id"}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 200
-    mock_requests_post.side_effect = requests.ConnectionError
-
-    # Execute and assert that requests.ConnectionError is raised
-    with pytest.raises(requests.ConnectionError):
+    if http_method == "post":
         create_collection(api_url, collection_id, data, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_post.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_post.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert f"Collection: {collection_id} not created" in caplog.text
-
-
-############################
-## Test Update Collection ##
-############################
-
-
-@patch("requests.put")
-def test_update_collection_success(mock_requests_put, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    collection_id = "test_collection"
-    data = {"id": "test_id"}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 200
-    mock_requests_put.return_value = mock_object
-
-    update_collection(api_url, collection_id, data, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_put.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_put.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert "Status code: OK" in caplog.text
-
-
-@patch("requests.put")
-def test_update_collection_conflict(mock_requests_put, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    collection_id = "test_collection"
-    data = {"id": "test_id"}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 409
-    mock_requests_put.return_value = mock_object
-
-    update_collection(api_url, collection_id, data, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_put.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_put.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert "Status code: CONFLICT" in caplog.text
-
-
-@patch("requests.put")
-def test_update_collection_not_found(mock_requests_put, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    collection_id = "test_collection"
-    data = {"id": "test_id"}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 404
-    mock_requests_put.return_value = mock_object
-
-    update_collection(api_url, collection_id, data, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_put.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_put.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert "Status code: NOT_FOUND" in caplog.text
-
-
-@patch("requests.put")
-def test_update_collection_error(mock_requests_put, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    collection_id = "test_collection"
-    data = {"id": "test_id"}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 400
-    mock_requests_put.return_value = mock_object
-
-    update_collection(api_url, collection_id, data, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_put.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_put.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert "Status Code: 400" in caplog.text
-
-
-@patch("requests.put")
-def test_update_collection_connection_error(mock_requests_put, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    collection_id = "test_collection"
-    data = {"id": "test_id"}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 200
-    mock_requests_put.side_effect = requests.ConnectionError
-
-    # Execute and assert that requests.ConnectionError is raised
-    with pytest.raises(requests.ConnectionError):
+        expected_kwargs = {"headers": expected_headers, "json": data}
+    elif http_method == "put":
         update_collection(api_url, collection_id, data, catalog_path)
+        expected_kwargs = {"headers": expected_headers, "json": data}
+    elif http_method == "delete":
+        delete_collection(api_url, collection_id, catalog_path)
+        expected_kwargs = {"headers": expected_headers}
 
     # Assert that the requests.post function was called once
-    assert mock_requests_put.call_count == 1
+    assert mock_requests.call_count == call_count
 
     # Check requests.post was called correctly
-    calls = mock_requests_put.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
+    calls = mock_requests.call_args_list
+    assert calls[0].args[0] == expected_url
+    assert calls[0].kwargs == expected_kwargs
 
     # Check output log is correct
-    assert f"Collection: {collection_id} in Catalog: {catalog_path} not updated" in caplog.text
+    assert expected_log in caplog.text
 
 
-############################
-## Test Delete Collection ##
-############################
-
-
+@pytest.mark.parametrize(
+    "http_method, api_url, data, collection_id, catalog_path, "
+    "call_count, expected_url, expected_headers, expected_log",
+    [
+        (  # create
+            "post",
+            "https://test-url/api",
+            {"id": "test_item_id"},
+            "test_collection_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            "Collection: test_collection_id not created",
+        ),
+        (  # update
+            "put",
+            "https://test-url/api",
+            {"id": "test_item_id"},
+            "test_collection_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            "Collection: test_collection_id in Catalog: example/path/to/catalog not updated",
+        ),
+        (  # delete
+            "delete",
+            "https://test-url/api",
+            {"id": "test_item_id"},
+            "test_collection_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id",
+            {"accept": "application/json"},
+            "Collection: test_collection_id not deleted",
+        ),
+    ],
+)
 @patch("requests.delete")
-def test_delete_collection_success(mock_requests_delete, caplog):
+@patch("requests.put")
+@patch("requests.post")
+def test_collection_connection_error(
+    mock_requests_post,
+    mock_requests_put,
+    mock_requests_delete,
+    caplog,
+    http_method,
+    api_url,
+    data,
+    collection_id,
+    catalog_path,
+    call_count,
+    expected_url,
+    expected_headers,
+    expected_log,
+):
 
-    # Set test variables
-    api_url = "https://test-url/api"
-    test_id = "test_id"
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections/{test_id}"
-    test_headers = {"accept": "application/json"}
+    # Setup mocks based on the http_method parameter
+    if http_method == "post":
+        mock_requests = mock_requests_post
+    elif http_method == "put":
+        mock_requests = mock_requests_put
+    elif http_method == "delete":
+        mock_requests = mock_requests_delete
+    else:
+        raise ValueError("Unsupported HTTP method")
 
     # Create mocks
     mock_object = mock.Mock()
     mock_object.status_code = 200
-    mock_requests_delete.return_value = mock_object
+    mock_requests.side_effect = requests.ConnectionError
 
-    delete_collection(api_url, test_id, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_delete.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_delete.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers}
-
-    # Check output log is correct
-    assert "Status code: OK" in caplog.text
-
-
-@patch("requests.delete")
-def test_delete_collection_conflict(mock_requests_delete, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    test_id = "test_id"
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections/{test_id}"
-    test_headers = {"accept": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 409
-    mock_requests_delete.return_value = mock_object
-
-    delete_collection(api_url, test_id, catalog_path)
+    if http_method == "post":
+        with pytest.raises(requests.ConnectionError):
+            create_collection(api_url, collection_id, data, catalog_path)
+        expected_kwargs = {"headers": expected_headers, "json": data}
+    elif http_method == "put":
+        with pytest.raises(requests.ConnectionError):
+            update_collection(api_url, collection_id, data, catalog_path)
+        expected_kwargs = {"headers": expected_headers, "json": data}
+    elif http_method == "delete":
+        with pytest.raises(requests.ConnectionError):
+            delete_collection(api_url, collection_id, catalog_path)
+        expected_kwargs = {"headers": expected_headers}
 
     # Assert that the requests.post function was called once
-    assert mock_requests_delete.call_count == 1
+    assert mock_requests.call_count == call_count
 
     # Check requests.post was called correctly
-    calls = mock_requests_delete.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers}
+    calls = mock_requests.call_args_list
+    assert calls[0].args[0] == expected_url
+    assert calls[0].kwargs == expected_kwargs
 
     # Check output log is correct
-    assert "Status code: CONFLICT" in caplog.text
-
-
-@patch("requests.delete")
-def test_delete_collection_not_found(mock_requests_delete, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    test_id = "test_id"
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections/{test_id}"
-    test_headers = {"accept": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 404
-    mock_requests_delete.return_value = mock_object
-
-    delete_collection(api_url, test_id, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_delete.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_delete.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers}
-
-    # Check output log is correct
-    assert "Status code: NOT_FOUND" in caplog.text
-
-
-@patch("requests.delete")
-def test_delete_collection_error(mock_requests_delete, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    test_id = "test_id"
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections/{test_id}"
-    test_headers = {"accept": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 400
-    mock_requests_delete.return_value = mock_object
-
-    delete_collection(api_url, test_id, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_delete.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_delete.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers}
-
-    # Check output log is correct
-    assert "Status Code: 400" in caplog.text
-
-
-@patch("requests.delete")
-def test_delete_collection_connection_error(mock_requests_delete, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    test_id = "test_id"
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections/{test_id}"
-    test_headers = {"accept": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 200
-    mock_requests_delete.side_effect = requests.ConnectionError
-
-    # Execute and assert that requests.ConnectionError is raised
-    with pytest.raises(requests.ConnectionError):
-        delete_collection(api_url, test_id, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_delete.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_delete.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers}
-
-    # Check output log is correct
-    assert f"Collection: {test_id} not deleted" in caplog.text
+    assert expected_log in caplog.text
 
 
 ######################
-## Test Create Item ##
+## Test Items ##
 ######################
 
 
+@pytest.mark.parametrize(
+    "http_method, status_code, error_description, api_url, data, collection_id, "
+    "item_id, catalog_path, call_count, expected_url, expected_headers, expected_log",
+    [
+        (  # create_item_success
+            "post",
+            200,
+            "",
+            "https://test-url/api",
+            {"id": "test_item_id"},
+            "test_collection_id",
+            "test_item_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id/items",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            ["Status Code: OK"],
+        ),
+        (  # create_item_conflict
+            "post",
+            409,
+            "",
+            "https://test-url/api",
+            {"id": "test_item_id"},
+            "test_collection_id",
+            "test_item_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id/items",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            ["Status Code: CONFLICT"],
+        ),
+        (  # create_item_not_found
+            "post",
+            404,
+            "",
+            "https://test-url/api",
+            {"id": "test_item_id"},
+            "test_collection_id",
+            "test_item_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id/items",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            ["Collection: test_collection_id or Catalog: example/path/to/catalog not yet created"],
+        ),
+        (  # create_item_error
+            "post",
+            400,
+            "",
+            "https://test-url/api",
+            {"id": "test_item_id"},
+            "test_collection_id",
+            "test_item_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id/items",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            ["Status Code: 400"],
+        ),
+        (  # update_item_success
+            "put",
+            200,
+            "",
+            "https://test-url/api",
+            {"id": "test_item_id"},
+            "test_collection_id",
+            "test_item_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id/items/test_item_id",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            ["Status Code: OK"],
+        ),
+        (  # update_item_conflict
+            "put",
+            409,
+            "",
+            "https://test-url/api",
+            {"id": "test_item_id"},
+            "test_collection_id",
+            "test_item_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id/items/test_item_id",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            ["Status Code: CONFLICT"],
+        ),
+        (  # update_item_not_found_item
+            "put",
+            404,
+            "Item",
+            "https://test-url/api",
+            {"id": "test_item_id"},
+            "test_collection_id",
+            "test_item_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id/items/test_item_id",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            ["Status Code: NOT_FOUND", "item doesn't exist"],
+        ),
+        (  # update_item_not_found_collection
+            "put",
+            404,
+            "Collection",
+            "https://test-url/api",
+            {"id": "test_item_id"},
+            "test_collection_id",
+            "test_item_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id/items/test_item_id",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            ["Status Code: NOT_FOUND", "collection doesn't exist"],
+        ),
+        (  # update_item_not_found_catalog
+            "put",
+            404,
+            "Catalog",
+            "https://test-url/api",
+            {"id": "test_item_id"},
+            "test_collection_id",
+            "test_item_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id/items/test_item_id",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            ["Status Code: NOT_FOUND", "catalog doesn't exist"],
+        ),
+        (  # update_item_error
+            "put",
+            400,
+            "",
+            "https://test-url/api",
+            {"id": "test_item_id"},
+            "test_collection_id",
+            "test_item_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id/items/test_item_id",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            ["Status Code: 400"],
+        ),
+        (  # delete_item_success
+            "delete",
+            200,
+            "",
+            "https://test-url/api",
+            {"id": "test_item_id"},
+            "test_collection_id",
+            "test_item_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id/items/test_item_id",
+            {"accept": "application/json"},
+            ["Status Code: OK"],
+        ),
+        (  # delete_item_conflict
+            "delete",
+            409,
+            "",
+            "https://test-url/api",
+            {"id": "test_item_id"},
+            "test_collection_id",
+            "test_item_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id/items/test_item_id",
+            {"accept": "application/json"},
+            ["Status Code: CONFLICT"],
+        ),
+        (  # delete_item_not_found
+            "delete",
+            404,
+            "",
+            "https://test-url/api",
+            {"id": "test_item_id"},
+            "test_collection_id",
+            "test_item_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id/items/test_item_id",
+            {"accept": "application/json"},
+            ["Status Code: NOT_FOUND"],
+        ),
+        (  # delete_item_error
+            "delete",
+            400,
+            "",
+            "https://test-url/api",
+            {"id": "test_item_id"},
+            "test_collection_id",
+            "test_item_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id/items/test_item_id",
+            {"accept": "application/json"},
+            ["Status Code: 400"],
+        ),
+    ],
+)
+@patch("requests.delete")
+@patch("requests.put")
 @patch("requests.post")
-def test_create_item_success(mock_requests_post, caplog):
+def test_handle_items(
+    mock_requests_post,
+    mock_requests_put,
+    mock_requests_delete,
+    caplog,
+    http_method,
+    status_code,
+    error_description,
+    api_url,
+    data,
+    collection_id,
+    item_id,
+    catalog_path,
+    call_count,
+    expected_url,
+    expected_headers,
+    expected_log,
+):
 
-    # Set test variables
-    api_url = "https://test-url/api"
-    collection_id = "test_collection"
-    item_id = "test_item"
-    data = {"id": "test_id"}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
+    # Setup mocks based on the http_method parameter
+    if http_method == "post":
+        mock_requests = mock_requests_post
+    elif http_method == "put":
+        mock_requests = mock_requests_put
+    elif http_method == "delete":
+        mock_requests = mock_requests_delete
+    else:
+        raise ValueError("Unsupported HTTP method")
 
     # Create mocks
     mock_object = mock.Mock()
-    mock_object.status_code = 200
-    mock_requests_post.return_value = mock_object
+    mock_object.status_code = status_code
+    mock_object.content.decode.return_value = f'{{"description": "{error_description}"}}'
+    mock_requests.return_value = mock_object
 
-    create_item(api_url, collection_id, item_id, data, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_post.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_post.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert "Status code: OK" in caplog.text
-
-
-@patch("requests.post")
-def test_create_item_conflict(mock_requests_post, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    collection_id = "test_collection"
-    item_id = "test_item"
-    data = {"id": "test_id"}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 409
-    mock_requests_post.return_value = mock_object
-
-    create_item(api_url, collection_id, item_id, data, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_post.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_post.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert "Status code: CONFLICT" in caplog.text
-
-
-@patch("requests.post")
-def test_create_item_not_found(mock_requests_post, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    collection_id = "test_collection"
-    item_id = "test_item"
-    data = {"id": "test_id"}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 404
-    mock_requests_post.return_value = mock_object
-
-    create_item(api_url, collection_id, item_id, data, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_post.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_post.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert f"Collection: {collection_id} or Catalog: {catalog_path} not yet created" in caplog.text
-
-
-@patch("requests.post")
-def test_create_item_error(mock_requests_post, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    collection_id = "test_collection"
-    item_id = "test_item"
-    data = {"id": "test_id"}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 400
-    mock_requests_post.return_value = mock_object
-
-    create_item(api_url, collection_id, item_id, data, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_post.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_post.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert "Status Code: 400" in caplog.text
-
-
-@patch("requests.post")
-def test_create_item_connection_error(mock_requests_post, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    collection_id = "test_collection"
-    item_id = "test_item"
-    data = {"id": "test_id"}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 200
-    mock_requests_post.side_effect = requests.ConnectionError
-
-    # Execute and assert that requests.ConnectionError is raised
-    with pytest.raises(requests.ConnectionError):
+    if http_method == "post":
         create_item(api_url, collection_id, item_id, data, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_post.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_post.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert (
-        f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} not created not created"
-        in caplog.text
-    )
-
-
-######################
-## Test Update Item ##
-######################
-
-
-@patch("requests.put")
-def test_update_item_success(mock_requests_put, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    collection_id = "test_collection"
-    item_id = "test_item"
-    data = {"id": "test_id"}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items/{item_id}"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 200
-    mock_requests_put.return_value = mock_object
-
-    update_item(api_url, collection_id, item_id, data, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_put.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_put.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert "Status code: OK" in caplog.text
-
-
-@patch("requests.put")
-def test_update_item_conflict(mock_requests_put, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    collection_id = "test_collection"
-    item_id = "test_item"
-    data = {"id": "test_id"}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items/{item_id}"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 409
-    mock_requests_put.return_value = mock_object
-
-    update_item(api_url, collection_id, item_id, data, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_put.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_put.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert "Status code: CONFLICT" in caplog.text
-
-
-@patch("requests.put")
-def test_update_item_not_found_item(mock_requests_put, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    collection_id = "test_collection"
-    item_id = "test_item"
-    data = {"id": "test_id"}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items/{item_id}"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 404
-    mock_object.content.decode.return_value = '{"description": "Item"}'
-    mock_requests_put.return_value = mock_object
-
-    update_item(api_url, collection_id, item_id, data, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_put.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_put.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert "Status code: NOT_FOUND" in caplog.text
-    assert "item doesn't exist." in caplog.text
-
-
-@patch("requests.put")
-def test_update_item_not_found_collection(mock_requests_put, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    collection_id = "test_collection"
-    item_id = "test_item"
-    data = {"id": item_id}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items/{item_id}"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 404
-    mock_object.content.decode.return_value = '{"description": "Collection"}'
-    mock_requests_put.return_value = mock_object
-
-    update_item(api_url, collection_id, item_id, data, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_put.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_put.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert "Status code: NOT_FOUND" in caplog.text
-    assert "collection doesn't exist." in caplog.text
-
-
-@patch("requests.put")
-def test_update_item_not_found_catalog(mock_requests_put, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    collection_id = "test_collection"
-    item_id = "test_item"
-    data = {"id": item_id}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items/{item_id}"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 404
-    mock_object.content.decode.return_value = '{"description": "Catalog"}'
-    mock_requests_put.return_value = mock_object
-    mock_requests_put.return_value.json = {"message": "Not Found"}
-
-    update_item(api_url, collection_id, item_id, data, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_put.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_put.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert "Status code: NOT_FOUND" in caplog.text
-    assert "catalog doesn't exist." in caplog.text
-
-
-@patch("requests.put")
-def test_update_item_error(mock_requests_put, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    collection_id = "test_collection"
-    item_id = "test_item"
-    data = {"id": item_id}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items/{item_id}"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 400
-    mock_requests_put.return_value = mock_object
-
-    update_item(api_url, collection_id, item_id, data, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_put.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_put.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
-
-    # Check output log is correct
-    assert "Status Code: 400" in caplog.text
-
-
-@patch("requests.put")
-def test_update_item_connection_error(mock_requests_put, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    collection_id = "test_collection"
-    item_id = "test_item"
-    data = {"id": item_id}
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items/{item_id}"
-    test_headers = {"accept": "application/json", "Content-Type": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 200
-    mock_requests_put.side_effect = requests.ConnectionError
-
-    # Execute and assert that requests.ConnectionError is raised
-    with pytest.raises(requests.ConnectionError):
+        expected_kwargs = {"headers": expected_headers, "json": data}
+    elif http_method == "put":
         update_item(api_url, collection_id, item_id, data, catalog_path)
+        expected_kwargs = {"headers": expected_headers, "json": data}
+    elif http_method == "delete":
+        delete_item(api_url, collection_id, item_id, catalog_path)
+        expected_kwargs = {"headers": expected_headers}
 
     # Assert that the requests.post function was called once
-    assert mock_requests_put.call_count == 1
+    assert mock_requests.call_count == call_count
 
     # Check requests.post was called correctly
-    calls = mock_requests_put.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers, "json": data}
+    calls = mock_requests.call_args_list
+    assert calls[0].args[0] == expected_url
+    assert calls[0].kwargs == expected_kwargs
 
     # Check output log is correct
-    assert (
-        f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} not updated"
-        in caplog.text
-    )
+    for log in expected_log:
+        assert log in caplog.text
 
 
-############################
-## Test Delete Item ##
-############################
-
-
+@pytest.mark.parametrize(
+    "http_method, api_url, data, collection_id, item_id, catalog_path, "
+    "call_count, expected_url, expected_headers, expected_log",
+    [
+        (  # create
+            "post",
+            "https://test-url/api",
+            {"id": "test_item_id"},
+            "test_collection_id",
+            "test_item_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id/items",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            "Item: test_item_id in Collection: test_collection_id in Catalog: "
+            "example/path/to/catalog not created",
+        ),
+        (  # update
+            "put",
+            "https://test-url/api",
+            {"id": "test_item_id"},
+            "test_collection_id",
+            "test_item_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id/items/test_item_id",
+            {"accept": "application/json", "Content-Type": "application/json"},
+            "Item: test_item_id in Collection: test_collection_id in "
+            "Catalog: example/path/to/catalog not updated",
+        ),
+        (  # delete
+            "delete",
+            "https://test-url/api",
+            {"id": "test_item_id"},
+            "test_collection_id",
+            "test_item_id",
+            "example/path/to/catalog",
+            1,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections/"
+            "test_collection_id/items/test_item_id",
+            {"accept": "application/json"},
+            "Item: test_item_id in Collection: test_collection_id in "
+            "Catalog: example/path/to/catalog not deleted",
+        ),
+    ],
+)
 @patch("requests.delete")
-def test_delete_item_success(mock_requests_delete, caplog):
+@patch("requests.put")
+@patch("requests.post")
+def test_item_connection_error(
+    mock_requests_post,
+    mock_requests_put,
+    mock_requests_delete,
+    caplog,
+    http_method,
+    api_url,
+    data,
+    collection_id,
+    item_id,
+    catalog_path,
+    call_count,
+    expected_url,
+    expected_headers,
+    expected_log,
+):
 
-    # Set test variables
-    api_url = "https://test-url/api"
-    collection_id = "test_collection"
-    test_id = "test_id"
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items/{test_id}"
-    test_headers = {"accept": "application/json"}
+    # Setup mocks based on the http_method parameter
+    if http_method == "post":
+        mock_requests = mock_requests_post
+    elif http_method == "put":
+        mock_requests = mock_requests_put
+    elif http_method == "delete":
+        mock_requests = mock_requests_delete
+    else:
+        raise ValueError("Unsupported HTTP method")
 
     # Create mocks
     mock_object = mock.Mock()
     mock_object.status_code = 200
-    mock_requests_delete.return_value = mock_object
+    mock_requests.side_effect = requests.ConnectionError
 
-    delete_item(api_url, collection_id, test_id, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_delete.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_delete.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers}
-
-    # Check output log is correct
-    assert "Status code: OK" in caplog.text
-
-
-@patch("requests.delete")
-def test_delete_item_conflict(mock_requests_delete, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    collection_id = "test_collection"
-    test_id = "test_id"
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items/{test_id}"
-    test_headers = {"accept": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 409
-    mock_requests_delete.return_value = mock_object
-
-    delete_item(api_url, collection_id, test_id, catalog_path)
+    if http_method == "post":
+        with pytest.raises(requests.ConnectionError):
+            create_item(api_url, collection_id, item_id, data, catalog_path)
+        expected_kwargs = {"headers": expected_headers, "json": data}
+    elif http_method == "put":
+        with pytest.raises(requests.ConnectionError):
+            update_item(api_url, collection_id, item_id, data, catalog_path)
+        expected_kwargs = {"headers": expected_headers, "json": data}
+    elif http_method == "delete":
+        with pytest.raises(requests.ConnectionError):
+            delete_item(api_url, collection_id, item_id, catalog_path)
+        expected_kwargs = {"headers": expected_headers}
 
     # Assert that the requests.post function was called once
-    assert mock_requests_delete.call_count == 1
+    assert mock_requests.call_count == call_count
 
     # Check requests.post was called correctly
-    calls = mock_requests_delete.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers}
+    calls = mock_requests.call_args_list
+    assert calls[0].args[0] == expected_url
+    assert calls[0].kwargs == expected_kwargs
 
     # Check output log is correct
-    assert "Status code: CONFLICT" in caplog.text
-
-
-@patch("requests.delete")
-def test_delete_item_not_found(mock_requests_delete, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    collection_id = "test_collection"
-    test_id = "test_id"
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items/{test_id}"
-    test_headers = {"accept": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 404
-    mock_requests_delete.return_value = mock_object
-
-    delete_item(api_url, collection_id, test_id, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_delete.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_delete.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers}
-
-    # Check output log is correct
-    assert "Status code: NOT_FOUND" in caplog.text
-
-
-@patch("requests.delete")
-def test_delete_item_error(mock_requests_delete, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    collection_id = "test_collection"
-    test_id = "test_id"
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items/{test_id}"
-    test_headers = {"accept": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 400
-    mock_requests_delete.return_value = mock_object
-
-    delete_item(api_url, collection_id, test_id, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_delete.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_delete.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers}
-
-    # Check output log is correct
-    assert "Status Code: 400" in caplog.text
-
-
-@patch("requests.delete")
-def test_delete_item_connection_error(mock_requests_delete, caplog):
-
-    # Set test variables
-    api_url = "https://test-url/api"
-    collection_id = "test_collection"
-    test_id = "test_id"
-    catalog_path = "example/path/to/catalog"
-    test_url = f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items/{test_id}"
-    test_headers = {"accept": "application/json"}
-
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 200
-    mock_requests_delete.side_effect = requests.ConnectionError
-
-    # Execute and assert that requests.ConnectionError is raised
-    with pytest.raises(requests.ConnectionError):
-        delete_item(api_url, collection_id, test_id, catalog_path)
-
-    # Assert that the requests.post function was called once
-    assert mock_requests_delete.call_count == 1
-
-    # Check requests.post was called correctly
-    calls = mock_requests_delete.call_args_list
-    assert calls[0].args[0] == test_url
-    assert calls[0].kwargs == {"headers": test_headers}
-
-    # Check output log is correct
-    assert (
-        f"Item: {test_id} in Collection: {collection_id} in Catalog: {catalog_path} not deleted"
-        in caplog.text
-    )
+    assert expected_log in caplog.text
 
 
 ############################
@@ -1517,528 +1011,268 @@ def test_delete_item_connection_error(mock_requests_delete, caplog):
 ############################
 
 
+@pytest.mark.parametrize(
+    "http_method, api_url, test_id",
+    [
+        (  # create
+            "post",
+            "https://test-url/api",
+            "test_catalog_id",
+        ),
+        (  # update
+            "put",
+            "https://test-url/api",
+            "test_catalog_id",
+        ),
+        (  # delete
+            "delete",
+            "https://test-url/api",
+            "test_catalog_id",
+        ),
+    ],
+)
+@patch("stac_fastapi_ingester.__main__.delete_catalog")
+@patch("stac_fastapi_ingester.__main__.update_catalog")
 @patch("stac_fastapi_ingester.__main__.create_catalog")
 @patch("stac_fastapi_ingester.__main__.load_data_from_s3")
-def test_interpret_message_create_catalog(mock_load_data_from_s3, mock_create_catalog):
-
-    # Configure test variables
-    test_id = "test_id"
-    test_key = f"transformed/catalog_key_1/{test_id}"
-    test_catalog_path = "catalog_key_1"
-    test_msg = f"""{{
-        "id": "pulsar-test-id/testing",
-        "workspace": "",
-        "repository": "",
-        "branch": "main",
-        "bucket_name": "test-bucket",
-        "updated_keys": [],
-        "added_keys": ["{test_key}"],
-        "deleted_keys": [],
-        "source": "https://test-catalog.temp.data.com",
-        "target": "test-datasets/test-catalog"
-    }}"""
-
-    api_url = "https://test-url/api"
-
-    test_data = {"id": test_id, "type": "Catalog"}
-
-    # Configure mocks
-    mock_load_data_from_s3.return_value = test_data
-    mock_create_catalog.return_value = None
-
-    # Call function
-    interpret_message(test_msg, api_url)
-
-    # Check function called as expected
-    assert mock_create_catalog.call_count == 1
-    mock_create_catalog.assert_called_once_with(api_url, test_data, test_catalog_path)
-
-
-@patch("stac_fastapi_ingester.__main__.update_catalog")
-@patch("stac_fastapi_ingester.__main__.load_data_from_s3")
-def test_interpret_message_update_catalog(mock_load_data_from_s3, mock_update_catalog):
-
-    # Configure test variables
-    test_id = "test_id"
-    test_key = f"transformed/catalog_key_1/{test_id}"
-    test_catalog_path = "catalog_key_1"
-    test_msg = f"""{{
-        "id": "pulsar-test-id/testing",
-        "workspace": "",
-        "repository": "",
-        "branch": "main",
-        "bucket_name": "test-bucket",
-        "updated_keys": ["{test_key}"],
-        "added_keys": [],
-        "deleted_keys": [],
-        "source": "https://test-catalog.temp.data.com",
-        "target": "test-datasets/test-catalog"
-    }}"""
-
-    api_url = "https://test-url/api"
-
-    test_data = {"id": test_id, "type": "Catalog"}
-
-    # Configure mocks
-    mock_load_data_from_s3.return_value = test_data
-    mock_update_catalog.return_value = None
-
-    # Call function
-    interpret_message(test_msg, api_url)
-
-    # Check function called as expected
-    assert mock_update_catalog.call_count == 1
-    mock_update_catalog.assert_called_once_with(api_url, test_data, test_catalog_path, test_id)
-
-
-@patch("stac_fastapi_ingester.__main__.delete_catalog")
-@patch("stac_fastapi_ingester.__main__.load_data_from_s3")
-def test_interpret_message_delete_catalog(mock_load_data_from_s3, mock_delete_catalog):
-
-    # Configure test variables
-    test_id = "test_id"
-    test_key = f"transformed/catalog_key_1/{test_id}"
-    test_catalog_path = "catalog_key_1"
-    test_msg = f"""{{
-        "id": "pulsar-test-id/testing",
-        "workspace": "",
-        "repository": "",
-        "branch": "main",
-        "bucket_name": "test-bucket",
-        "updated_keys": [],
-        "added_keys": [],
-        "deleted_keys": ["{test_key}"],
-        "source": "https://test-catalog.temp.data.com",
-        "target": "test-datasets/test-catalog"
-    }}"""
-
-    api_url = "https://test-url/api"
-
-    test_data = {"id": test_id, "type": "Catalog"}
-
-    # Configure mocks
-    mock_load_data_from_s3.return_value = test_data
-    mock_delete_catalog.return_value = None
-
-    # Call function
-    interpret_message(test_msg, api_url)
-
-    # Check function called as expected
-    assert mock_delete_catalog.call_count == 1
-    mock_delete_catalog.assert_called_once_with(api_url, test_catalog_path, test_id)
-
-
-@patch("stac_fastapi_ingester.__main__.create_collection")
-@patch("stac_fastapi_ingester.__main__.load_data_from_s3")
-def test_interpret_message_create_collection_success(
-    mock_load_data_from_s3, mock_create_collection
+def test_interpret_message_catalog(
+    mock_load_data_from_s3,
+    mock_create_catalog,
+    mock_update_catalog,
+    mock_delete_catalog,
+    http_method,
+    api_url,
+    test_id,
 ):
 
     # Configure test variables
-    test_id = "test_id"
+    test_id = "test_catalog_id"
     test_key = f"transformed/catalog_key_1/{test_id}"
     test_catalog_path = "catalog_key_1"
+    test_data = {"id": test_id, "type": "Catalog"}
+
+    # Setup mocks based on the http_method parameter
+    if http_method == "post":
+        mock_function = mock_create_catalog
+        added_keys = f'["{test_key}"]'
+        update_keys = "[]"
+        delete_keys = "[]"
+        expected_args = (api_url, test_data, test_catalog_path)
+    elif http_method == "put":
+        mock_function = mock_update_catalog
+        added_keys = "[]"
+        update_keys = f'["{test_key}"]'
+        delete_keys = "[]"
+        expected_args = (api_url, test_data, test_catalog_path, test_id)
+    elif http_method == "delete":
+        mock_function = mock_delete_catalog
+        added_keys = "[]"
+        update_keys = "[]"
+        delete_keys = f'["{test_key}"]'
+        expected_args = (api_url, test_catalog_path, test_id)
+    else:
+        raise ValueError("Unsupported HTTP method")
+
+    # Construct test Pulsar input message
     test_msg = f"""{{
         "id": "pulsar-test-id/testing",
         "workspace": "",
         "repository": "",
         "branch": "main",
         "bucket_name": "test-bucket",
-        "updated_keys": [],
-        "added_keys": ["{test_key}"],
-        "deleted_keys": [],
+        "updated_keys": {update_keys},
+        "added_keys": {added_keys},
+        "deleted_keys": {delete_keys},
         "source": "https://test-catalog.temp.data.com",
         "target": "test-datasets/test-catalog"
     }}"""
 
-    api_url = "https://test-url/api"
-
-    test_data = {"id": test_id, "type": "Collection"}
-
     # Configure mocks
     mock_load_data_from_s3.return_value = test_data
-    mock_create_collection.return_value = True  # created succesfully
+    mock_function.return_value = None
 
     # Call function
     interpret_message(test_msg, api_url)
 
     # Check function called as expected
-    assert mock_create_collection.call_count == 1
-    mock_create_collection.assert_called_once_with(api_url, test_id, test_data, test_catalog_path)
+    assert mock_function.call_count == 1
+    mock_function.assert_called_once_with(*expected_args)
 
 
-@patch("stac_fastapi_ingester.__main__.create_collection")
-@patch("stac_fastapi_ingester.__main__.load_data_from_s3")
-def test_interpret_message_create_collection_fail(mock_load_data_from_s3, mock_create_collection):
-
-    # Configure test variables
-    test_id = "test_id"
-    test_key = f"transformed/catalog_key_1/{test_id}"
-    test_catalog_path = "catalog_key_1"
-    test_msg = f"""{{
-        "id": "pulsar-test-id/testing",
-        "workspace": "",
-        "repository": "",
-        "branch": "main",
-        "bucket_name": "test-bucket",
-        "updated_keys": [],
-        "added_keys": ["{test_key}"],
-        "deleted_keys": [],
-        "source": "https://test-catalog.temp.data.com",
-        "target": "test-datasets/test-catalog"
-    }}"""
-
-    api_url = "https://test-url/api"
-
-    test_data = {"id": test_id, "type": "Collection"}
-
-    # Configure mocks
-    mock_load_data_from_s3.return_value = test_data
-    mock_create_collection.return_value = False  # cannot create collection so will try again
-
-    # Call function
-    interpret_message(test_msg, api_url)
-
-    # Check function called as expected
-    assert mock_create_collection.call_count == 3
-    # Ensure all three calls are identical
-    calls = mock_create_collection.call_args_list
-    for i in range(3):
-        assert calls[i].args[0] == api_url
-        assert calls[i].args[1] == test_id
-        assert calls[i].args[2] == test_data
-        assert calls[i].args[3] == test_catalog_path
-
-
-@patch("stac_fastapi_ingester.__main__.update_collection")
-@patch("stac_fastapi_ingester.__main__.load_data_from_s3")
-def test_interpret_message_update_collection_success(
-    mock_load_data_from_s3, mock_update_collection
-):
-
-    # Configure test variables
-    test_id = "test_id"
-    test_key = f"transformed/catalog_key_1/{test_id}"
-    test_catalog_path = "catalog_key_1"
-    test_msg = f"""{{
-        "id": "pulsar-test-id/testing",
-        "workspace": "",
-        "repository": "",
-        "branch": "main",
-        "bucket_name": "test-bucket",
-        "updated_keys": ["{test_key}"],
-        "added_keys": [],
-        "deleted_keys": [],
-        "source": "https://test-catalog.temp.data.com",
-        "target": "test-datasets/test-catalog"
-    }}"""
-
-    api_url = "https://test-url/api"
-
-    test_data = {"id": test_id, "type": "Collection"}
-
-    # Configure mocks
-    mock_load_data_from_s3.return_value = test_data
-    mock_update_collection.return_value = True  # updated succesfully
-
-    # Call function
-    interpret_message(test_msg, api_url)
-
-    # Check function called as expected
-    assert mock_update_collection.call_count == 1
-    mock_update_collection.assert_called_once_with(api_url, test_id, test_data, test_catalog_path)
-
-
-@patch("stac_fastapi_ingester.__main__.update_collection")
-@patch("stac_fastapi_ingester.__main__.load_data_from_s3")
-def test_interpret_message_update_collection_fail(mock_load_data_from_s3, mock_update_collection):
-
-    # Configure test variables
-    test_id = "test_id"
-    test_key = f"transformed/catalog_key_1/{test_id}"
-    test_catalog_path = "catalog_key_1"
-    test_msg = f"""{{
-        "id": "pulsar-test-id/testing",
-        "workspace": "",
-        "repository": "",
-        "branch": "main",
-        "bucket_name": "test-bucket",
-        "updated_keys": ["{test_key}"],
-        "added_keys": [],
-        "deleted_keys": [],
-        "source": "https://test-catalog.temp.data.com",
-        "target": "test-datasets/test-catalog"
-    }}"""
-
-    api_url = "https://test-url/api"
-
-    test_data = {"id": test_id, "type": "Collection"}
-
-    # Configure mocks
-    mock_load_data_from_s3.return_value = test_data
-    mock_update_collection.return_value = False  # cannot update collection so will try again
-
-    # Call function
-    interpret_message(test_msg, api_url)
-
-    # Check function called as expected
-    assert mock_update_collection.call_count == 3
-    # Ensure all three calls are identical
-    calls = mock_update_collection.call_args_list
-    for i in range(3):
-        assert calls[i].args[0] == api_url
-        assert calls[i].args[1] == test_id
-        assert calls[i].args[2] == test_data
-        assert calls[i].args[3] == test_catalog_path
-
-
+@pytest.mark.parametrize(
+    "http_method, success",
+    [
+        ("post", True),  # create success
+        ("post", False),  # create fail
+        ("put", True),  # update success
+        ("put", False),  # update fail
+        ("delete", True),  # delete success
+    ],
+)
 @patch("stac_fastapi_ingester.__main__.delete_collection")
+@patch("stac_fastapi_ingester.__main__.update_collection")
+@patch("stac_fastapi_ingester.__main__.create_collection")
 @patch("stac_fastapi_ingester.__main__.load_data_from_s3")
-def test_interpret_message_delete_collection(mock_load_data_from_s3, mock_delete_collection):
+def test_interpret_message_collection(
+    mock_load_data_from_s3,
+    mock_create_collection,
+    mock_update_collection,
+    mock_delete_collection,
+    http_method,
+    success,
+):
 
     # Configure test variables
-    test_id = "test_id"
+    test_id = "test_collection_id"
     test_key = f"transformed/catalog_key_1/{test_id}"
     test_catalog_path = "catalog_key_1"
-    test_msg = f"""{{
-        "id": "pulsar-test-id/testing",
-        "workspace": "",
-        "repository": "",
-        "branch": "main",
-        "bucket_name": "test-bucket",
-        "updated_keys": [],
-        "added_keys": [],
-        "deleted_keys": ["{test_key}"],
-        "source": "https://test-catalog.temp.data.com",
-        "target": "test-datasets/test-catalog"
-    }}"""
-
-    api_url = "https://test-url/api"
-
     test_data = {"id": test_id, "type": "Collection"}
+    api_url = "https://test-url/api"
 
-    # Configure mocks
-    mock_load_data_from_s3.return_value = test_data
-    mock_delete_collection.return_value = None
+    # Setup mocks based on the http_method parameter
+    if http_method == "post":
+        mock_function = mock_create_collection
+        added_keys = f'["{test_key}"]'
+        update_keys = "[]"
+        delete_keys = "[]"
+        expected_args = (api_url, test_id, test_data, test_catalog_path)
+    elif http_method == "put":
+        mock_function = mock_update_collection
+        added_keys = "[]"
+        update_keys = f'["{test_key}"]'
+        delete_keys = "[]"
+        expected_args = (api_url, test_id, test_data, test_catalog_path)
+    elif http_method == "delete":
+        mock_function = mock_delete_collection
+        added_keys = "[]"
+        update_keys = "[]"
+        delete_keys = f'["{test_key}"]'
+        expected_args = (api_url, test_id, test_catalog_path)
+    else:
+        raise ValueError("Unsupported HTTP method")
 
-    # Call function
-    interpret_message(test_msg, api_url)
-
-    # Check function called as expected
-    assert mock_delete_collection.call_count == 1
-    mock_delete_collection.assert_called_once_with(api_url, test_id, test_catalog_path)
-
-    ########################################################################################
-
-
-@patch("stac_fastapi_ingester.__main__.create_item")
-@patch("stac_fastapi_ingester.__main__.load_data_from_s3")
-def test_interpret_message_create_item_success(mock_load_data_from_s3, mock_create_item):
-
-    # Configure test variables
-    test_item_id = "item_key_1"
-    test_collection_id = "collection_key_1"
-    test_key = f"transformed/catalog_key_1/collection_key_1/{test_item_id}"
-    test_catalog_path = "catalog_key_1"
+    # Construct test Pulsar input message
     test_msg = f"""{{
         "id": "pulsar-test-id/testing",
         "workspace": "",
         "repository": "",
         "branch": "main",
         "bucket_name": "test-bucket",
-        "updated_keys": [],
-        "added_keys": ["{test_key}"],
-        "deleted_keys": [],
+        "updated_keys": {update_keys},
+        "added_keys": {added_keys},
+        "deleted_keys": {delete_keys},
         "source": "https://test-catalog.temp.data.com",
         "target": "test-datasets/test-catalog"
     }}"""
 
-    api_url = "https://test-url/api"
-
-    test_data = {"id": test_item_id, "type": "Feature", "collection": "collection_key_1"}
-
     # Configure mocks
     mock_load_data_from_s3.return_value = test_data
-    mock_create_item.return_value = True  # created succesfully
+    mock_function.return_value = success  # either success (True) or fail (False)
 
     # Call function
     interpret_message(test_msg, api_url)
 
-    # Check function called as expected
-    assert mock_create_item.call_count == 1
-    mock_create_item.assert_called_once_with(
-        api_url, test_collection_id, test_item_id, test_data, test_catalog_path
-    )
+    if success:
+        # Check function called as expected
+        assert mock_function.call_count == 1
+        mock_function.assert_called_once_with(*expected_args)
+    else:
+        # Check function called as expected
+        assert mock_function.call_count == 3
+
+        # Ensure all three calls are identical
+        calls = mock_function.call_args_list
+        for i in range(3):
+            assert calls[i].args == expected_args
 
 
-@patch("stac_fastapi_ingester.__main__.create_item")
-@patch("stac_fastapi_ingester.__main__.load_data_from_s3")
-def test_interpret_message_create_item_fail(mock_load_data_from_s3, mock_create_item):
-
-    # Configure test variables
-    test_item_id = "item_key_1"
-    test_collection_id = "collection_key_1"
-    test_key = f"transformed/catalog_key_1/collection_key_1/{test_item_id}"
-    test_catalog_path = "catalog_key_1"
-    test_msg = f"""{{
-        "id": "pulsar-test-id/testing",
-        "workspace": "",
-        "repository": "",
-        "branch": "main",
-        "bucket_name": "test-bucket",
-        "updated_keys": [],
-        "added_keys": ["{test_key}"],
-        "deleted_keys": [],
-        "source": "https://test-catalog.temp.data.com",
-        "target": "test-datasets/test-catalog"
-    }}"""
-
-    api_url = "https://test-url/api"
-
-    test_data = {"id": test_item_id, "type": "Feature", "collection": "collection_key_1"}
-
-    # Configure mocks
-    mock_load_data_from_s3.return_value = test_data
-    mock_create_item.return_value = False  # cannot create item so will try again
-
-    # Call function
-    interpret_message(test_msg, api_url)
-
-    # Check function called as expected
-    assert mock_create_item.call_count == 3
-    # Ensure all three calls are identical
-    calls = mock_create_item.call_args_list
-    for i in range(3):
-        assert calls[i].args[0] == api_url
-        assert calls[i].args[1] == test_collection_id
-        assert calls[i].args[2] == test_item_id
-        assert calls[i].args[3] == test_data
-        assert calls[i].args[4] == test_catalog_path
-
-
-@patch("stac_fastapi_ingester.__main__.update_item")
-@patch("stac_fastapi_ingester.__main__.load_data_from_s3")
-def test_interpret_message_update_item_success(mock_load_data_from_s3, mock_update_item):
-
-    # Configure test variables
-    test_item_id = "item_key_1"
-    test_collection_id = "collection_key_1"
-    test_key = f"transformed/catalog_key_1/collection_key_1/{test_item_id}"
-    test_catalog_path = "catalog_key_1"
-    test_msg = f"""{{
-        "id": "pulsar-test-id/testing",
-        "workspace": "",
-        "repository": "",
-        "branch": "main",
-        "bucket_name": "test-bucket",
-        "updated_keys": ["{test_key}"],
-        "added_keys": [],
-        "deleted_keys": [],
-        "source": "https://test-catalog.temp.data.com",
-        "target": "test-datasets/test-catalog"
-    }}"""
-
-    api_url = "https://test-url/api"
-
-    test_data = {"id": test_item_id, "type": "Feature", "collection": "collection_key_1"}
-
-    # Configure mocks
-    mock_load_data_from_s3.return_value = test_data
-    mock_update_item.return_value = True  # updated succesfully
-
-    # Call function
-    interpret_message(test_msg, api_url)
-
-    # Check function called as expected
-    assert mock_update_item.call_count == 1
-    mock_update_item.assert_called_once_with(
-        api_url, test_collection_id, test_item_id, test_data, test_catalog_path
-    )
-
-
-@patch("stac_fastapi_ingester.__main__.update_item")
-@patch("stac_fastapi_ingester.__main__.load_data_from_s3")
-def test_interpret_message_update_item_fail(mock_load_data_from_s3, mock_update_item):
-
-    # Configure test variables
-    test_item_id = "item_key_1"
-    test_collection_id = "collection_key_1"
-    test_key = f"transformed/catalog_key_1/collection_key_1/{test_item_id}"
-    test_catalog_path = "catalog_key_1"
-    test_msg = f"""{{
-        "id": "pulsar-test-id/testing",
-        "workspace": "",
-        "repository": "",
-        "branch": "main",
-        "bucket_name": "test-bucket",
-        "updated_keys": ["{test_key}"],
-        "added_keys": [],
-        "deleted_keys": [],
-        "source": "https://test-catalog.temp.data.com",
-        "target": "test-datasets/test-catalog"
-    }}"""
-
-    api_url = "https://test-url/api"
-
-    test_data = {"id": test_item_id, "type": "Feature", "collection": "collection_key_1"}
-
-    # Configure mocks
-    mock_load_data_from_s3.return_value = test_data
-    mock_update_item.return_value = False  # cannot update collection so will try again
-
-    # Call function
-    interpret_message(test_msg, api_url)
-
-    # Check function called as expected
-    assert mock_update_item.call_count == 3
-    # Ensure all three calls are identical
-    calls = mock_update_item.call_args_list
-    for i in range(3):
-        assert calls[i].args[0] == api_url
-        assert calls[i].args[1] == test_collection_id
-        assert calls[i].args[2] == test_item_id
-        assert calls[i].args[3] == test_data
-        assert calls[i].args[4] == test_catalog_path
-
-
+@pytest.mark.parametrize(
+    "http_method, success",
+    [
+        ("post", True),  # create success
+        ("post", False),  # create fail
+        ("put", True),  # update success
+        ("put", False),  # update fail
+        ("delete", True),  # delete success
+    ],
+)
 @patch("stac_fastapi_ingester.__main__.delete_item")
+@patch("stac_fastapi_ingester.__main__.update_item")
+@patch("stac_fastapi_ingester.__main__.create_item")
 @patch("stac_fastapi_ingester.__main__.load_data_from_s3")
-def test_interpret_message_delete_item(mock_load_data_from_s3, mock_delete_item):
+def test_interpret_message_item(
+    mock_load_data_from_s3,
+    mock_create_item,
+    mock_update_item,
+    mock_delete_item,
+    http_method,
+    success,
+):
 
     # Configure test variables
     test_item_id = "item_key_1"
     test_collection_id = "collection_key_1"
-    test_key = f"transformed/catalog_key_1/collection_key_1/{test_item_id}"
+    test_key = f"transformed/catalog_key_1/{test_collection_id}/{test_item_id}"
     test_catalog_path = "catalog_key_1"
+    test_data = {"id": test_item_id, "type": "Collection"}
+    api_url = "https://test-url/api"
+    test_data = {"id": test_item_id, "type": "Feature", "collection": test_collection_id}
+
+    # Setup mocks based on the http_method parameter
+    if http_method == "post":
+        mock_function = mock_create_item
+        added_keys = f'["{test_key}"]'
+        update_keys = "[]"
+        delete_keys = "[]"
+        expected_args = (api_url, test_collection_id, test_item_id, test_data, test_catalog_path)
+    elif http_method == "put":
+        mock_function = mock_update_item
+        added_keys = "[]"
+        update_keys = f'["{test_key}"]'
+        delete_keys = "[]"
+        expected_args = (api_url, test_collection_id, test_item_id, test_data, test_catalog_path)
+    elif http_method == "delete":
+        mock_function = mock_delete_item
+        added_keys = "[]"
+        update_keys = "[]"
+        delete_keys = f'["{test_key}"]'
+        expected_args = (api_url, test_collection_id, test_item_id, test_catalog_path)
+    else:
+        raise ValueError("Unsupported HTTP method")
+
+    # Construct test Pulsar input message
     test_msg = f"""{{
         "id": "pulsar-test-id/testing",
         "workspace": "",
         "repository": "",
         "branch": "main",
         "bucket_name": "test-bucket",
-        "updated_keys": [],
-        "added_keys": [],
-        "deleted_keys": ["{test_key}"],
+        "updated_keys": {update_keys},
+        "added_keys": {added_keys},
+        "deleted_keys": {delete_keys},
         "source": "https://test-catalog.temp.data.com",
         "target": "test-datasets/test-catalog"
     }}"""
 
-    api_url = "https://test-url/api"
-
-    test_data = {"id": test_item_id, "type": "Feature", "collection": "collection_key_1"}
-
     # Configure mocks
     mock_load_data_from_s3.return_value = test_data
-    mock_delete_item.return_value = None
+    mock_function.return_value = success  # either success (True) or fail (False)
 
     # Call function
     interpret_message(test_msg, api_url)
 
-    # Check function called as expected
-    assert mock_delete_item.call_count == 1
-    mock_delete_item.assert_called_once_with(
-        api_url, test_collection_id, test_item_id, test_catalog_path
-    )
+    if success:
+        # Check function called as expected
+        assert mock_function.call_count == 1
+        mock_function.assert_called_once_with(*expected_args)
+    else:
+        # Check function called as expected
+        assert mock_function.call_count == 3
+
+        # Ensure all three calls are identical
+        calls = mock_function.call_args_list
+        for i in range(3):
+            assert calls[i].args == expected_args
 
 
 ##############
