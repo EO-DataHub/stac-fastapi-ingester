@@ -57,12 +57,13 @@ def cli(ctx, topic: str):
 ##############################
 
 
-def delete_catalog(api_url: str, workspace: str, catalog_path: str):
+def delete_catalog(api_url: str, workspace: str, catalog_path: str, catalog_id: str):
     headers = {"accept": "application/json"}
     query_params = {"workspace": workspace}
     try:
+        temp_catalog_path = f"/{catalog_path}" if catalog_path else ""
         resp = requests.delete(
-            f"{api_url}/catalogs/{catalog_path}",
+            f"{api_url}/catalogs{temp_catalog_path}/{catalog_id}",
             headers=headers,
             params=query_params,
         )
@@ -556,8 +557,10 @@ def interpret_message(msg: str, api_url: str):
             delete_item(api_url, collection_id, item_id, workspace, catalog_path)
 
         elif data.get("type") == "Catalog":
+            # TODO: update this to read from file key rather than the STAC file itself, currently left as is for consistency
+            catalog_id = data["id"]
             logger.info(f"Deleting Catalog {catalog_path}")
-            delete_catalog(api_url, workspace, catalog_path)
+            delete_catalog(api_url, workspace, catalog_path, catalog_id)
 
     # Create new catalogs, collections and items
     num_files_to_create = len(files_to_create)
