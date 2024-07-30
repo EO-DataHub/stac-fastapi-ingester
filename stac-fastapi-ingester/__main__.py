@@ -79,6 +79,7 @@ def delete_catalog(api_url: str, workspace: str, catalog_path: str):
             logger.warning(
                 f"Status Code: {resp.status_code} on url: " f"{api_url}/catalogs/{catalog_path}"
             )
+            logger.warning(f"Status message is {resp.content}")
     except requests.ConnectionError as err:
         click.secho("failed to connect")
         logger.warning(f"Catalog: {catalog_path} not deleted")
@@ -115,6 +116,7 @@ def delete_collection(api_url: str, collection_id: str, workspace: str, catalog_
                 f"Status Code: {resp.status_code} on url: "
                 f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}"
             )
+            logger.warning(f"Status message is {resp.content}")
     except requests.ConnectionError as err:
         click.secho("Failed to connect")
         logger.warning(f"Collection: {collection_id} not deleted")
@@ -155,6 +157,7 @@ def delete_item(api_url: str, collection_id: str, item_id: str, workspace: str, 
                 f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/"
                 f"items/{item_id}"
             )
+            logger.warning(f"Status message is {resp.content}")
     except Exception as err:
         logger.warning(f"Item: {item_id} not deleted")
         logger.error(err)
@@ -189,6 +192,7 @@ def update_catalog(api_url: str, data: dict, workspace: str, catalog_path: str, 
             logger.warning(
                 f"Status Code: {resp.status_code} on url: {api_url}/catalogs/{catalog_path}"
             )
+            logger.warning(f"Status message is {resp.content}")
             logger.warning("data is")
             logger.warning(data)
     except Exception as err:
@@ -231,6 +235,7 @@ def update_collection(
                 f"Status Code: {resp.status_code} on url: "
                 f"{api_url}/catalogs/{catalog_path}/collections"
             )
+            logger.warning(f"Status message is {resp.content}")
             logger.warning("data is")
             logger.warning(data)
             # return but don't try again
@@ -289,6 +294,7 @@ def update_item(
                 f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/"
                 f"items/{item_id}"
             )
+            logger.warning(f"Status message is {resp.content}")
             logger.warning("data is")
             logger.warning(data)
             # return but don't try again
