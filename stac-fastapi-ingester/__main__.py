@@ -336,6 +336,7 @@ def create_catalog(api_url: str, data: dict, workspace: str, catalog_path: Optio
         else:
             logger.warning(f"Catalog: {data['id']} not created in {catalog_path}")
             logger.warning(f"Status Code: {resp.status_code} on url: {api_url}/catalogs")
+            logger.warning(f"Status message is {resp.content}")
             logger.warning("data is")
             logger.warning(data)
     except Exception as err:
@@ -380,6 +381,7 @@ def create_collection(
             logger.warning(
                 f"Status Code: {resp.status_code} on url: {api_url}/catalogs/{catalog_path}/collections"
             )
+            logger.warning(f"Status message is {resp.content}")
             logger.warning("data is")
             logger.warning(data)
             # return but don't try again
@@ -428,6 +430,7 @@ def create_item(
                 f"Status Code: {resp.status_code} on url: {api_url}/catalogs/{catalog_path}/"
                 f"collections/{collection_id}/items"
             )
+            logger.warning(f"Status message is {resp.content}")
             logger.warning("data is")
             logger.warning(data)
             # return but don't try again
