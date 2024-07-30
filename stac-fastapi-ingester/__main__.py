@@ -305,11 +305,11 @@ def create_catalog(api_url: str, data: dict, workspace: str, catalog_path: Optio
     query_params = {"workspace": workspace}
     try:
         if catalog_path:
-            catalog_path = f"/{catalog_path}"
-            if catalog_path.startswith("user-datasets/"):
+            if catalog_path.startswith("user-datasets"):
                 is_public = False
             else:
                 is_public = True
+            catalog_path = f"/{catalog_path}"
         else:
             # If no catalog path is provided, this is a top level catalog
             catalog_path = ""
