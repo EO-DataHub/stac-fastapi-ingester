@@ -197,7 +197,9 @@ def update_catalog(api_url: str, data: dict, workspace: str, catalog_path: str, 
         raise
 
 
-def update_collection(api_url: str, collection_id: str, data: dict, workspace: str, catalog_path: str) -> bool:
+def update_collection(
+    api_url: str, collection_id: str, data: dict, workspace: str, catalog_path: str
+) -> bool:
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     query_params = {"workspace": workspace}
     try:
@@ -239,7 +241,9 @@ def update_collection(api_url: str, collection_id: str, data: dict, workspace: s
         raise
 
 
-def update_item(api_url: str, collection_id: str, item_id, data: dict, workspace: str, catalog_path: str) -> bool:
+def update_item(
+    api_url: str, collection_id: str, item_id, data: dict, workspace: str, catalog_path: str
+) -> bool:
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     query_params = {"workspace": workspace}
     try:
@@ -340,7 +344,9 @@ def create_catalog(api_url: str, data: dict, workspace: str, catalog_path: Optio
         raise
 
 
-def create_collection(api_url: str, collection_id: str, data: dict, workspace: str, catalog_path: str) -> bool:
+def create_collection(
+    api_url: str, collection_id: str, data: dict, workspace: str, catalog_path: str
+) -> bool:
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     query_params = {"workspace": workspace}
     try:
@@ -348,7 +354,7 @@ def create_collection(api_url: str, collection_id: str, data: dict, workspace: s
             is_public = False
         else:
             is_public = True
-        
+
         query_params.update({"is_public": is_public})
 
         resp = requests.post(
@@ -568,7 +574,9 @@ def interpret_message(msg: str, api_url: str):
             logger.info(f"Creating Collection {collection_id} in catalog {catalog_path}")
 
             # Handle case in which catalog is not yet created for this collection
-            item_registered = create_collection(api_url, collection_id, data, workspace, catalog_path)
+            item_registered = create_collection(
+                api_url, collection_id, data, workspace, catalog_path
+            )
             files_to_create.append(file_key) if not item_registered else None
 
         elif data.get("type") == "Feature":
@@ -589,7 +597,9 @@ def interpret_message(msg: str, api_url: str):
             )
 
             # Handle case in which catalog and/or collection is not yet created for this item
-            item_registered = create_item(api_url, collection_id, item_id, data, workspace, catalog_path)
+            item_registered = create_item(
+                api_url, collection_id, item_id, data, workspace, catalog_path
+            )
             files_to_create.append(file_key) if not item_registered else None
 
         elif data.get("type") == "Catalog":
@@ -633,7 +643,9 @@ def interpret_message(msg: str, api_url: str):
             logger.info(f"Updating Collection {collection_id} in Catalog {catalog_path}")
 
             # Handle case in which catalog is not yet updated/created for this collection
-            collection_updated = update_collection(api_url, collection_id, data, workspace, catalog_path)
+            collection_updated = update_collection(
+                api_url, collection_id, data, workspace, catalog_path
+            )
             files_to_update.append(file_key) if not collection_updated else None
 
         elif data.get("type") == "Feature":
@@ -654,7 +666,9 @@ def interpret_message(msg: str, api_url: str):
             )
 
             # Handle case in which catalog and/or collection is not yet updated/created for this item
-            item_updated = update_item(api_url, collection_id, item_id, data, workspace, catalog_path)
+            item_updated = update_item(
+                api_url, collection_id, item_id, data, workspace, catalog_path
+            )
             files_to_update.append(file_key) if not item_updated else None
 
         elif data.get("type") == "Catalog":
