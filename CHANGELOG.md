@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.6 (30-07-2023)
+
+Added support for access-control when creating, updating and deleting entries
+- Added workspace parameter to requests calls to identify the current workspace from the Pulsar message to allow access to be confirmed by STAC-FastApi
+- Added is_public parameter to create requests to specify whether the catalog or collection to be created should be available publicly in the catalogue or not 
+
 ## v0.1.5 (08-07-2024)
 
 Bugfix
