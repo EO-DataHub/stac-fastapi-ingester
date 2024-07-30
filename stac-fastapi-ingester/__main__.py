@@ -557,7 +557,8 @@ def interpret_message(msg: str, api_url: str):
             delete_item(api_url, collection_id, item_id, workspace, catalog_path)
 
         elif data.get("type") == "Catalog":
-            # TODO: update this to read from file key rather than the STAC file itself, currently left as is for consistency
+            # TODO: update this to read from file key rather than the STAC file itself,
+            # currently left as is for consistency
             catalog_id = data["id"]
             logger.info(f"Deleting Catalog {catalog_path}")
             delete_catalog(api_url, workspace, catalog_path, catalog_id)
