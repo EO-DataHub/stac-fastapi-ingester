@@ -335,10 +335,10 @@ def create_catalog(api_url: str, data: dict, workspace: str, catalog_path: Optio
         )
         if resp.status_code == HTTPStatus.OK:
             logger.info("Status code: OK")
-            logger.info(f"Created Catalog {data['id']} in catalog {catalog_path}")
+            logger.info(f"Created Catalog {data['id']} in {catalog_path if catalog_path else 'top-level'} catalog")
         elif resp.status_code == HTTPStatus.CONFLICT:
             logger.warning("Status code: CONFLICT")
-            logger.warning(f"Catalog: {data['id']} already exists in {catalog_path}")
+            logger.warning(f"Catalog: {data['id']} already exists in {catalog_path if catalog_path else 'top-level'} catalog")
         else:
             logger.warning(f"Catalog: {data['id']} not created in {catalog_path}")
             logger.warning(f"Status Code: {resp.status_code} on url: {api_url}/catalogs")
@@ -346,7 +346,7 @@ def create_catalog(api_url: str, data: dict, workspace: str, catalog_path: Optio
             logger.warning("data is")
             logger.warning(data)
     except Exception as err:
-        logger.warning(f"Catalog: {data['id']} not created")
+        logger.warning(f"Catalog: {data['id']} not created in {catalog_path if catalog_path else 'top-level'} catalog")
         logger.error(err)
         raise
 
