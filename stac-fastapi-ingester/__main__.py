@@ -57,12 +57,15 @@ def cli(ctx, topic: str):
 ##############################
 
 
-def delete_catalog(api_url: str, catalog_path: str):
+def delete_catalog(api_url: str, workspace: str, catalog_path: str, catalog_id: str):
     headers = {"accept": "application/json"}
+    query_params = {"workspace": workspace}
     try:
+        temp_catalog_path = f"/{catalog_path}" if catalog_path else ""
         resp = requests.delete(
-            f"{api_url}/catalogs/{catalog_path}",
+            f"{api_url}/catalogs{temp_catalog_path}/{catalog_id}",
             headers=headers,
+            params=query_params,
         )
         if resp.status_code == HTTPStatus.OK or resp.status_code == HTTPStatus.NO_CONTENT:
             logger.info("Status code: OK")
@@ -77,6 +80,7 @@ def delete_catalog(api_url: str, catalog_path: str):
             logger.warning(
                 f"Status Code: {resp.status_code} on url: " f"{api_url}/catalogs/{catalog_path}"
             )
+            logger.warning(f"Status message is {resp.content}")
     except requests.ConnectionError as err:
         click.secho("failed to connect")
         logger.warning(f"Catalog: {catalog_path} not deleted")
@@ -88,12 +92,14 @@ def delete_catalog(api_url: str, catalog_path: str):
         raise
 
 
-def delete_collection(api_url: str, collection_id: str, catalog_path: str):
+def delete_collection(api_url: str, collection_id: str, workspace: str, catalog_path: str):
     headers = {"accept": "application/json"}
+    query_params = {"workspace": workspace}
     try:
         resp = requests.delete(
             f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}",
             headers=headers,
+            params=query_params,
         )
         if resp.status_code == HTTPStatus.OK or resp.status_code == HTTPStatus.NO_CONTENT:
             logger.info("Status code: OK")
@@ -111,6 +117,7 @@ def delete_collection(api_url: str, collection_id: str, catalog_path: str):
                 f"Status Code: {resp.status_code} on url: "
                 f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}"
             )
+            logger.warning(f"Status message is {resp.content}")
     except requests.ConnectionError as err:
         click.secho("Failed to connect")
         logger.warning(f"Collection: {collection_id} not deleted")
@@ -122,12 +129,14 @@ def delete_collection(api_url: str, collection_id: str, catalog_path: str):
         raise
 
 
-def delete_item(api_url: str, collection_id: str, item_id: str, catalog_path: str):
+def delete_item(api_url: str, collection_id: str, item_id: str, workspace: str, catalog_path: str):
     headers = {"accept": "application/json"}
+    query_params = {"workspace": workspace}
     try:
         resp = requests.delete(
             f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items/{item_id}",
             headers=headers,
+            params=query_params,
         )
         if resp.status_code == HTTPStatus.OK or resp.status_code == HTTPStatus.NO_CONTENT:
             logger.info("Status code: OK")
@@ -149,6 +158,7 @@ def delete_item(api_url: str, collection_id: str, item_id: str, catalog_path: st
                 f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/"
                 f"items/{item_id}"
             )
+            logger.warning(f"Status message is {resp.content}")
     except Exception as err:
         logger.warning(f"Item: {item_id} not deleted")
         logger.error(err)
@@ -160,13 +170,15 @@ def delete_item(api_url: str, collection_id: str, item_id: str, catalog_path: st
 ############################
 
 
-def update_catalog(api_url: str, data: dict, catalog_path: str, catalog_id: str):
+def update_catalog(api_url: str, data: dict, workspace: str, catalog_path: str, catalog_id: str):
     headers = {"accept": "application/json", "Content-Type": "application/json"}
+    query_params = {"workspace": workspace}
     try:
         resp = requests.put(
             f"{api_url}/catalogs/{catalog_path}/{catalog_id}",
             headers=headers,
             json=data,
+            params=query_params,
         )
         if resp.status_code == HTTPStatus.OK:
             logger.info("Status code: OK")
@@ -181,6 +193,7 @@ def update_catalog(api_url: str, data: dict, catalog_path: str, catalog_id: str)
             logger.warning(
                 f"Status Code: {resp.status_code} on url: {api_url}/catalogs/{catalog_path}"
             )
+            logger.warning(f"Status message is {resp.content}")
             logger.warning("data is")
             logger.warning(data)
     except Exception as err:
@@ -189,13 +202,17 @@ def update_catalog(api_url: str, data: dict, catalog_path: str, catalog_id: str)
         raise
 
 
-def update_collection(api_url: str, collection_id: str, data: dict, catalog_path: str) -> bool:
+def update_collection(
+    api_url: str, collection_id: str, data: dict, workspace: str, catalog_path: str
+) -> bool:
     headers = {"accept": "application/json", "Content-Type": "application/json"}
+    query_params = {"workspace": workspace}
     try:
         resp = requests.put(
             f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}",
             headers=headers,
             json=data,
+            params=query_params,
         )
         if resp.status_code == HTTPStatus.OK:
             logger.info("Status code: OK")
@@ -219,6 +236,7 @@ def update_collection(api_url: str, collection_id: str, data: dict, catalog_path
                 f"Status Code: {resp.status_code} on url: "
                 f"{api_url}/catalogs/{catalog_path}/collections"
             )
+            logger.warning(f"Status message is {resp.content}")
             logger.warning("data is")
             logger.warning(data)
             # return but don't try again
@@ -229,13 +247,17 @@ def update_collection(api_url: str, collection_id: str, data: dict, catalog_path
         raise
 
 
-def update_item(api_url: str, collection_id: str, item_id, data: dict, catalog_path: str) -> bool:
+def update_item(
+    api_url: str, collection_id: str, item_id, data: dict, workspace: str, catalog_path: str
+) -> bool:
     headers = {"accept": "application/json", "Content-Type": "application/json"}
+    query_params = {"workspace": workspace}
     try:
         resp = requests.put(
             f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items/{item_id}",
             headers=headers,
             json=data,
+            params=query_params,
         )
         if resp.status_code == HTTPStatus.OK:
             logger.info("Status code: OK")
@@ -273,6 +295,7 @@ def update_item(api_url: str, collection_id: str, item_id, data: dict, catalog_p
                 f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/"
                 f"items/{item_id}"
             )
+            logger.warning(f"Status message is {resp.content}")
             logger.warning("data is")
             logger.warning(data)
             # return but don't try again
@@ -288,43 +311,72 @@ def update_item(api_url: str, collection_id: str, item_id, data: dict, catalog_p
 ############################
 
 
-def create_catalog(api_url: str, data: dict, catalog_path: Optional[str]):
+def create_catalog(api_url: str, data: dict, workspace: str, catalog_path: Optional[str]):
     headers = {"accept": "application/json", "Content-Type": "application/json"}
+    query_params = {"workspace": workspace}
     try:
         if catalog_path:
+            if catalog_path.startswith("user-datasets"):
+                is_public = False
+            else:
+                is_public = True
             catalog_path = f"/{catalog_path}"
         else:
             # If no catalog path is provided, this is a top level catalog
             catalog_path = ""
+            is_public = True
+
+        query_params.update({"is_public": is_public})
+
         resp = requests.post(
             f"{api_url}/catalogs{catalog_path}",
             headers=headers,
             json=data,
+            params=query_params,
         )
         if resp.status_code == HTTPStatus.OK:
             logger.info("Status code: OK")
-            logger.info(f"Created Catalog {data['id']} in catalog {catalog_path}")
+            logger.info(
+                f"Created Catalog {data['id']} in {catalog_path if catalog_path else 'top-level'} catalog"
+            )
         elif resp.status_code == HTTPStatus.CONFLICT:
             logger.warning("Status code: CONFLICT")
-            logger.warning(f"Catalog: {data['id']} already exists in {catalog_path}")
+            logger.warning(
+                f"Catalog: {data['id']} already exists in "
+                f"{catalog_path if catalog_path else 'top-level'} catalog"
+            )
         else:
             logger.warning(f"Catalog: {data['id']} not created in {catalog_path}")
             logger.warning(f"Status Code: {resp.status_code} on url: {api_url}/catalogs")
+            logger.warning(f"Status message is {resp.content}")
             logger.warning("data is")
             logger.warning(data)
     except Exception as err:
-        logger.warning(f"Catalog: {data['id']} not created")
+        logger.warning(
+            f"Catalog: {data['id']} not created in {catalog_path if catalog_path else 'top-level'} catalog"
+        )
         logger.error(err)
         raise
 
 
-def create_collection(api_url: str, collection_id: str, data: dict, catalog_path: str) -> bool:
+def create_collection(
+    api_url: str, collection_id: str, data: dict, workspace: str, catalog_path: str
+) -> bool:
     headers = {"accept": "application/json", "Content-Type": "application/json"}
+    query_params = {"workspace": workspace}
     try:
+        if catalog_path.startswith("user-datasets/"):
+            is_public = False
+        else:
+            is_public = True
+
+        query_params.update({"is_public": is_public})
+
         resp = requests.post(
             f"{api_url}/catalogs/{catalog_path}/collections",
             headers=headers,
             json=data,
+            params=query_params,
         )
         if resp.status_code == HTTPStatus.OK:
             logger.info("Status code: OK")
@@ -343,6 +395,7 @@ def create_collection(api_url: str, collection_id: str, data: dict, catalog_path
             logger.warning(
                 f"Status Code: {resp.status_code} on url: {api_url}/catalogs/{catalog_path}/collections"
             )
+            logger.warning(f"Status message is {resp.content}")
             logger.warning("data is")
             logger.warning(data)
             # return but don't try again
@@ -354,14 +407,16 @@ def create_collection(api_url: str, collection_id: str, data: dict, catalog_path
 
 
 def create_item(
-    api_url: str, collection_id: str, item_id: str, data: dict, catalog_path: str
+    api_url: str, collection_id: str, item_id: str, data: dict, workspace: str, catalog_path: str
 ) -> bool:
     headers = {"accept": "application/json", "Content-Type": "application/json"}
+    query_params = {"workspace": workspace}
     try:
         resp = requests.post(
             f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items",
             headers=headers,
             json=data,
+            params=query_params,
         )
         if resp.status_code == HTTPStatus.OK:
             logger.info("Status code: OK")
@@ -389,6 +444,7 @@ def create_item(
                 f"Status Code: {resp.status_code} on url: {api_url}/catalogs/{catalog_path}/"
                 f"collections/{collection_id}/items"
             )
+            logger.warning(f"Status message is {resp.content}")
             logger.warning("data is")
             logger.warning(data)
             # return but don't try again
@@ -443,6 +499,9 @@ def interpret_message(msg: str, api_url: str):
     # Extract bucket name from message
     bucket_name = updates_json["bucket_name"]
 
+    # Extract workspace from message
+    workspace = updates_json["workspace"]
+
     # Extract file names into actions lists
     files_to_update = updates_json["updated_keys"] if "updated_keys" in updates_json.keys() else []
     files_to_delete = updates_json["deleted_keys"] if "deleted_keys" in updates_json.keys() else []
@@ -477,7 +536,7 @@ def interpret_message(msg: str, api_url: str):
             collection_id = data["id"]
             logger.info(f"Deleting collection {collection_id}")
             deleted_collections.add(collection_id)
-            delete_collection(api_url, collection_id, catalog_path)
+            delete_collection(api_url, collection_id, workspace, catalog_path)
 
         elif data.get("type") == "Feature":
             item_id = data["id"]
@@ -495,11 +554,14 @@ def interpret_message(msg: str, api_url: str):
             if collection_id in deleted_collections:
                 continue
             logger.info(f"Deleting item {item_id} in collection {collection_id}")
-            delete_item(api_url, collection_id, item_id, catalog_path)
+            delete_item(api_url, collection_id, item_id, workspace, catalog_path)
 
         elif data.get("type") == "Catalog":
+            # TODO: update this to read from file key rather than the STAC file itself,
+            # currently left as is for consistency
+            catalog_id = data["id"]
             logger.info(f"Deleting Catalog {catalog_path}")
-            delete_catalog(api_url, catalog_path)
+            delete_catalog(api_url, workspace, catalog_path, catalog_id)
 
     # Create new catalogs, collections and items
     num_files_to_create = len(files_to_create)
@@ -532,7 +594,9 @@ def interpret_message(msg: str, api_url: str):
             logger.info(f"Creating Collection {collection_id} in catalog {catalog_path}")
 
             # Handle case in which catalog is not yet created for this collection
-            item_registered = create_collection(api_url, collection_id, data, catalog_path)
+            item_registered = create_collection(
+                api_url, collection_id, data, workspace, catalog_path
+            )
             files_to_create.append(file_key) if not item_registered else None
 
         elif data.get("type") == "Feature":
@@ -553,7 +617,9 @@ def interpret_message(msg: str, api_url: str):
             )
 
             # Handle case in which catalog and/or collection is not yet created for this item
-            item_registered = create_item(api_url, collection_id, item_id, data, catalog_path)
+            item_registered = create_item(
+                api_url, collection_id, item_id, data, workspace, catalog_path
+            )
             files_to_create.append(file_key) if not item_registered else None
 
         elif data.get("type") == "Catalog":
@@ -561,7 +627,7 @@ def interpret_message(msg: str, api_url: str):
                 logger.info(f"Creating Catalog {data['id']} in catalog {catalog_path}")
             else:
                 logger.info(f"Creating a new base catalog, {data['id']}")
-            create_catalog(api_url, data, catalog_path)
+            create_catalog(api_url, data, workspace, catalog_path)
 
         # Increment loop counter
         files_count += 1
@@ -597,7 +663,9 @@ def interpret_message(msg: str, api_url: str):
             logger.info(f"Updating Collection {collection_id} in Catalog {catalog_path}")
 
             # Handle case in which catalog is not yet updated/created for this collection
-            collection_updated = update_collection(api_url, collection_id, data, catalog_path)
+            collection_updated = update_collection(
+                api_url, collection_id, data, workspace, catalog_path
+            )
             files_to_update.append(file_key) if not collection_updated else None
 
         elif data.get("type") == "Feature":
@@ -618,12 +686,14 @@ def interpret_message(msg: str, api_url: str):
             )
 
             # Handle case in which catalog and/or collection is not yet updated/created for this item
-            item_updated = update_item(api_url, collection_id, item_id, data, catalog_path)
+            item_updated = update_item(
+                api_url, collection_id, item_id, data, workspace, catalog_path
+            )
             files_to_update.append(file_key) if not item_updated else None
 
         elif data.get("type") == "Catalog":
             logger.info(f"Updating Catalog {data['id']} in Catalog {catalog_path}")
-            update_catalog(api_url, data, catalog_path, data["id"])
+            update_catalog(api_url, data, workspace, catalog_path, data["id"])
 
         # Increment loop counter
         files_count += 1
