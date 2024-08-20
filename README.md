@@ -18,3 +18,20 @@ You can then initiate the subscriber module by running the following command `py
 To test the messaging service correctly triggers the ingestion, open a new terminal and use the provided stac-fastapi-pulsar-test.py script to send a test message via Pulsar. To do this, configure the test message on lines 40-47 to define which files you with to ingest, **do not change the dictionary keys**. Next run this script using command `python stac-fastapi-pulsar-test.py <topic> publish --prefix pub1 -n 1`. This will send a single message via Pulsar to initiate the ingestion of the provided data. E.g. to trigger the previous subscriber run `python stac-fastapi-pulsar-test.py pulsar://127.0.0.1:6650 transformed publish --prefix pub1 -n 1`, make sure the `PULSAR_URL` environment variable is set in this terminal too.
 
 Once this message is sent you can return to the subscriber terminal and see the logging outputs for the data being loaded. This default script will ingest some CMIP6 and Cordex data, update one of the CMIP6 files and then delete the Cordex collection. You can check the ingestion by visiting [https://dev.eodatahub.org.uk/stac-fastapi/api.html](https://dev.eodatahub.org.uk/stac-fastapi/api.html).
+
+# Install via makefile
+
+```commandline
+make setup
+```
+
+This will create a virtual environment called `venv`, build `requirements.txt` and
+`requirements-dev.txt` from `pyproject.toml` if they're out of date, install the Python
+and Node dependencies and install `pre-commit`.
+
+It's safe and fast to run `make setup` repeatedly as it will only update these things if
+they have changed.
+
+After `make setup` you can run `pre-commit` to run pre-commit checks on staged changes and
+`pre-commit run --all-files` to run them on all files. This replicates the linter checks that
+run from GitHub actions.
