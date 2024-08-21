@@ -188,13 +188,13 @@ def test_handle_catalogs(
     requests_mock.delete(expected_url, status_code=status_code)
 
     if http_method == "POST":
-        create_catalog(api_url, data, catalog_path)
+        create_catalog(api_url, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data}
     elif http_method == "PUT":
-        update_catalog(api_url, data, catalog_path, "test_catalog_id")
+        update_catalog(api_url, data, "test_workspace", catalog_path, "test_catalog_id")
         expected_kwargs = {"headers": expected_headers, "json": data}
     elif http_method == "DELETE":
-        delete_catalog(api_url, catalog_path, "test_catalog_id")
+        delete_catalog(api_url, "test_workspace", catalog_path, "test_catalog_id")
         expected_kwargs = {"headers": expected_headers}
 
     # Assert that the request was made correct number of times
@@ -277,15 +277,15 @@ def test_catalog_connection_error(
 
     if http_method == "POST":
         with pytest.raises(requests.ConnectionError):
-            create_catalog(api_url, data, catalog_path)
+            create_catalog(api_url, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data}
     elif http_method == "PUT":
         with pytest.raises(requests.ConnectionError):
-            update_catalog(api_url, data, catalog_path, catalog_id)
+            update_catalog(api_url, data, "test_workspace", catalog_path, catalog_id)
         expected_kwargs = {"headers": expected_headers, "json": data}
     elif http_method == "DELETE":
         with pytest.raises(requests.ConnectionError):
-            delete_catalog(api_url, catalog_path, catalog_id)
+            delete_catalog(api_url, "test_workspace", catalog_path, catalog_id)
         expected_kwargs = {"headers": expected_headers}
 
     # Assert that the request was made correct number of times
@@ -484,13 +484,13 @@ def test_handle_collections(
     requests_mock.delete(expected_url, status_code=status_code)
 
     if http_method == "POST":
-        create_collection(api_url, collection_id, data, catalog_path)
+        create_collection(api_url, collection_id, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data}
     elif http_method == "PUT":
-        update_collection(api_url, collection_id, data, catalog_path)
+        update_collection(api_url, collection_id, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data}
     elif http_method == "DELETE":
-        delete_collection(api_url, collection_id, catalog_path)
+        delete_collection(api_url, collection_id, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers}
 
     # Assert that the request was made correct number of times
@@ -573,15 +573,15 @@ def test_collection_connection_error(
 
     if http_method == "POST":
         with pytest.raises(requests.ConnectionError):
-            create_collection(api_url, collection_id, data, catalog_path)
+            create_collection(api_url, collection_id, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data}
     elif http_method == "PUT":
         with pytest.raises(requests.ConnectionError):
-            update_collection(api_url, collection_id, data, catalog_path)
+            update_collection(api_url, collection_id, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data}
     elif http_method == "DELETE":
         with pytest.raises(requests.ConnectionError):
-            delete_collection(api_url, collection_id, catalog_path)
+            delete_collection(api_url, collection_id, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers}
 
     # Assert that the request was made correct number of times
@@ -837,13 +837,13 @@ def test_handle_items(
     requests_mock.delete(expected_url, status_code=status_code)
 
     if http_method == "POST":
-        create_item(api_url, collection_id, item_id, data, catalog_path)
+        create_item(api_url, collection_id, item_id, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data}
     elif http_method == "PUT":
-        update_item(api_url, collection_id, item_id, data, catalog_path)
+        update_item(api_url, collection_id, item_id, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data}
     elif http_method == "DELETE":
-        delete_item(api_url, collection_id, item_id, catalog_path)
+        delete_item(api_url, collection_id, item_id, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers}
 
     # Assert that the request was made correct number of times
@@ -935,15 +935,15 @@ def test_item_connection_error(
 
     if http_method == "POST":
         with pytest.raises(requests.ConnectionError):
-            create_item(api_url, collection_id, item_id, data, catalog_path)
+            create_item(api_url, collection_id, item_id, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data}
     elif http_method == "PUT":
         with pytest.raises(requests.ConnectionError):
-            update_item(api_url, collection_id, item_id, data, catalog_path)
+            update_item(api_url, collection_id, item_id, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data}
     elif http_method == "DELETE":
         with pytest.raises(requests.ConnectionError):
-            delete_item(api_url, collection_id, item_id, catalog_path)
+            delete_item(api_url, collection_id, item_id, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers}
 
     # Assert that the request was made correct number of times
@@ -1017,26 +1017,26 @@ def test_interpret_message_catalog(
         added_keys = f'["{test_key}"]'
         update_keys = "[]"
         delete_keys = "[]"
-        expected_args = (api_url, test_data, test_catalog_path)
+        expected_args = (api_url, test_data, "test_workspace", test_catalog_path)
     elif http_method == "PUT":
         mock_function = mock_update_catalog
         added_keys = "[]"
         update_keys = f'["{test_key}"]'
         delete_keys = "[]"
-        expected_args = (api_url, test_data, test_catalog_path, test_id)
+        expected_args = (api_url, test_data, "test_workspace", test_catalog_path, test_id)
     elif http_method == "DELETE":
         mock_function = mock_delete_catalog
         added_keys = "[]"
         update_keys = "[]"
         delete_keys = f'["{test_key}"]'
-        expected_args = (api_url, test_catalog_path, test_id)
+        expected_args = (api_url, "test_workspace", test_catalog_path, test_id)
     else:
         raise ValueError("Unsupported HTTP method")
 
     # Construct test Pulsar input message
     test_msg = f"""{{
         "id": "pulsar-test-id/testing",
-        "workspace": "",
+        "workspace": "test_workspace",
         "repository": "",
         "branch": "main",
         "bucket_name": "test-bucket",
@@ -1095,26 +1095,26 @@ def test_interpret_message_collection(
         added_keys = f'["{test_key}"]'
         update_keys = "[]"
         delete_keys = "[]"
-        expected_args = (api_url, test_id, test_data, test_catalog_path)
+        expected_args = (api_url, test_id, test_data, "test_workspace", test_catalog_path)
     elif http_method == "PUT":
         mock_function = mock_update_collection
         added_keys = "[]"
         update_keys = f'["{test_key}"]'
         delete_keys = "[]"
-        expected_args = (api_url, test_id, test_data, test_catalog_path)
+        expected_args = (api_url, test_id, test_data, "test_workspace", test_catalog_path)
     elif http_method == "DELETE":
         mock_function = mock_delete_collection
         added_keys = "[]"
         update_keys = "[]"
         delete_keys = f'["{test_key}"]'
-        expected_args = (api_url, test_id, test_catalog_path)
+        expected_args = (api_url, test_id, "test_workspace", test_catalog_path)
     else:
         raise ValueError("Unsupported HTTP method")
 
     # Construct test Pulsar input message
     test_msg = f"""{{
         "id": "pulsar-test-id/testing",
-        "workspace": "",
+        "workspace": "test_workspace",
         "repository": "",
         "branch": "main",
         "bucket_name": "test-bucket",
@@ -1184,26 +1184,26 @@ def test_interpret_message_item(
         added_keys = f'["{test_key}"]'
         update_keys = "[]"
         delete_keys = "[]"
-        expected_args = (api_url, test_collection_id, test_item_id, test_data, test_catalog_path)
+        expected_args = (api_url, test_collection_id, test_item_id, test_data, "test_workspace", test_catalog_path)
     elif http_method == "PUT":
         mock_function = mock_update_item
         added_keys = "[]"
         update_keys = f'["{test_key}"]'
         delete_keys = "[]"
-        expected_args = (api_url, test_collection_id, test_item_id, test_data, test_catalog_path)
+        expected_args = (api_url, test_collection_id, test_item_id, test_data, "test_workspace", test_catalog_path)
     elif http_method == "DELETE":
         mock_function = mock_delete_item
         added_keys = "[]"
         update_keys = "[]"
         delete_keys = f'["{test_key}"]'
-        expected_args = (api_url, test_collection_id, test_item_id, test_catalog_path)
+        expected_args = (api_url, test_collection_id, test_item_id, "test_workspace", test_catalog_path)
     else:
         raise ValueError("Unsupported HTTP method")
 
     # Construct test Pulsar input message
     test_msg = f"""{{
         "id": "pulsar-test-id/testing",
-        "workspace": "",
+        "workspace": "test_workspace",
         "repository": "",
         "branch": "main",
         "bucket_name": "test-bucket",
