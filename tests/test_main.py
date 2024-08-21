@@ -35,7 +35,7 @@ from stac_fastapi_ingester.__main__ import (
     "call_count, expected_url, expected_headers, expected_log",
     [
         (  ## create_catalog_success
-            "post",
+            "POST",
             200,
             "https://test-url/api",
             {"id": "test_catalog_id"},
@@ -46,7 +46,7 @@ from stac_fastapi_ingester.__main__ import (
             "Status Code: OK",
         ),
         (  # create_catalog_conflict
-            "post",
+            "POST",
             409,
             "https://test-url/api",
             {"id": "test_catalog_id"},
@@ -57,7 +57,7 @@ from stac_fastapi_ingester.__main__ import (
             "Status Code: CONFLICT",
         ),
         (  # create_catalog_not_found
-            "post",
+            "POST",
             404,
             "https://test-url/api",
             {"id": "test_catalog_id"},
@@ -68,7 +68,7 @@ from stac_fastapi_ingester.__main__ import (
             "Status Code: NOT_FOUND",
         ),
         (  # create_catalog_error
-            "post",
+            "POST",
             400,
             "https://test-url/api",
             {"id": "test_catalog_id"},
@@ -79,7 +79,7 @@ from stac_fastapi_ingester.__main__ import (
             "Status Code: 400",
         ),
         (  # update_catalog_success
-            "put",
+            "PUT",
             200,
             "https://test-url/api",
             {"id": "test_catalog_id"},
@@ -90,7 +90,7 @@ from stac_fastapi_ingester.__main__ import (
             "Status Code: OK",
         ),
         (  # update_catalog_conflict
-            "put",
+            "PUT",
             409,
             "https://test-url/api",
             {"id": "test_catalog_id"},
@@ -101,7 +101,7 @@ from stac_fastapi_ingester.__main__ import (
             "Status Code: CONFLICT",
         ),
         (  # update_catalog_not_found
-            "put",
+            "PUT",
             404,
             "https://test-url/api",
             {"id": "test_catalog_id"},
@@ -112,7 +112,7 @@ from stac_fastapi_ingester.__main__ import (
             "Status Code: NOT_FOUND",
         ),
         (  # update_catalog_error
-            "put",
+            "PUT",
             400,
             "https://test-url/api",
             {"id": "test_catalog_id"},
@@ -123,7 +123,7 @@ from stac_fastapi_ingester.__main__ import (
             "Status Code: 400",
         ),
         (  # delete_catalog_success
-            "delete",
+            "DELETE",
             200,
             "https://test-url/api",
             {"id": "test_catalog_id"},
@@ -134,7 +134,7 @@ from stac_fastapi_ingester.__main__ import (
             "Status Code: OK",
         ),
         (  # delete_catalog_conflict
-            "delete",
+            "DELETE",
             409,
             "https://test-url/api",
             {"id": "test_catalog_id"},
@@ -145,7 +145,7 @@ from stac_fastapi_ingester.__main__ import (
             "Status Code: CONFLICT",
         ),
         (  # delete_catalog_not_found
-            "delete",
+            "DELETE",
             404,
             "https://test-url/api",
             {"id": "test_catalog_id"},
@@ -156,7 +156,7 @@ from stac_fastapi_ingester.__main__ import (
             "Status Code: NOT_FOUND",
         ),
         (  # delete_catalog_error
-            "delete",
+            "DELETE",
             400,
             "https://test-url/api",
             {"id": "test_catalog_id"},
@@ -168,13 +168,7 @@ from stac_fastapi_ingester.__main__ import (
         ),
     ],
 )
-@patch("requests.delete")
-@patch("requests.put")
-@patch("requests.post")
 def test_handle_catalogs(
-    mock_requests_post,
-    mock_requests_put,
-    mock_requests_delete,
     caplog,
     http_method,
     status_code,
@@ -185,40 +179,39 @@ def test_handle_catalogs(
     expected_url,
     expected_headers,
     expected_log,
+    requests_mock,
 ):
 
-    # Setup mocks based on the http_method parameter
-    if http_method == "post":
-        mock_requests = mock_requests_post
-    elif http_method == "put":
-        mock_requests = mock_requests_put
-    elif http_method == "delete":
-        mock_requests = mock_requests_delete
-    else:
-        raise ValueError("Unsupported HTTP method")
+    # Mock the requests calls
+    requests_mock.post(expected_url, status_code=status_code)
+    requests_mock.put(expected_url, status_code=status_code)
+    requests_mock.delete(expected_url, status_code=status_code)
 
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = status_code
-    mock_requests.return_value = mock_object
-
-    if http_method == "post":
+    if http_method == "POST":
         create_catalog(api_url, data, catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data}
-    elif http_method == "put":
+    elif http_method == "PUT":
         update_catalog(api_url, data, catalog_path, "test_catalog_id")
         expected_kwargs = {"headers": expected_headers, "json": data}
-    elif http_method == "delete":
+    elif http_method == "DELETE":
         delete_catalog(api_url, catalog_path, "test_catalog_id")
         expected_kwargs = {"headers": expected_headers}
 
-    # Assert that the requests.post function was called once
-    assert mock_requests.call_count == call_count
+    # Assert that the request was made correct number of times
+    assert requests_mock.called
+    assert requests_mock.call_count == call_count
 
-    # Check requests.post was called correctly
-    calls = mock_requests.call_args_list
-    assert calls[0].args[0] == expected_url
-    assert calls[0].kwargs == expected_kwargs
+    # Check requests was made with expected arguments
+    request = requests_mock.request_history[0]
+    assert request.method == http_method
+
+    for arg in expected_kwargs:
+        if arg == "headers":
+            for header in expected_kwargs[arg]:
+                # Only need to check headers added by the function
+                assert request.headers[header] == expected_headers[header]
+        elif arg == "json":
+            assert request.json() == expected_kwargs[arg]
 
     # Check output log is correct
     assert expected_log in caplog.text
@@ -229,7 +222,7 @@ def test_handle_catalogs(
     "call_count, expected_url, expected_headers, expected_log",
     [
         (  # create
-            "post",
+            "POST",
             "https://test-url/api",
             {"id": "test_catalog_id"},
             "test_catalog_id",
@@ -240,7 +233,7 @@ def test_handle_catalogs(
             "Catalog: test_catalog_id not created",
         ),
         (  # update
-            "put",
+            "PUT",
             "https://test-url/api",
             {"id": "test_catalog_id"},
             "test_catalog_id",
@@ -251,7 +244,7 @@ def test_handle_catalogs(
             "Catalog: test_catalog_id at example/path/to/catalog not updated",
         ),
         (  # delete
-            "delete",
+            "DELETE",
             "https://test-url/api",
             {"id": "test_catalog_id"},
             "test_catalog_id",
@@ -263,13 +256,7 @@ def test_handle_catalogs(
         ),
     ],
 )
-@patch("requests.delete")
-@patch("requests.put")
-@patch("requests.post")
 def test_catalog_connection_error(
-    mock_requests_post,
-    mock_requests_put,
-    mock_requests_delete,
     caplog,
     http_method,
     api_url,
@@ -280,43 +267,42 @@ def test_catalog_connection_error(
     expected_url,
     expected_headers,
     expected_log,
+    requests_mock,
 ):
 
-    # Setup mocks based on the http_method parameter
-    if http_method == "post":
-        mock_requests = mock_requests_post
-    elif http_method == "put":
-        mock_requests = mock_requests_put
-    elif http_method == "delete":
-        mock_requests = mock_requests_delete
-    else:
-        raise ValueError("Unsupported HTTP method")
+    # Mock the requests calls
+    requests_mock.post(expected_url, exc=requests.ConnectionError)
+    requests_mock.put(expected_url, exc=requests.ConnectionError)
+    requests_mock.delete(expected_url, exc=requests.ConnectionError)
 
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 200
-    mock_requests.side_effect = requests.ConnectionError
-
-    if http_method == "post":
+    if http_method == "POST":
         with pytest.raises(requests.ConnectionError):
             create_catalog(api_url, data, catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data}
-    elif http_method == "put":
+    elif http_method == "PUT":
         with pytest.raises(requests.ConnectionError):
             update_catalog(api_url, data, catalog_path, catalog_id)
         expected_kwargs = {"headers": expected_headers, "json": data}
-    elif http_method == "delete":
+    elif http_method == "DELETE":
         with pytest.raises(requests.ConnectionError):
             delete_catalog(api_url, catalog_path, catalog_id)
         expected_kwargs = {"headers": expected_headers}
 
-    # Assert that the requests.post function was called once
-    assert mock_requests.call_count == call_count
+    # Assert that the request was made correct number of times
+    assert requests_mock.called
+    assert requests_mock.call_count == call_count
 
-    # Check requests.post was called correctly
-    calls = mock_requests.call_args_list
-    assert calls[0].args[0] == expected_url
-    assert calls[0].kwargs == expected_kwargs
+    # Check requests was made with expected arguments
+    request = requests_mock.request_history[0]
+    assert request.method == http_method
+
+    for arg in expected_kwargs:
+        if arg == "headers":
+            for header in expected_kwargs[arg]:
+                # Only need to check headers added by the function
+                assert request.headers[header] == expected_headers[header]
+        elif arg == "json":
+            assert request.json() == expected_kwargs[arg]
 
     # Check output log is correct
     assert expected_log in caplog.text
@@ -332,7 +318,7 @@ def test_catalog_connection_error(
     "call_count, expected_url, expected_headers, expected_log",
     [
         (  # create_collection_success
-            "post",
+            "POST",
             200,
             "https://test-url/api",
             {"id": "test_collection_id"},
@@ -344,7 +330,7 @@ def test_catalog_connection_error(
             "Status Code: OK",
         ),
         (  # create_collection_conflict
-            "post",
+            "POST",
             409,
             "https://test-url/api",
             {"id": "test_collection_id"},
@@ -356,7 +342,7 @@ def test_catalog_connection_error(
             "Status Code: CONFLICT",
         ),
         (  # create_collection_not_found
-            "post",
+            "POST",
             404,
             "https://test-url/api",
             {"id": "test_collection_id"},
@@ -368,7 +354,7 @@ def test_catalog_connection_error(
             "Catalog: example/path/to/catalog not yet created",
         ),
         (  # create_collection_error
-            "post",
+            "POST",
             400,
             "https://test-url/api",
             {"id": "test_collection_id"},
@@ -380,7 +366,7 @@ def test_catalog_connection_error(
             "Status Code: 400",
         ),
         (  # update_collection_success
-            "put",
+            "PUT",
             200,
             "https://test-url/api",
             {"id": "test_collection_id"},
@@ -392,7 +378,7 @@ def test_catalog_connection_error(
             "Status Code: OK",
         ),
         (  # update_collection_conflict
-            "put",
+            "PUT",
             409,
             "https://test-url/api",
             {"id": "test_collection_id"},
@@ -404,7 +390,7 @@ def test_catalog_connection_error(
             "Status Code: CONFLICT",
         ),
         (  # update_collection_not_found
-            "put",
+            "PUT",
             404,
             "https://test-url/api",
             {"id": "test_collection_id"},
@@ -416,7 +402,7 @@ def test_catalog_connection_error(
             "Status Code: NOT_FOUND",
         ),
         (  # update_collection_error
-            "put",
+            "PUT",
             400,
             "https://test-url/api",
             {"id": "test_collection_id"},
@@ -428,7 +414,7 @@ def test_catalog_connection_error(
             "Status Code: 400",
         ),
         (  # delete_collection_success
-            "delete",
+            "DELETE",
             200,
             "https://test-url/api",
             {"id": "test_collection_id"},
@@ -440,7 +426,7 @@ def test_catalog_connection_error(
             "Status Code: OK",
         ),
         (  # delete_collection_conflict
-            "delete",
+            "DELETE",
             409,
             "https://test-url/api",
             {"id": "test_collection_id"},
@@ -452,7 +438,7 @@ def test_catalog_connection_error(
             "Status Code: CONFLICT",
         ),
         (  # delete_collection_not_found
-            "delete",
+            "DELETE",
             404,
             "https://test-url/api",
             {"id": "test_collection_id"},
@@ -464,7 +450,7 @@ def test_catalog_connection_error(
             "Status Code: NOT_FOUND",
         ),
         (  # delete_collection_error
-            "delete",
+            "DELETE",
             400,
             "https://test-url/api",
             {"id": "test_collection_id"},
@@ -477,13 +463,7 @@ def test_catalog_connection_error(
         ),
     ],
 )
-@patch("requests.delete")
-@patch("requests.put")
-@patch("requests.post")
 def test_handle_collections(
-    mock_requests_post,
-    mock_requests_put,
-    mock_requests_delete,
     caplog,
     http_method,
     status_code,
@@ -495,40 +475,39 @@ def test_handle_collections(
     expected_url,
     expected_headers,
     expected_log,
+    requests_mock,
 ):
 
-    # Setup mocks based on the http_method parameter
-    if http_method == "post":
-        mock_requests = mock_requests_post
-    elif http_method == "put":
-        mock_requests = mock_requests_put
-    elif http_method == "delete":
-        mock_requests = mock_requests_delete
-    else:
-        raise ValueError("Unsupported HTTP method")
+    # Mock the requests calls
+    requests_mock.post(expected_url, status_code=status_code)
+    requests_mock.put(expected_url, status_code=status_code)
+    requests_mock.delete(expected_url, status_code=status_code)
 
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = status_code
-    mock_requests.return_value = mock_object
-
-    if http_method == "post":
+    if http_method == "POST":
         create_collection(api_url, collection_id, data, catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data}
-    elif http_method == "put":
+    elif http_method == "PUT":
         update_collection(api_url, collection_id, data, catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data}
-    elif http_method == "delete":
+    elif http_method == "DELETE":
         delete_collection(api_url, collection_id, catalog_path)
         expected_kwargs = {"headers": expected_headers}
 
-    # Assert that the requests.post function was called once
-    assert mock_requests.call_count == call_count
+    # Assert that the request was made correct number of times
+    assert requests_mock.called
+    assert requests_mock.call_count == call_count
 
-    # Check requests.post was called correctly
-    calls = mock_requests.call_args_list
-    assert calls[0].args[0] == expected_url
-    assert calls[0].kwargs == expected_kwargs
+    # Check requests was made with expected arguments
+    request = requests_mock.request_history[0]
+    assert request.method == http_method
+
+    for arg in expected_kwargs:
+        if arg == "headers":
+            for header in expected_kwargs[arg]:
+                # Only need to check headers added by the function
+                assert request.headers[header] == expected_headers[header]
+        elif arg == "json":
+            assert request.json() == expected_kwargs[arg]
 
     # Check output log is correct
     assert expected_log in caplog.text
@@ -539,7 +518,7 @@ def test_handle_collections(
     "call_count, expected_url, expected_headers, expected_log",
     [
         (  # create
-            "post",
+            "POST",
             "https://test-url/api",
             {"id": "test_item_id"},
             "test_collection_id",
@@ -550,7 +529,7 @@ def test_handle_collections(
             "Collection: test_collection_id not created",
         ),
         (  # update
-            "put",
+            "PUT",
             "https://test-url/api",
             {"id": "test_item_id"},
             "test_collection_id",
@@ -561,7 +540,7 @@ def test_handle_collections(
             "Collection: test_collection_id in Catalog: example/path/to/catalog not updated",
         ),
         (  # delete
-            "delete",
+            "DELETE",
             "https://test-url/api",
             {"id": "test_item_id"},
             "test_collection_id",
@@ -573,13 +552,7 @@ def test_handle_collections(
         ),
     ],
 )
-@patch("requests.delete")
-@patch("requests.put")
-@patch("requests.post")
 def test_collection_connection_error(
-    mock_requests_post,
-    mock_requests_put,
-    mock_requests_delete,
     caplog,
     http_method,
     api_url,
@@ -590,43 +563,42 @@ def test_collection_connection_error(
     expected_url,
     expected_headers,
     expected_log,
+    requests_mock,
 ):
 
-    # Setup mocks based on the http_method parameter
-    if http_method == "post":
-        mock_requests = mock_requests_post
-    elif http_method == "put":
-        mock_requests = mock_requests_put
-    elif http_method == "delete":
-        mock_requests = mock_requests_delete
-    else:
-        raise ValueError("Unsupported HTTP method")
+    # Mock the requests calls
+    requests_mock.post(expected_url, exc=requests.ConnectionError)
+    requests_mock.put(expected_url, exc=requests.ConnectionError)
+    requests_mock.delete(expected_url, exc=requests.ConnectionError)
 
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 200
-    mock_requests.side_effect = requests.ConnectionError
-
-    if http_method == "post":
+    if http_method == "POST":
         with pytest.raises(requests.ConnectionError):
             create_collection(api_url, collection_id, data, catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data}
-    elif http_method == "put":
+    elif http_method == "PUT":
         with pytest.raises(requests.ConnectionError):
             update_collection(api_url, collection_id, data, catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data}
-    elif http_method == "delete":
+    elif http_method == "DELETE":
         with pytest.raises(requests.ConnectionError):
             delete_collection(api_url, collection_id, catalog_path)
         expected_kwargs = {"headers": expected_headers}
 
-    # Assert that the requests.post function was called once
-    assert mock_requests.call_count == call_count
+    # Assert that the request was made correct number of times
+    assert requests_mock.called
+    assert requests_mock.call_count == call_count
 
-    # Check requests.post was called correctly
-    calls = mock_requests.call_args_list
-    assert calls[0].args[0] == expected_url
-    assert calls[0].kwargs == expected_kwargs
+    # Check requests was made with expected arguments
+    request = requests_mock.request_history[0]
+    assert request.method == http_method
+
+    for arg in expected_kwargs:
+        if arg == "headers":
+            for header in expected_kwargs[arg]:
+                # Only need to check headers added by the function
+                assert request.headers[header] == expected_headers[header]
+        elif arg == "json":
+            assert request.json() == expected_kwargs[arg]
 
     # Check output log is correct
     assert expected_log in caplog.text
@@ -642,7 +614,7 @@ def test_collection_connection_error(
     "item_id, catalog_path, call_count, expected_url, expected_headers, expected_log",
     [
         (  # create_item_success
-            "post",
+            "POST",
             200,
             "",
             "https://test-url/api",
@@ -656,7 +628,7 @@ def test_collection_connection_error(
             ["Status Code: OK"],
         ),
         (  # create_item_conflict
-            "post",
+            "POST",
             409,
             "",
             "https://test-url/api",
@@ -670,7 +642,7 @@ def test_collection_connection_error(
             ["Status Code: CONFLICT"],
         ),
         (  # create_item_not_found
-            "post",
+            "POST",
             404,
             "",
             "https://test-url/api",
@@ -684,7 +656,7 @@ def test_collection_connection_error(
             ["Collection: test_collection_id or Catalog: example/path/to/catalog not yet created"],
         ),
         (  # create_item_error
-            "post",
+            "POST",
             400,
             "",
             "https://test-url/api",
@@ -698,7 +670,7 @@ def test_collection_connection_error(
             ["Status Code: 400"],
         ),
         (  # update_item_success
-            "put",
+            "PUT",
             200,
             "",
             "https://test-url/api",
@@ -712,7 +684,7 @@ def test_collection_connection_error(
             ["Status Code: OK"],
         ),
         (  # update_item_conflict
-            "put",
+            "PUT",
             409,
             "",
             "https://test-url/api",
@@ -726,7 +698,7 @@ def test_collection_connection_error(
             ["Status Code: CONFLICT"],
         ),
         (  # update_item_not_found_item
-            "put",
+            "PUT",
             404,
             "Item",
             "https://test-url/api",
@@ -740,7 +712,7 @@ def test_collection_connection_error(
             ["Status Code: NOT_FOUND", "item doesn't exist"],
         ),
         (  # update_item_not_found_collection
-            "put",
+            "PUT",
             404,
             "Collection",
             "https://test-url/api",
@@ -754,7 +726,7 @@ def test_collection_connection_error(
             ["Status Code: NOT_FOUND", "collection doesn't exist"],
         ),
         (  # update_item_not_found_catalog
-            "put",
+            "PUT",
             404,
             "Catalog",
             "https://test-url/api",
@@ -768,7 +740,7 @@ def test_collection_connection_error(
             ["Status Code: NOT_FOUND", "catalog doesn't exist"],
         ),
         (  # update_item_error
-            "put",
+            "PUT",
             400,
             "",
             "https://test-url/api",
@@ -782,7 +754,7 @@ def test_collection_connection_error(
             ["Status Code: 400"],
         ),
         (  # delete_item_success
-            "delete",
+            "DELETE",
             200,
             "",
             "https://test-url/api",
@@ -796,7 +768,7 @@ def test_collection_connection_error(
             ["Status Code: OK"],
         ),
         (  # delete_item_conflict
-            "delete",
+            "DELETE",
             409,
             "",
             "https://test-url/api",
@@ -810,7 +782,7 @@ def test_collection_connection_error(
             ["Status Code: CONFLICT"],
         ),
         (  # delete_item_not_found
-            "delete",
+            "DELETE",
             404,
             "",
             "https://test-url/api",
@@ -824,7 +796,7 @@ def test_collection_connection_error(
             ["Status Code: NOT_FOUND"],
         ),
         (  # delete_item_error
-            "delete",
+            "DELETE",
             400,
             "",
             "https://test-url/api",
@@ -839,13 +811,7 @@ def test_collection_connection_error(
         ),
     ],
 )
-@patch("requests.delete")
-@patch("requests.put")
-@patch("requests.post")
 def test_handle_items(
-    mock_requests_post,
-    mock_requests_put,
-    mock_requests_delete,
     caplog,
     http_method,
     status_code,
@@ -859,41 +825,42 @@ def test_handle_items(
     expected_url,
     expected_headers,
     expected_log,
+    requests_mock,
 ):
 
-    # Setup mocks based on the http_method parameter
-    if http_method == "post":
-        mock_requests = mock_requests_post
-    elif http_method == "put":
-        mock_requests = mock_requests_put
-    elif http_method == "delete":
-        mock_requests = mock_requests_delete
-    else:
-        raise ValueError("Unsupported HTTP method")
-
     # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = status_code
-    mock_object.content.decode.return_value = f'{{"description": "{error_description}"}}'
-    mock_requests.return_value = mock_object
+    mock_content = f'{{"description": "{error_description}"}}'.encode("utf-8")
 
-    if http_method == "post":
+    # Mock the requests calls
+    requests_mock.post(expected_url, status_code=status_code)
+    requests_mock.put(expected_url, status_code=status_code, content=mock_content)
+    requests_mock.delete(expected_url, status_code=status_code)
+
+    if http_method == "POST":
         create_item(api_url, collection_id, item_id, data, catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data}
-    elif http_method == "put":
+    elif http_method == "PUT":
         update_item(api_url, collection_id, item_id, data, catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data}
-    elif http_method == "delete":
+    elif http_method == "DELETE":
         delete_item(api_url, collection_id, item_id, catalog_path)
         expected_kwargs = {"headers": expected_headers}
 
-    # Assert that the requests.post function was called once
-    assert mock_requests.call_count == call_count
+    # Assert that the request was made correct number of times
+    assert requests_mock.called
+    assert requests_mock.call_count == call_count
 
-    # Check requests.post was called correctly
-    calls = mock_requests.call_args_list
-    assert calls[0].args[0] == expected_url
-    assert calls[0].kwargs == expected_kwargs
+    # Check requests was made with expected arguments
+    request = requests_mock.request_history[0]
+    assert request.method == http_method
+
+    for arg in expected_kwargs:
+        if arg == "headers":
+            for header in expected_kwargs[arg]:
+                # Only need to check headers added by the function
+                assert request.headers[header] == expected_headers[header]
+        elif arg == "json":
+            assert request.json() == expected_kwargs[arg]
 
     # Check output log is correct
     for log in expected_log:
@@ -905,7 +872,7 @@ def test_handle_items(
     "call_count, expected_url, expected_headers, expected_log",
     [
         (  # create
-            "post",
+            "POST",
             "https://test-url/api",
             {"id": "test_item_id"},
             "test_collection_id",
@@ -918,7 +885,7 @@ def test_handle_items(
             "example/path/to/catalog not created",
         ),
         (  # update
-            "put",
+            "PUT",
             "https://test-url/api",
             {"id": "test_item_id"},
             "test_collection_id",
@@ -931,7 +898,7 @@ def test_handle_items(
             "Catalog: example/path/to/catalog not updated",
         ),
         (  # delete
-            "delete",
+            "DELETE",
             "https://test-url/api",
             {"id": "test_item_id"},
             "test_collection_id",
@@ -946,13 +913,7 @@ def test_handle_items(
         ),
     ],
 )
-@patch("requests.delete")
-@patch("requests.put")
-@patch("requests.post")
 def test_item_connection_error(
-    mock_requests_post,
-    mock_requests_put,
-    mock_requests_delete,
     caplog,
     http_method,
     api_url,
@@ -964,43 +925,42 @@ def test_item_connection_error(
     expected_url,
     expected_headers,
     expected_log,
+    requests_mock,
 ):
 
-    # Setup mocks based on the http_method parameter
-    if http_method == "post":
-        mock_requests = mock_requests_post
-    elif http_method == "put":
-        mock_requests = mock_requests_put
-    elif http_method == "delete":
-        mock_requests = mock_requests_delete
-    else:
-        raise ValueError("Unsupported HTTP method")
+    # Mock the requests calls
+    requests_mock.post(expected_url, exc=requests.ConnectionError)
+    requests_mock.put(expected_url, exc=requests.ConnectionError)
+    requests_mock.delete(expected_url, exc=requests.ConnectionError)
 
-    # Create mocks
-    mock_object = mock.Mock()
-    mock_object.status_code = 200
-    mock_requests.side_effect = requests.ConnectionError
-
-    if http_method == "post":
+    if http_method == "POST":
         with pytest.raises(requests.ConnectionError):
             create_item(api_url, collection_id, item_id, data, catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data}
-    elif http_method == "put":
+    elif http_method == "PUT":
         with pytest.raises(requests.ConnectionError):
             update_item(api_url, collection_id, item_id, data, catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data}
-    elif http_method == "delete":
+    elif http_method == "DELETE":
         with pytest.raises(requests.ConnectionError):
             delete_item(api_url, collection_id, item_id, catalog_path)
         expected_kwargs = {"headers": expected_headers}
 
-    # Assert that the requests.post function was called once
-    assert mock_requests.call_count == call_count
+    # Assert that the request was made correct number of times
+    assert requests_mock.called
+    assert requests_mock.call_count == call_count
 
-    # Check requests.post was called correctly
-    calls = mock_requests.call_args_list
-    assert calls[0].args[0] == expected_url
-    assert calls[0].kwargs == expected_kwargs
+    # Check requests was made with expected arguments
+    request = requests_mock.request_history[0]
+    assert request.method == http_method
+
+    for arg in expected_kwargs:
+        if arg == "headers":
+            for header in expected_kwargs[arg]:
+                # Only need to check headers added by the function
+                assert request.headers[header] == expected_headers[header]
+        elif arg == "json":
+            assert request.json() == expected_kwargs[arg]
 
     # Check output log is correct
     assert expected_log in caplog.text
@@ -1015,17 +975,17 @@ def test_item_connection_error(
     "http_method, api_url, test_id",
     [
         (  # create
-            "post",
+            "POST",
             "https://test-url/api",
             "test_catalog_id",
         ),
         (  # update
-            "put",
+            "PUT",
             "https://test-url/api",
             "test_catalog_id",
         ),
         (  # delete
-            "delete",
+            "DELETE",
             "https://test-url/api",
             "test_catalog_id",
         ),
@@ -1052,19 +1012,19 @@ def test_interpret_message_catalog(
     test_data = {"id": test_id, "type": "Catalog"}
 
     # Setup mocks based on the http_method parameter
-    if http_method == "post":
+    if http_method == "POST":
         mock_function = mock_create_catalog
         added_keys = f'["{test_key}"]'
         update_keys = "[]"
         delete_keys = "[]"
         expected_args = (api_url, test_data, test_catalog_path)
-    elif http_method == "put":
+    elif http_method == "PUT":
         mock_function = mock_update_catalog
         added_keys = "[]"
         update_keys = f'["{test_key}"]'
         delete_keys = "[]"
         expected_args = (api_url, test_data, test_catalog_path, test_id)
-    elif http_method == "delete":
+    elif http_method == "DELETE":
         mock_function = mock_delete_catalog
         added_keys = "[]"
         update_keys = "[]"
@@ -1102,11 +1062,11 @@ def test_interpret_message_catalog(
 @pytest.mark.parametrize(
     "http_method, success",
     [
-        ("post", True),  # create success
-        ("post", False),  # create fail
-        ("put", True),  # update success
-        ("put", False),  # update fail
-        ("delete", True),  # delete success
+        ("POST", True),  # create success
+        ("POST", False),  # create fail
+        ("PUT", True),  # update success
+        ("PUT", False),  # update fail
+        ("DELETE", True),  # delete success
     ],
 )
 @patch("stac_fastapi_ingester.__main__.delete_collection")
@@ -1130,19 +1090,19 @@ def test_interpret_message_collection(
     api_url = "https://test-url/api"
 
     # Setup mocks based on the http_method parameter
-    if http_method == "post":
+    if http_method == "POST":
         mock_function = mock_create_collection
         added_keys = f'["{test_key}"]'
         update_keys = "[]"
         delete_keys = "[]"
         expected_args = (api_url, test_id, test_data, test_catalog_path)
-    elif http_method == "put":
+    elif http_method == "PUT":
         mock_function = mock_update_collection
         added_keys = "[]"
         update_keys = f'["{test_key}"]'
         delete_keys = "[]"
         expected_args = (api_url, test_id, test_data, test_catalog_path)
-    elif http_method == "delete":
+    elif http_method == "DELETE":
         mock_function = mock_delete_collection
         added_keys = "[]"
         update_keys = "[]"
@@ -1189,11 +1149,11 @@ def test_interpret_message_collection(
 @pytest.mark.parametrize(
     "http_method, success",
     [
-        ("post", True),  # create success
-        ("post", False),  # create fail
-        ("put", True),  # update success
-        ("put", False),  # update fail
-        ("delete", True),  # delete success
+        ("POST", True),  # create success
+        ("POST", False),  # create fail
+        ("PUT", True),  # update success
+        ("PUT", False),  # update fail
+        ("DELETE", True),  # delete success
     ],
 )
 @patch("stac_fastapi_ingester.__main__.delete_item")
@@ -1219,19 +1179,19 @@ def test_interpret_message_item(
     test_data = {"id": test_item_id, "type": "Feature", "collection": test_collection_id}
 
     # Setup mocks based on the http_method parameter
-    if http_method == "post":
+    if http_method == "POST":
         mock_function = mock_create_item
         added_keys = f'["{test_key}"]'
         update_keys = "[]"
         delete_keys = "[]"
         expected_args = (api_url, test_collection_id, test_item_id, test_data, test_catalog_path)
-    elif http_method == "put":
+    elif http_method == "PUT":
         mock_function = mock_update_item
         added_keys = "[]"
         update_keys = f'["{test_key}"]'
         delete_keys = "[]"
         expected_args = (api_url, test_collection_id, test_item_id, test_data, test_catalog_path)
-    elif http_method == "delete":
+    elif http_method == "DELETE":
         mock_function = mock_delete_item
         added_keys = "[]"
         update_keys = "[]"
