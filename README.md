@@ -19,15 +19,19 @@ To test the messaging service correctly triggers the ingestion, open a new termi
 
 Once this message is sent you can return to the subscriber terminal and see the logging outputs for the data being loaded. This default script will ingest some CMIP6 and Cordex data, update one of the CMIP6 files and then delete the Cordex collection. You can check the ingestion by visiting [https://dev.eodatahub.org.uk/stac-fastapi/api.html](https://dev.eodatahub.org.uk/stac-fastapi/api.html).
 
-## Building and testing
+# Install via makefile
 
-This component uses `pytest` tests and the `ruff` and `black` linters. `black` will reformat your code in an
-opinionated way.
+```commandline
+make setup
+```
 
-A number of `make` targets are defined:
-* `make test`: run tests continuously
-* `make testonce`: run tests once
-* `make lint`: lint and reformat
-* `make dockerbuild`: build a `latest` Docker image (use `make dockerbuild `VERSION=1.2.3` for a release image)
-* `make dockerpush`: push a `latest` Docker image (again, you can add `VERSION=1.2.3`) - normally this should be done
-  only via the build system and its GitHub actions.
+This will create a virtual environment called `venv`, build `requirements.txt` and
+`requirements-dev.txt` from `pyproject.toml` if they're out of date, install the Python
+and Node dependencies and install `pre-commit`.
+
+It's safe and fast to run `make setup` repeatedly as it will only update these things if
+they have changed.
+
+After `make setup` you can run `pre-commit` to run pre-commit checks on staged changes and
+`pre-commit run --all-files` to run them on all files. This replicates the linter checks that
+run from GitHub actions.
