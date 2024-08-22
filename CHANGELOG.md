@@ -1,15 +1,22 @@
 # Changelog
 
-## v0.1.5 (08-07-2024)
-
-Bugfixes
-- Corrected update_catalog and delete_catalog functionality to ensure full catalog path, including current catalog_id, is used in the request to update the catalog.
-- Updated logging outputs to match
+## 0.1.7 (22-08-2024)
+Added unit tests
 - Code cleanup to support better unit testing
 - Updated logging for https responses
 - Updated handling of botocore ClientError exception
 
-Added unit tests
+
+## v0.1.6 (30-07-2024)
+
+Added support for access-control when creating, updating and deleting entries
+- Added workspace parameter to requests calls to identify the current workspace from the Pulsar message to allow access to be confirmed by STAC-FastApi
+- Added is_public parameter to create requests to specify whether the catalog or collection to be created should be available publicly in the catalogue or not 
+
+## v0.1.5 (08-07-2024)
+
+Bugfix
+- Corrected update_catalog functionality to ensure full catalog path, including current catalog_id, is used in the request to update the catalog
 
 ## v0.1.4 (02-07-2024)
 
