@@ -74,14 +74,18 @@ def delete_catalog(api_url: str, workspace: str, catalog_path: str, catalog_id: 
         )
         if resp.status_code == HTTPStatus.OK or resp.status_code == HTTPStatus.NO_CONTENT:
             logger.info("Status Code: OK")
-            logger.info(f"Deleted Catalog {catalog_path} from {catalog_path if catalog_path else 'top-level'}")
+            logger.info(
+                f"Deleted Catalog {catalog_path} from {catalog_path if catalog_path else 'top-level'}"
+            )
         elif resp.status_code == HTTPStatus.CONFLICT:
             logger.warning("Status Code: CONFLICT")
         elif resp.status_code == HTTPStatus.NOT_FOUND:
             logger.warning("Status Code: NOT_FOUND")
             logger.warning(f"Catalog: {catalog_path} does not exist.")
         else:
-            logger.warning(f"Catalog: {catalog_id} not deleted from {catalog_path if catalog_path else 'top-level'}")
+            logger.warning(
+                f"Catalog: {catalog_id} not deleted from {catalog_path if catalog_path else 'top-level'}"
+            )
             logger.warning(
                 f"Status Code: {resp.status_code} on url: " f"{api_url}/catalogs/{catalog_path}"
             )
