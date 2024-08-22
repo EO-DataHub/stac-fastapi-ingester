@@ -90,6 +90,10 @@ python-dateutil==2.9.0.post0
 pyyaml==6.0.1
     # via pre-commit
 requests==2.32.3
+    # via
+    #   STAC-Fastapi-Ingester (pyproject.toml)
+    #   requests-mock
+requests-mock==1.12.1
     # via STAC-Fastapi-Ingester (pyproject.toml)
 ruff==0.5.5
     # via STAC-Fastapi-Ingester (pyproject.toml)
