@@ -34,7 +34,7 @@ from stac_fastapi_ingester.__main__ import (
     "http_method, status_code, api_url, data, catalog_path, "
     "call_count, expected_url, expected_headers, expected_log, params",
     [
-        (  ## create_catalog_success public
+        pytest.param(  ## create_catalog_success public
             "POST",
             200,
             "https://test-url/api",
@@ -45,8 +45,9 @@ from stac_fastapi_ingester.__main__ import (
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: OK",
             {"workspace": ["test_workspace"], "is_public": ["true"]},
+            id="create_success_public",
         ),
-        (  ## create_catalog_success private
+        pytest.param(
             "POST",
             200,
             "https://test-url/api",
@@ -57,8 +58,9 @@ from stac_fastapi_ingester.__main__ import (
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: OK",
             {"workspace": ["test_workspace"], "is_public": ["false"]},
+            id="create_success_private",
         ),
-        (  ## create_catalog_success with no parent catalog
+        pytest.param(
             "POST",
             200,
             "https://test-url/api",
@@ -69,8 +71,9 @@ from stac_fastapi_ingester.__main__ import (
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: OK",
             {"workspace": ["test_workspace"], "is_public": ["true"]},
+            id="create_success_no_parent_catalog",
         ),
-        (  # create_catalog_conflict
+        pytest.param(
             "POST",
             409,
             "https://test-url/api",
@@ -81,8 +84,9 @@ from stac_fastapi_ingester.__main__ import (
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: CONFLICT",
             {"workspace": ["test_workspace"], "is_public": ["true"]},
+            id="create_conflict",
         ),
-        (  # create_catalog_not_found
+        pytest.param(
             "POST",
             404,
             "https://test-url/api",
@@ -93,8 +97,9 @@ from stac_fastapi_ingester.__main__ import (
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: NOT_FOUND",
             {"workspace": ["test_workspace"], "is_public": ["true"]},
+            id="create_not_found",
         ),
-        (  # create_catalog_error
+        pytest.param(
             "POST",
             400,
             "https://test-url/api",
@@ -105,8 +110,9 @@ from stac_fastapi_ingester.__main__ import (
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: 400",
             {"workspace": ["test_workspace"], "is_public": ["true"]},
+            id="create_error",
         ),
-        (  # update_catalog_success
+        pytest.param(
             "PUT",
             200,
             "https://test-url/api",
@@ -117,8 +123,9 @@ from stac_fastapi_ingester.__main__ import (
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: OK",
             {"workspace": ["test_workspace"]},
+            id="update_success",
         ),
-        (  ## update_catalog_success with no parent catalog
+        pytest.param(
             "PUT",
             200,
             "https://test-url/api",
@@ -129,8 +136,9 @@ from stac_fastapi_ingester.__main__ import (
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: OK",
             {"workspace": ["test_workspace"]},
+            id="update_success_no_parent_catalog",
         ),
-        (  # update_catalog_conflict
+        pytest.param(
             "PUT",
             409,
             "https://test-url/api",
@@ -141,8 +149,9 @@ from stac_fastapi_ingester.__main__ import (
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: CONFLICT",
             {"workspace": ["test_workspace"]},
+            id="update_conflict",
         ),
-        (  # update_catalog_not_found
+        pytest.param(
             "PUT",
             404,
             "https://test-url/api",
@@ -153,8 +162,9 @@ from stac_fastapi_ingester.__main__ import (
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: NOT_FOUND",
             {"workspace": ["test_workspace"]},
+            id="update_not_found",
         ),
-        (  # update_catalog_error
+        pytest.param(
             "PUT",
             400,
             "https://test-url/api",
@@ -165,8 +175,9 @@ from stac_fastapi_ingester.__main__ import (
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: 400",
             {"workspace": ["test_workspace"]},
+            id="update_error",
         ),
-        (  # delete_catalog_success
+        pytest.param(
             "DELETE",
             200,
             "https://test-url/api",
@@ -177,8 +188,9 @@ from stac_fastapi_ingester.__main__ import (
             {"accept": "application/json"},
             "Status Code: OK",
             {"workspace": ["test_workspace"]},
+            id="delete_success",
         ),
-        (  # delete_catalog_conflict
+        pytest.param(
             "DELETE",
             409,
             "https://test-url/api",
@@ -189,8 +201,9 @@ from stac_fastapi_ingester.__main__ import (
             {"accept": "application/json"},
             "Status Code: CONFLICT",
             {"workspace": ["test_workspace"]},
+            id="delete_conflict",
         ),
-        (  # delete_catalog_not_found
+        pytest.param(
             "DELETE",
             404,
             "https://test-url/api",
@@ -201,8 +214,9 @@ from stac_fastapi_ingester.__main__ import (
             {"accept": "application/json"},
             "Status Code: NOT_FOUND",
             {"workspace": ["test_workspace"]},
+            id="delete_not_found",
         ),
-        (  # delete_catalog_error
+        pytest.param(
             "DELETE",
             400,
             "https://test-url/api",
@@ -213,6 +227,7 @@ from stac_fastapi_ingester.__main__ import (
             {"accept": "application/json"},
             "Status Code: 400",
             {"workspace": ["test_workspace"]},
+            id="delete_error",
         ),
     ],
 )
@@ -273,7 +288,7 @@ def test_handle_catalogs(
     "http_method, api_url, data, catalog_id, catalog_path, "
     "call_count, expected_url, expected_headers, expected_log, params",
     [
-        (  # create
+        pytest.param(
             "POST",
             "https://test-url/api",
             {"id": "test_catalog_id"},
@@ -284,8 +299,9 @@ def test_handle_catalogs(
             {"accept": "application/json", "Content-Type": "application/json"},
             "Catalog: test_catalog_id not created",
             {"workspace": ["test_workspace"], "is_public": ["true"]},
+            id="create",
         ),
-        (  # update
+        pytest.param(
             "PUT",
             "https://test-url/api",
             {"id": "test_catalog_id"},
@@ -296,8 +312,9 @@ def test_handle_catalogs(
             {"accept": "application/json", "Content-Type": "application/json"},
             "Catalog: test_catalog_id at example/path/to/catalog not updated",
             {"workspace": ["test_workspace"]},
+            id="update",
         ),
-        (  # delete
+        pytest.param(
             "DELETE",
             "https://test-url/api",
             {"id": "test_catalog_id"},
@@ -308,6 +325,7 @@ def test_handle_catalogs(
             {"accept": "application/json"},
             "Catalog: test_catalog_id not deleted",
             {"workspace": ["test_workspace"]},
+            id="delete",
         ),
     ],
 )
@@ -376,7 +394,7 @@ def test_catalog_connection_error(
     "http_method, status_code, api_url, data, collection_id, catalog_path, "
     "call_count, expected_url, expected_headers, expected_log, params",
     [
-        (  # create_collection_success public
+        pytest.param(
             "POST",
             200,
             "https://test-url/api",
@@ -388,8 +406,9 @@ def test_catalog_connection_error(
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: OK",
             {"workspace": ["test_workspace"], "is_public": ["true"]},
+            id="create_success_public",
         ),
-        (  # create_collection_success private
+        pytest.param(
             "POST",
             200,
             "https://test-url/api",
@@ -401,8 +420,9 @@ def test_catalog_connection_error(
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: OK",
             {"workspace": ["test_workspace"], "is_public": ["false"]},
+            id="create_success_private",
         ),
-        (  # create_collection_conflict
+        pytest.param(
             "POST",
             409,
             "https://test-url/api",
@@ -414,8 +434,9 @@ def test_catalog_connection_error(
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: CONFLICT",
             {"workspace": ["test_workspace"], "is_public": ["true"]},
+            id="create_conflict",
         ),
-        (  # create_collection_not_found
+        pytest.param(
             "POST",
             404,
             "https://test-url/api",
@@ -427,8 +448,9 @@ def test_catalog_connection_error(
             {"accept": "application/json", "Content-Type": "application/json"},
             "Catalog: example/path/to/catalog not yet created",
             {"workspace": ["test_workspace"], "is_public": ["true"]},
+            id="create_not_found",
         ),
-        (  # create_collection_error
+        pytest.param(
             "POST",
             400,
             "https://test-url/api",
@@ -440,8 +462,9 @@ def test_catalog_connection_error(
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: 400",
             {"workspace": ["test_workspace"], "is_public": ["true"]},
+            id="create_error",
         ),
-        (  # update_collection_success
+        pytest.param(
             "PUT",
             200,
             "https://test-url/api",
@@ -453,8 +476,9 @@ def test_catalog_connection_error(
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: OK",
             {"workspace": ["test_workspace"]},
+            id="update_success",
         ),
-        (  # update_collection_conflict
+        pytest.param(
             "PUT",
             409,
             "https://test-url/api",
@@ -466,8 +490,9 @@ def test_catalog_connection_error(
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: CONFLICT",
             {"workspace": ["test_workspace"]},
+            id="update_conflict",
         ),
-        (  # update_collection_not_found
+        pytest.param(
             "PUT",
             404,
             "https://test-url/api",
@@ -479,8 +504,9 @@ def test_catalog_connection_error(
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: NOT_FOUND",
             {"workspace": ["test_workspace"]},
+            id="update_not_found",
         ),
-        (  # update_collection_error
+        pytest.param(
             "PUT",
             400,
             "https://test-url/api",
@@ -492,8 +518,9 @@ def test_catalog_connection_error(
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: 400",
             {"workspace": ["test_workspace"]},
+            id="update_error",
         ),
-        (  # delete_collection_success
+        pytest.param(
             "DELETE",
             200,
             "https://test-url/api",
@@ -505,8 +532,9 @@ def test_catalog_connection_error(
             {"accept": "application/json"},
             "Status Code: OK",
             {"workspace": ["test_workspace"]},
+            id="delete_success",
         ),
-        (  # delete_collection_conflict
+        pytest.param(
             "DELETE",
             409,
             "https://test-url/api",
@@ -518,8 +546,9 @@ def test_catalog_connection_error(
             {"accept": "application/json"},
             "Status Code: CONFLICT",
             {"workspace": ["test_workspace"]},
+            id="delete_conflict",
         ),
-        (  # delete_collection_not_found
+        pytest.param(
             "DELETE",
             404,
             "https://test-url/api",
@@ -531,8 +560,9 @@ def test_catalog_connection_error(
             {"accept": "application/json"},
             "Status Code: NOT_FOUND",
             {"workspace": ["test_workspace"]},
+            id="delete_not_found",
         ),
-        (  # delete_collection_error
+        pytest.param(
             "DELETE",
             400,
             "https://test-url/api",
@@ -544,6 +574,7 @@ def test_catalog_connection_error(
             {"accept": "application/json"},
             "Status Code: 400",
             {"workspace": ["test_workspace"]},
+            id="delete_error",
         ),
     ],
 )
@@ -605,7 +636,7 @@ def test_handle_collections(
     "http_method, api_url, data, collection_id, catalog_path, "
     "call_count, expected_url, expected_headers, expected_log, params",
     [
-        (  # create
+        pytest.param(
             "POST",
             "https://test-url/api",
             {"id": "test_item_id"},
@@ -616,8 +647,9 @@ def test_handle_collections(
             {"accept": "application/json", "Content-Type": "application/json"},
             "Collection: test_collection_id not created",
             {"workspace": ["test_workspace"], "is_public": ["true"]},
+            id="create",
         ),
-        (  # update
+        pytest.param(
             "PUT",
             "https://test-url/api",
             {"id": "test_item_id"},
@@ -628,8 +660,9 @@ def test_handle_collections(
             {"accept": "application/json", "Content-Type": "application/json"},
             "Collection: test_collection_id in Catalog: example/path/to/catalog not updated",
             {"workspace": ["test_workspace"]},
+            id="update",
         ),
-        (  # delete
+        pytest.param(
             "DELETE",
             "https://test-url/api",
             {"id": "test_item_id"},
@@ -640,6 +673,7 @@ def test_handle_collections(
             {"accept": "application/json"},
             "Collection: test_collection_id not deleted",
             {"workspace": ["test_workspace"]},
+            id="delete",
         ),
     ],
 )
@@ -708,7 +742,7 @@ def test_collection_connection_error(
     "http_method, status_code, error_description, api_url, data, collection_id, "
     "item_id, catalog_path, call_count, expected_url, expected_headers, expected_log, params",
     [
-        (  # create_item_success
+        pytest.param(
             "POST",
             200,
             "",
@@ -722,8 +756,9 @@ def test_collection_connection_error(
             {"accept": "application/json", "Content-Type": "application/json"},
             ["Status Code: OK"],
             {"workspace": ["test_workspace"]},
+            id="create_success",
         ),
-        (  # create_item_conflict
+        pytest.param(
             "POST",
             409,
             "",
@@ -737,8 +772,9 @@ def test_collection_connection_error(
             {"accept": "application/json", "Content-Type": "application/json"},
             ["Status Code: CONFLICT"],
             {"workspace": ["test_workspace"]},
+            id="create_conflict",
         ),
-        (  # create_item_not_found
+        pytest.param(
             "POST",
             404,
             "",
@@ -752,8 +788,9 @@ def test_collection_connection_error(
             {"accept": "application/json", "Content-Type": "application/json"},
             ["Collection: test_collection_id or Catalog: example/path/to/catalog not yet created"],
             {"workspace": ["test_workspace"]},
+            id="create_not_found",
         ),
-        (  # create_item_error
+        pytest.param(
             "POST",
             400,
             "",
@@ -767,8 +804,9 @@ def test_collection_connection_error(
             {"accept": "application/json", "Content-Type": "application/json"},
             ["Status Code: 400"],
             {"workspace": ["test_workspace"]},
+            id="create_error",
         ),
-        (  # update_item_success
+        pytest.param(
             "PUT",
             200,
             "",
@@ -782,8 +820,9 @@ def test_collection_connection_error(
             {"accept": "application/json", "Content-Type": "application/json"},
             ["Status Code: OK"],
             {"workspace": ["test_workspace"]},
+            id="update_success",
         ),
-        (  # update_item_conflict
+        pytest.param(
             "PUT",
             409,
             "",
@@ -797,8 +836,9 @@ def test_collection_connection_error(
             {"accept": "application/json", "Content-Type": "application/json"},
             ["Status Code: CONFLICT"],
             {"workspace": ["test_workspace"]},
+            id="update_conflict",
         ),
-        (  # update_item_not_found_item
+        pytest.param(
             "PUT",
             404,
             "Item",
@@ -812,8 +852,9 @@ def test_collection_connection_error(
             {"accept": "application/json", "Content-Type": "application/json"},
             ["Status Code: NOT_FOUND", "item doesn't exist"],
             {"workspace": ["test_workspace"]},
+            id="update_not_found_item",
         ),
-        (  # update_item_not_found_collection
+        pytest.param(
             "PUT",
             404,
             "Collection",
@@ -827,8 +868,9 @@ def test_collection_connection_error(
             {"accept": "application/json", "Content-Type": "application/json"},
             ["Status Code: NOT_FOUND", "collection doesn't exist"],
             {"workspace": ["test_workspace"]},
+            id="update_not_found_collection",
         ),
-        (  # update_item_not_found_catalog
+        pytest.param(
             "PUT",
             404,
             "Catalog",
@@ -842,8 +884,9 @@ def test_collection_connection_error(
             {"accept": "application/json", "Content-Type": "application/json"},
             ["Status Code: NOT_FOUND", "catalog doesn't exist"],
             {"workspace": ["test_workspace"]},
+            id="update_not_found_catalog",
         ),
-        (  # update_item_error
+        pytest.param(
             "PUT",
             400,
             "",
@@ -857,8 +900,9 @@ def test_collection_connection_error(
             {"accept": "application/json", "Content-Type": "application/json"},
             ["Status Code: 400"],
             {"workspace": ["test_workspace"]},
+            id="update_error",
         ),
-        (  # delete_item_success
+        pytest.param(
             "DELETE",
             200,
             "",
@@ -872,8 +916,9 @@ def test_collection_connection_error(
             {"accept": "application/json"},
             ["Status Code: OK"],
             {"workspace": ["test_workspace"]},
+            id="delete_success",
         ),
-        (  # delete_item_conflict
+        pytest.param(
             "DELETE",
             409,
             "",
@@ -887,8 +932,9 @@ def test_collection_connection_error(
             {"accept": "application/json"},
             ["Status Code: CONFLICT"],
             {"workspace": ["test_workspace"]},
+            id="delete_conflict",
         ),
-        (  # delete_item_not_found
+        pytest.param(
             "DELETE",
             404,
             "",
@@ -902,8 +948,9 @@ def test_collection_connection_error(
             {"accept": "application/json"},
             ["Status Code: NOT_FOUND"],
             {"workspace": ["test_workspace"]},
+            id="delete_not_found",
         ),
-        (  # delete_item_error
+        pytest.param(
             "DELETE",
             400,
             "",
@@ -917,6 +964,7 @@ def test_collection_connection_error(
             {"accept": "application/json"},
             ["Status Code: 400"],
             {"workspace": ["test_workspace"]},
+            id="delete_error",
         ),
     ],
 )
@@ -983,7 +1031,7 @@ def test_handle_items(
     "http_method, api_url, data, collection_id, item_id, catalog_path, "
     "call_count, expected_url, expected_headers, expected_log, params",
     [
-        (  # create
+        pytest.param(
             "POST",
             "https://test-url/api",
             {"id": "test_item_id"},
@@ -996,8 +1044,9 @@ def test_handle_items(
             "Item: test_item_id in Collection: test_collection_id in Catalog: "
             "example/path/to/catalog not created",
             {"workspace": ["test_workspace"]},
+            id="create",
         ),
-        (  # update
+        pytest.param(
             "PUT",
             "https://test-url/api",
             {"id": "test_item_id"},
@@ -1010,8 +1059,9 @@ def test_handle_items(
             "Item: test_item_id in Collection: test_collection_id in "
             "Catalog: example/path/to/catalog not updated",
             {"workspace": ["test_workspace"]},
+            id="update",
         ),
-        (  # delete
+        pytest.param(
             "DELETE",
             "https://test-url/api",
             {"id": "test_item_id"},
@@ -1025,6 +1075,7 @@ def test_handle_items(
             "Item: test_item_id in Collection: test_collection_id in "
             "Catalog: example/path/to/catalog not deleted",
             {"workspace": ["test_workspace"]},
+            id="delete",
         ),
     ],
 )
@@ -1093,20 +1144,23 @@ def test_item_connection_error(
 @pytest.mark.parametrize(
     "http_method, api_url, test_id",
     [
-        (  # create
+        pytest.param(
             "POST",
             "https://test-url/api",
             "test_catalog_id",
+            id="create",
         ),
-        (  # update
+        pytest.param(
             "PUT",
             "https://test-url/api",
             "test_catalog_id",
+            id="update",
         ),
-        (  # delete
+        pytest.param(
             "DELETE",
             "https://test-url/api",
             "test_catalog_id",
+            id="delete",
         ),
     ],
 )
@@ -1181,11 +1235,11 @@ def test_interpret_message_catalog(
 @pytest.mark.parametrize(
     "http_method, success",
     [
-        ("POST", True),  # create success
-        ("POST", False),  # create fail
-        ("PUT", True),  # update success
-        ("PUT", False),  # update fail
-        ("DELETE", True),  # delete success
+        pytest.param("POST", True, id="create_success"),  # create success
+        pytest.param("POST", False, id="create_fail"),  # create fail
+        pytest.param("PUT", True, id="update_success"),  # update success
+        pytest.param("PUT", False, id="update_fail"),  # update fail
+        pytest.param("DELETE", True, id="delete"),  # delete success
     ],
 )
 @patch("stac_fastapi_ingester.__main__.delete_collection")
@@ -1268,11 +1322,11 @@ def test_interpret_message_collection(
 @pytest.mark.parametrize(
     "http_method, success",
     [
-        ("POST", True),  # create success
-        ("POST", False),  # create fail
-        ("PUT", True),  # update success
-        ("PUT", False),  # update fail
-        ("DELETE", True),  # delete success
+        pytest.param("POST", True, id="create_success"),  # create success
+        pytest.param("POST", False, id="create_fail"),  # create fail
+        pytest.param("PUT", True, id="update_success"),  # update success
+        pytest.param("PUT", False, id="update_fail"),  # update fail
+        pytest.param("DELETE", True, id="delete"),  # delete success
     ],
 )
 @patch("stac_fastapi_ingester.__main__.delete_item")
