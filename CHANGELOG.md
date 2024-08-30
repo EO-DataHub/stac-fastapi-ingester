@@ -1,6 +1,13 @@
 # Changelog
 
-## v0.1.6 (30-07-2023)
+## 0.1.7 (22-08-2024)
+Added unit tests
+- Code cleanup to support better unit testing
+- Updated logging for https responses
+- Updated handling of botocore ClientError exception
+
+
+## v0.1.6 (30-07-2024)
 
 Added support for access-control when creating, updating and deleting entries
 - Added workspace parameter to requests calls to identify the current workspace from the Pulsar message to allow access to be confirmed by STAC-FastApi

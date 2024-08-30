@@ -11,6 +11,6 @@ COPY requirements.txt /app
 
 RUN --mount=type=cache,target=/root/.cache/pip python -m pip install -r requirements.txt
 
-COPY /stac-fastapi-ingester /app/stac-fastapi-ingester
+COPY /stac_fastapi_ingester /app/stac_fastapi_ingester
 
-CMD ["python", "-m", "stac-fastapi-ingester", "transformed", "subscribe", "--prefix", "stac-fastapi"]
+CMD ["python", "-m", "stac_fastapi_ingester", "transformed", "subscribe", "--prefix", "stac-fastapi"]
