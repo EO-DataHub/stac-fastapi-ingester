@@ -414,7 +414,7 @@ def create_collection(
         query_params.update({"is_public": is_public})
 
         resp = requests.post(
-            f"{api_url}/catalogs/{catalog_path}/collections",
+            f"{api_url}/catalogs/{catalog_path}/collection",
             headers=headers,
             json=data,
             params=query_params,
