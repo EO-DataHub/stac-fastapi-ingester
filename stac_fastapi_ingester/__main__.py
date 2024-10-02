@@ -97,14 +97,12 @@ def delete_catalog(api_url: str, workspace: str, catalog_path: str, catalog_id: 
             f"from {catalog_path if catalog_path else 'top-level'}"
         )
         logger.error(err)
-        raise
     except Exception as err:
         logger.warning(
             f"Catalog: {catalog_id} not deleted "
             f"{f'from {catalog_path}' if catalog_path else 'from top-level'}"
         )
         logger.error(err)
-        raise
 
 
 def delete_collection(api_url: str, collection_id: str, workspace: str, catalog_path: str):
@@ -137,11 +135,9 @@ def delete_collection(api_url: str, collection_id: str, workspace: str, catalog_
         click.secho("Failed to connect")
         logger.warning(f"Collection: {collection_id} not deleted")
         logger.error(err)
-        raise
     except Exception as err:
         logger.warning(f"Collection: {collection_id} not deleted")
         logger.error(err)
-        raise
 
 
 def delete_item(api_url: str, collection_id: str, item_id: str, workspace: str, catalog_path: str):
@@ -179,7 +175,6 @@ def delete_item(api_url: str, collection_id: str, item_id: str, workspace: str, 
             f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} not deleted"
         )
         logger.error(err)
-        raise
 
 
 ############################
@@ -232,7 +227,6 @@ def update_catalog(api_url: str, data: dict, workspace: str, catalog_path: str, 
             "not updated"
         )
         logger.error(err)
-        raise
 
 
 def update_collection(
@@ -277,7 +271,7 @@ def update_collection(
     except Exception as err:
         logger.warning(f"Collection: {collection_id} in Catalog: {catalog_path} not updated")
         logger.error(err)
-        raise
+        return True
 
 
 def update_item(
@@ -338,7 +332,7 @@ def update_item(
             f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} not updated"
         )
         logger.error(err)
-        raise
+        return True
 
 
 ############################
@@ -397,7 +391,6 @@ def create_catalog(api_url: str, data: dict, workspace: str, catalog_path: Optio
             f"Catalog: {data['id']} not created {f'in {catalog_path}' if catalog_path else 'at top-level'}"
         )
         logger.error(err)
-        raise
 
 
 def create_collection(
@@ -444,7 +437,7 @@ def create_collection(
     except Exception as err:
         logger.warning(f"Collection: {collection_id} not created")
         logger.error(err)
-        raise
+        return True
 
 
 def create_item(
@@ -496,7 +489,7 @@ def create_item(
             "not created"
         )
         logger.error(err)
-        raise
+        return True
 
 
 def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str) -> dict:
@@ -523,11 +516,11 @@ def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str) 
         else:
             logger.error(err)
             logger.error(f"Failed to load S3 object with key: {file_key}")
-            raise
+            return False
     except Exception as err:
         logger.error(err)
         logger.error(f"Failed to load S3 object with key: {file_key}")
-        raise
+        return False
 
 
 def interpret_message(msg: str, api_url: str):
