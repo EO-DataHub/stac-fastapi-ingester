@@ -434,7 +434,7 @@ def create_collection(
         else:
             logger.warning(f"Collection: {collection_id} in Catalog: {catalog_path} not created")
             logger.warning(
-                f"Status Code: {resp.status_code} on url: {api_url}/catalogs/{catalog_path}/collections"
+                f"Status Code: {resp.status_code} on url: {api_url}/catalogs/{catalog_path}/collection"
             )
             logger.warning(f"Status message is {resp.content}")
             logger.warning("data is")
