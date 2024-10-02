@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.8 (01-10-2024)
+Update `create_collection` endpoint to be `/collection` to align with latest STAC-FastApi release
+
 ## 0.1.7 (22-08-2024)
 Added unit tests
 - Code cleanup to support better unit testing

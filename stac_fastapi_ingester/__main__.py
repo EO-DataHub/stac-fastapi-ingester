@@ -414,7 +414,7 @@ def create_collection(
         query_params.update({"is_public": is_public})
 
         resp = requests.post(
-            f"{api_url}/catalogs/{catalog_path}/collections",
+            f"{api_url}/catalogs/{catalog_path}/collection",
             headers=headers,
             json=data,
             params=query_params,
@@ -434,7 +434,7 @@ def create_collection(
         else:
             logger.warning(f"Collection: {collection_id} in Catalog: {catalog_path} not created")
             logger.warning(
-                f"Status Code: {resp.status_code} on url: {api_url}/catalogs/{catalog_path}/collections"
+                f"Status Code: {resp.status_code} on url: {api_url}/catalogs/{catalog_path}/collection"
             )
             logger.warning(f"Status message is {resp.content}")
             logger.warning("data is")
