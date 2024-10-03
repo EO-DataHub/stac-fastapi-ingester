@@ -249,9 +249,7 @@ def update_collection(
         )
         if resp.status_code == HTTPStatus.OK:
             logger.info("Status Code: OK")
-            logger.info(
-                f"Updated Collection {collection_id} in Catalog {catalog_path}/{collection_id}"
-            )
+            logger.info(f"Updated Collection {collection_id} in Catalog {catalog_path}")
             return True
         elif resp.status_code == HTTPStatus.CONFLICT:
             logger.warning("Status Code: CONFLICT")
@@ -294,7 +292,9 @@ def update_item(
         )
         if resp.status_code == HTTPStatus.OK:
             logger.info("Status Code: OK")
-            logger.info(f"Updated Item {item_id}")
+            logger.info(
+                f"Updated Item {item_id} in Collection {collection_id} in Catalog {catalog_path}"
+            )
             return True
         elif resp.status_code == HTTPStatus.CONFLICT:
             logger.warning("Status Code: CONFLICT")
@@ -420,7 +420,7 @@ def create_collection(
         )
         if resp.status_code == HTTPStatus.OK:
             logger.info("Status Code: OK")
-            logger.info(f"Created Collection {collection_id}")
+            logger.info(f"Created Collection {collection_id} in Catalog: {catalog_path}")
             return True
         elif resp.status_code == HTTPStatus.NOT_FOUND:
             # Add files awaiting catalog creation to the end of the list again
@@ -460,7 +460,9 @@ def create_item(
         )
         if resp.status_code == HTTPStatus.OK:
             logger.info("Status Code: OK")
-            logger.info(f"Created Item {item_id}")
+            logger.info(
+                f"Created Item {item_id} in Collection {collection_id} in Catalog {catalog_path}"
+            )
             return True
         elif resp.status_code == HTTPStatus.NOT_FOUND:
             # Add files awaiting catalog/collection creation to the end of the list again
@@ -752,7 +754,9 @@ def interpret_message(msg: str, api_url: str):
             files_to_update.append(file_key) if not item_updated else None
 
         elif data.get("type") == "Catalog":
-            logger.info(f"Updating Catalog {data['id']} in Catalog {catalog_path}")
+            logger.info(
+                f"Updating Catalog {data['id']} in Catalog {catalog_path if catalog_path else 'top-level'}"
+            )
             update_catalog(api_url, data, workspace, catalog_path, data["id"])
 
         # Increment loop counter
