@@ -75,7 +75,7 @@ def delete_catalog(api_url: str, workspace: str, catalog_path: str, catalog_id: 
         if resp.status_code == HTTPStatus.OK or resp.status_code == HTTPStatus.NO_CONTENT:
             logger.info("Status Code: OK")
             logger.info(
-                f"Deleted Catalog {catalog_path} from {catalog_path if catalog_path else 'top-level'}"
+                f"Deleted Catalog {catalog_id} from Catalog {catalog_path if catalog_path else 'top-level'}"
             )
         elif resp.status_code == HTTPStatus.CONFLICT:
             logger.warning("Status Code: CONFLICT")
@@ -116,7 +116,10 @@ def delete_collection(api_url: str, collection_id: str, workspace: str, catalog_
         )
         if resp.status_code == HTTPStatus.OK or resp.status_code == HTTPStatus.NO_CONTENT:
             logger.info("Status Code: OK")
-            logger.info(f"Deleted Collection {collection_id}")
+            logger.info(
+                f"Deleted Collection {collection_id} from "
+                f"Catalog {catalog_path if catalog_path else 'top-level'}"
+            )
         elif resp.status_code == HTTPStatus.CONFLICT:
             logger.warning("Status Code: CONFLICT")
         elif resp.status_code == HTTPStatus.NOT_FOUND:
@@ -151,7 +154,10 @@ def delete_item(api_url: str, collection_id: str, item_id: str, workspace: str, 
         )
         if resp.status_code == HTTPStatus.OK or resp.status_code == HTTPStatus.NO_CONTENT:
             logger.info("Status Code: OK")
-            logger.info(f"Deleted Item {item_id}")
+            logger.info(
+                f"Deleted Item {item_id} from Collection {collection_id} in "
+                f"Catalog {catalog_path if catalog_path else 'top-level'}"
+            )
         elif resp.status_code == HTTPStatus.CONFLICT:
             logger.warning("Status Code: CONFLICT")
         elif resp.status_code == HTTPStatus.NOT_FOUND:
@@ -407,7 +413,7 @@ def create_collection(
         query_params.update({"is_public": is_public})
 
         resp = requests.post(
-            f"{api_url}/catalogs/{catalog_path}/collections",
+            f"{api_url}/catalogs/{catalog_path}/collection",
             headers=headers,
             json=data,
             params=query_params,
@@ -427,7 +433,7 @@ def create_collection(
         else:
             logger.warning(f"Collection: {collection_id} in Catalog: {catalog_path} not created")
             logger.warning(
-                f"Status Code: {resp.status_code} on url: {api_url}/catalogs/{catalog_path}/collections"
+                f"Status Code: {resp.status_code} on url: {api_url}/catalogs/{catalog_path}/collection"
             )
             logger.warning(f"Status message is {resp.content}")
             logger.warning("data is")
@@ -580,7 +586,10 @@ def interpret_message(msg: str, api_url: str):
 
         if data.get("type") == "Collection":
             collection_id = data["id"]
-            logger.info(f"Deleting collection {collection_id}")
+            logger.info(
+                f"Deleting collection {collection_id} from "
+                f"Catalog {catalog_path if catalog_path else 'top-level'}"
+            )
             deleted_collections.add(collection_id)
             delete_collection(api_url, collection_id, workspace, catalog_path)
 
@@ -599,14 +608,19 @@ def interpret_message(msg: str, api_url: str):
             collection_id = data["collection"]
             if collection_id in deleted_collections:
                 continue
-            logger.info(f"Deleting item {item_id} in collection {collection_id}")
+            logger.info(
+                f"Deleting item {item_id} in collection {collection_id} in "
+                f"Catalog {catalog_path if catalog_path else 'top-level'}"
+            )
             delete_item(api_url, collection_id, item_id, workspace, catalog_path)
 
         elif data.get("type") == "Catalog":
             # TODO: update this to read from file key rather than the STAC file itself,
             # currently left as is for consistency
             catalog_id = data["id"]
-            logger.info(f"Deleting Catalog {catalog_path}")
+            logger.info(
+                f"Deleting Catalog {catalog_id} from Catalog {catalog_path if catalog_path else 'top-level'}"
+            )
             delete_catalog(api_url, workspace, catalog_path, catalog_id)
 
     # Create new catalogs, collections and items
