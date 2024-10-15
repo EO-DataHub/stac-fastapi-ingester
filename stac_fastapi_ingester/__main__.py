@@ -75,7 +75,7 @@ def delete_catalog(api_url: str, workspace: str, catalog_path: str, catalog_id: 
         if resp.status_code == HTTPStatus.OK or resp.status_code == HTTPStatus.NO_CONTENT:
             logger.info("Status Code: OK")
             logger.info(
-                f"Deleted Catalog {catalog_path} from {catalog_path if catalog_path else 'top-level'}"
+                f"Deleted Catalog {catalog_id} from Catalog {catalog_path if catalog_path else 'top-level'}"
             )
         elif resp.status_code == HTTPStatus.CONFLICT:
             logger.warning("Status Code: CONFLICT")
@@ -97,14 +97,12 @@ def delete_catalog(api_url: str, workspace: str, catalog_path: str, catalog_id: 
             f"from {catalog_path if catalog_path else 'top-level'}"
         )
         logger.error(err)
-        raise
     except Exception as err:
         logger.warning(
             f"Catalog: {catalog_id} not deleted "
             f"{f'from {catalog_path}' if catalog_path else 'from top-level'}"
         )
         logger.error(err)
-        raise
 
 
 def delete_collection(api_url: str, collection_id: str, workspace: str, catalog_path: str):
@@ -118,7 +116,10 @@ def delete_collection(api_url: str, collection_id: str, workspace: str, catalog_
         )
         if resp.status_code == HTTPStatus.OK or resp.status_code == HTTPStatus.NO_CONTENT:
             logger.info("Status Code: OK")
-            logger.info(f"Deleted Collection {collection_id}")
+            logger.info(
+                f"Deleted Collection {collection_id} from "
+                f"Catalog {catalog_path if catalog_path else 'top-level'}"
+            )
         elif resp.status_code == HTTPStatus.CONFLICT:
             logger.warning("Status Code: CONFLICT")
         elif resp.status_code == HTTPStatus.NOT_FOUND:
@@ -137,11 +138,9 @@ def delete_collection(api_url: str, collection_id: str, workspace: str, catalog_
         click.secho("Failed to connect")
         logger.warning(f"Collection: {collection_id} not deleted")
         logger.error(err)
-        raise
     except Exception as err:
         logger.warning(f"Collection: {collection_id} not deleted")
         logger.error(err)
-        raise
 
 
 def delete_item(api_url: str, collection_id: str, item_id: str, workspace: str, catalog_path: str):
@@ -155,7 +154,10 @@ def delete_item(api_url: str, collection_id: str, item_id: str, workspace: str, 
         )
         if resp.status_code == HTTPStatus.OK or resp.status_code == HTTPStatus.NO_CONTENT:
             logger.info("Status Code: OK")
-            logger.info(f"Deleted Item {item_id}")
+            logger.info(
+                f"Deleted Item {item_id} from Collection {collection_id} in "
+                f"Catalog {catalog_path if catalog_path else 'top-level'}"
+            )
         elif resp.status_code == HTTPStatus.CONFLICT:
             logger.warning("Status Code: CONFLICT")
         elif resp.status_code == HTTPStatus.NOT_FOUND:
@@ -179,7 +181,6 @@ def delete_item(api_url: str, collection_id: str, item_id: str, workspace: str, 
             f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} not deleted"
         )
         logger.error(err)
-        raise
 
 
 ############################
@@ -232,7 +233,6 @@ def update_catalog(api_url: str, data: dict, workspace: str, catalog_path: str, 
             "not updated"
         )
         logger.error(err)
-        raise
 
 
 def update_collection(
@@ -249,9 +249,7 @@ def update_collection(
         )
         if resp.status_code == HTTPStatus.OK:
             logger.info("Status Code: OK")
-            logger.info(
-                f"Updated Collection {collection_id} in Catalog {catalog_path}/{collection_id}"
-            )
+            logger.info(f"Updated Collection {collection_id} in Catalog {catalog_path}")
             return True
         elif resp.status_code == HTTPStatus.CONFLICT:
             logger.warning("Status Code: CONFLICT")
@@ -277,7 +275,7 @@ def update_collection(
     except Exception as err:
         logger.warning(f"Collection: {collection_id} in Catalog: {catalog_path} not updated")
         logger.error(err)
-        raise
+        return True
 
 
 def update_item(
@@ -294,7 +292,9 @@ def update_item(
         )
         if resp.status_code == HTTPStatus.OK:
             logger.info("Status Code: OK")
-            logger.info(f"Updated Item {item_id}")
+            logger.info(
+                f"Updated Item {item_id} in Collection {collection_id} in Catalog {catalog_path}"
+            )
             return True
         elif resp.status_code == HTTPStatus.CONFLICT:
             logger.warning("Status Code: CONFLICT")
@@ -338,7 +338,7 @@ def update_item(
             f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} not updated"
         )
         logger.error(err)
-        raise
+        return True
 
 
 ############################
@@ -397,7 +397,6 @@ def create_catalog(api_url: str, data: dict, workspace: str, catalog_path: Optio
             f"Catalog: {data['id']} not created {f'in {catalog_path}' if catalog_path else 'at top-level'}"
         )
         logger.error(err)
-        raise
 
 
 def create_collection(
@@ -421,7 +420,7 @@ def create_collection(
         )
         if resp.status_code == HTTPStatus.OK:
             logger.info("Status Code: OK")
-            logger.info(f"Created Collection {collection_id}")
+            logger.info(f"Created Collection {collection_id} in Catalog: {catalog_path}")
             return True
         elif resp.status_code == HTTPStatus.NOT_FOUND:
             # Add files awaiting catalog creation to the end of the list again
@@ -444,7 +443,7 @@ def create_collection(
     except Exception as err:
         logger.warning(f"Collection: {collection_id} not created")
         logger.error(err)
-        raise
+        return True
 
 
 def create_item(
@@ -461,7 +460,9 @@ def create_item(
         )
         if resp.status_code == HTTPStatus.OK:
             logger.info("Status Code: OK")
-            logger.info(f"Created Item {item_id}")
+            logger.info(
+                f"Created Item {item_id} in Collection {collection_id} in Catalog {catalog_path}"
+            )
             return True
         elif resp.status_code == HTTPStatus.NOT_FOUND:
             # Add files awaiting catalog/collection creation to the end of the list again
@@ -496,7 +497,7 @@ def create_item(
             "not created"
         )
         logger.error(err)
-        raise
+        return True
 
 
 def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str) -> dict:
@@ -523,11 +524,11 @@ def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str) 
         else:
             logger.error(err)
             logger.error(f"Failed to load S3 object with key: {file_key}")
-            raise
+            return False
     except Exception as err:
         logger.error(err)
         logger.error(f"Failed to load S3 object with key: {file_key}")
-        raise
+        return False
 
 
 def interpret_message(msg: str, api_url: str):
@@ -587,7 +588,10 @@ def interpret_message(msg: str, api_url: str):
 
         if data.get("type") == "Collection":
             collection_id = data["id"]
-            logger.info(f"Deleting collection {collection_id}")
+            logger.info(
+                f"Deleting collection {collection_id} from "
+                f"Catalog {catalog_path if catalog_path else 'top-level'}"
+            )
             deleted_collections.add(collection_id)
             delete_collection(api_url, collection_id, workspace, catalog_path)
 
@@ -606,14 +610,19 @@ def interpret_message(msg: str, api_url: str):
             collection_id = data["collection"]
             if collection_id in deleted_collections:
                 continue
-            logger.info(f"Deleting item {item_id} in collection {collection_id}")
+            logger.info(
+                f"Deleting item {item_id} in collection {collection_id} in "
+                f"Catalog {catalog_path if catalog_path else 'top-level'}"
+            )
             delete_item(api_url, collection_id, item_id, workspace, catalog_path)
 
         elif data.get("type") == "Catalog":
             # TODO: update this to read from file key rather than the STAC file itself,
             # currently left as is for consistency
             catalog_id = data["id"]
-            logger.info(f"Deleting Catalog {catalog_path}")
+            logger.info(
+                f"Deleting Catalog {catalog_id} from Catalog {catalog_path if catalog_path else 'top-level'}"
+            )
             delete_catalog(api_url, workspace, catalog_path, catalog_id)
 
     # Create new catalogs, collections and items
@@ -745,7 +754,9 @@ def interpret_message(msg: str, api_url: str):
             files_to_update.append(file_key) if not item_updated else None
 
         elif data.get("type") == "Catalog":
-            logger.info(f"Updating Catalog {data['id']} in Catalog {catalog_path}")
+            logger.info(
+                f"Updating Catalog {data['id']} in Catalog {catalog_path if catalog_path else 'top-level'}"
+            )
             update_catalog(api_url, data, workspace, catalog_path, data["id"])
 
         # Increment loop counter
