@@ -20,6 +20,7 @@ from stac_fastapi_ingester.__main__ import (
     delete_item,
     interpret_message,
     load_data_from_s3,
+    update_access_policy,
     update_catalog,
     update_collection,
     update_item,
@@ -443,7 +444,7 @@ def test_catalog_connection_error(
             1,
             "https://test-url/api/catalogs/example/path/to/catalog/collection",
             {"accept": "application/json", "Content-Type": "application/json"},
-            "Catalog: example/path/to/catalog not yet created",
+            "Catalog: example/path/to/catalog not created",
             {"workspace": ["test_workspace"], "is_public": ["true"]},
             id="create_not_found",
         ),
@@ -780,7 +781,7 @@ def test_collection_connection_error(
             1,
             "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id/items",
             {"accept": "application/json", "Content-Type": "application/json"},
-            ["Collection: test_collection_id or Catalog: example/path/to/catalog not yet created"],
+            ["Collection: test_collection_id or Catalog: example/path/to/catalog not created"],
             {"workspace": ["test_workspace"]},
             id="create_not_found",
         ),
@@ -1302,12 +1303,11 @@ def test_interpret_message_collection(
         mock_function.assert_called_once_with(*expected_args)
     else:
         # Check function called as expected
-        assert mock_function.call_count == 3
+        assert mock_function.call_count == 1
 
         # Ensure all three calls are identical
         calls = mock_function.call_args_list
-        for i in range(3):
-            assert calls[i].args == expected_args
+        assert calls[0].args == expected_args
 
 
 @pytest.mark.parametrize(
@@ -1411,12 +1411,11 @@ def test_interpret_message_item(
         mock_function.assert_called_once_with(*expected_args)
     else:
         # Check function called as expected
-        assert mock_function.call_count == 3
+        assert mock_function.call_count == 1
 
         # Ensure all three calls are identical
         calls = mock_function.call_args_list
-        for i in range(3):
-            assert calls[i].args == expected_args
+        assert calls[0].args == expected_args
 
 
 ##############
@@ -1602,3 +1601,273 @@ def test_load_data_from_s3_botocore_error(caplog):
 
     # Assert that warning is raised correctly
     assert f"Failed to load S3 object with key: {file_key}" in caplog.text
+
+
+@patch("stac_fastapi_ingester.__main__.update_access_policy")
+@patch("stac_fastapi_ingester.__main__.load_data_from_s3")
+def test_create_metadata_policy(
+    mock_load_data_from_s3,
+    mock_update_access_policy,
+):
+
+    # Configure test variables
+    api_url = "https://test-url/api"
+    test_data = {
+        "policies": [
+            {
+                "path": "catalog/other-data/collection",
+                "access": {
+                    "public": True,
+                    "user-list": [
+                        "catalog",
+                    ],
+                    "group-list": [],
+                },
+            },
+            {
+                "path": "catalog/processing-results",
+                "access": {"public": False, "user-list": ["catalog"], "group-list": []},
+            },
+            {
+                "path": "catalog/saved-data",
+                "access": {
+                    "public": False,
+                    "user-list": ["catalog", "other-workspace"],
+                    "group-list": [],
+                },
+            },
+        ],
+    }
+
+    added_keys = '["transformed/catalog/catalog-meta_access_policy.json"]'
+    update_keys = "[]"
+    delete_keys = "[]"
+
+    # Construct test Pulsar input message
+    test_msg = f"""{{
+        "id": "pulsar-test-id/testing",
+        "workspace": "default_workspace",
+        "repository": "",
+        "branch": "main",
+        "bucket_name": "test-bucket",
+        "updated_keys": {update_keys},
+        "added_keys": {added_keys},
+        "deleted_keys": {delete_keys},
+        "source": "https://test-catalog.temp.data.com",
+        "target": "test-datasets/test-catalog"
+    }}"""
+
+    # Configure mocks
+    mock_load_data_from_s3.return_value = test_data
+    mock_update_access_policy.return_value = True
+
+    # Call function
+    interpret_message(test_msg, api_url)
+
+    calls = mock_update_access_policy.call_args_list
+    print(calls)
+
+    # Check function called as expected
+    assert calls[0].args == (
+        api_url,
+        False,
+        ["catalog"],
+        "default_workspace",
+        "catalog",
+        "catalog/processing-results",
+    )
+
+    assert calls[1].args == (
+        api_url,
+        False,
+        ["catalog", "other-workspace"],
+        "default_workspace",
+        "catalog",
+        "catalog/saved-data",
+    )
+
+    assert calls[2].args == (
+        api_url,
+        True,
+        ["catalog"],
+        "default_workspace",
+        "catalog",
+        "catalog/other-data/collection",
+    )
+
+
+@patch("stac_fastapi_ingester.__main__.update_access_policy")
+@patch("stac_fastapi_ingester.__main__.load_data_from_s3")
+def test_update_metadata_policy(
+    mock_load_data_from_s3,
+    mock_update_access_policy,
+):
+
+    # Configure test variables
+    api_url = "https://test-url/api"
+    test_data = {
+        "policies": [
+            {
+                "path": "catalog/other-data/collection",
+                "access": {
+                    "public": True,
+                    "user-list": [
+                        "catalog",
+                    ],
+                    "group-list": [],
+                },
+            },
+            {
+                "path": "catalog/processing-results",
+                "access": {"public": False, "user-list": ["catalog"], "group-list": []},
+            },
+            {
+                "path": "catalog/saved-data",
+                "access": {
+                    "public": False,
+                    "user-list": ["catalog", "other-workspace"],
+                    "group-list": [],
+                },
+            },
+        ],
+    }
+
+    added_keys = "[]"
+    update_keys = '["transformed/catalog/catalog-meta_access_policy.json"]'
+    delete_keys = "[]"
+
+    # Construct test Pulsar input message
+    test_msg = f"""{{
+        "id": "pulsar-test-id/testing",
+        "workspace": "default_workspace",
+        "repository": "",
+        "branch": "main",
+        "bucket_name": "test-bucket",
+        "updated_keys": {update_keys},
+        "added_keys": {added_keys},
+        "deleted_keys": {delete_keys},
+        "source": "https://test-catalog.temp.data.com",
+        "target": "test-datasets/test-catalog"
+    }}"""
+
+    # Configure mocks
+    mock_load_data_from_s3.return_value = test_data
+    mock_update_access_policy.return_value = True
+
+    # Call function
+    interpret_message(test_msg, api_url)
+
+    calls = mock_update_access_policy.call_args_list
+    print(calls)
+
+    # Check function called as expected
+    assert calls[0].args == (
+        api_url,
+        False,
+        ["catalog"],
+        "default_workspace",
+        "catalog",
+        "catalog/processing-results",
+    )
+
+    assert calls[1].args == (
+        api_url,
+        False,
+        ["catalog", "other-workspace"],
+        "default_workspace",
+        "catalog",
+        "catalog/saved-data",
+    )
+
+    assert calls[2].args == (
+        api_url,
+        True,
+        ["catalog"],
+        "default_workspace",
+        "catalog",
+        "catalog/other-data/collection",
+    )
+
+
+@patch("requests.put")
+def test_update_access_policy_success(mock_requests_put):
+
+    # Configure test variables
+    api_url = "https://test-url/api"
+    is_public = False
+    access_list = ["catalog"]
+    workspace = "default_workspace"
+    catalog_path = "user-datasets/catalog"
+    path = "catalog/processing-results"
+
+    # Configure mocks
+    mock_requests_put.return_value = mock.Mock(status_code=204)
+
+    success = update_access_policy(api_url, is_public, access_list, workspace, catalog_path, path)
+
+    # Check function called as expected
+
+    assert success
+
+    mock_requests_put.assert_called_once_with(
+        f"{api_url}/catalogs/user-datasets/{path}/access",
+        params={"workspace": workspace, "is_public": is_public},
+        data=json.dumps(access_list),
+        headers={"accept": "application/json", "Content-Type": "application/json"},
+    )
+
+
+@patch("requests.put")
+def test_update_access_policy_not_found(mock_requests_put):
+
+    # Configure test variables
+    api_url = "https://test-url/api"
+    is_public = False
+    access_list = ["catalog"]
+    workspace = "default_workspace"
+    catalog_path = "user-datasets/catalog"
+    path = "catalog/processing-results"
+
+    # Configure mocks
+    mock_requests_put.return_value = mock.Mock(status_code=404)
+
+    success = update_access_policy(api_url, is_public, access_list, workspace, catalog_path, path)
+
+    # Check function called as expected
+
+    assert not success
+
+    mock_requests_put.assert_called_once_with(
+        f"{api_url}/catalogs/user-datasets/{path}/access",
+        params={"workspace": workspace, "is_public": is_public},
+        data=json.dumps(access_list),
+        headers={"accept": "application/json", "Content-Type": "application/json"},
+    )
+
+
+@patch("requests.put")
+def test_update_access_policy_other_error(mock_requests_put):
+
+    # Configure test variables
+    api_url = "https://test-url/api"
+    is_public = False
+    access_list = ["catalog"]
+    workspace = "default_workspace"
+    catalog_path = "user-datasets/catalog"
+    path = "catalog/processing-results"
+
+    # Configure mocks
+    mock_requests_put.return_value = mock.Mock(status_code=409)
+
+    success = update_access_policy(api_url, is_public, access_list, workspace, catalog_path, path)
+
+    # Check function called as expected
+
+    assert success
+
+    mock_requests_put.assert_called_once_with(
+        f"{api_url}/catalogs/user-datasets/{path}/access",
+        params={"workspace": workspace, "is_public": is_public},
+        data=json.dumps(access_list),
+        headers={"accept": "application/json", "Content-Type": "application/json"},
+    )
