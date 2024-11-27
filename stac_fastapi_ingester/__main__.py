@@ -64,7 +64,7 @@ def update_access_policy(
     workspace: str,
     catalog_path: str,
     path: Optional[str],
-):
+) -> bool:
 
     if not catalog_path.startswith("user-datasets/"):
         # This is not a user-datasets catalog, so we don't need to update access control
