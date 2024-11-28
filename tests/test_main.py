@@ -45,7 +45,7 @@ from stac_fastapi_ingester.__main__ import (
             "https://test-url/api/catalogs/example/path/to/catalog",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: OK",
-            {"workspace": ["test_workspace"], "is_public": ["true"]},
+            {"workspace": ["test_workspace"]},
             id="create_success_public",
         ),
         pytest.param(
@@ -58,7 +58,7 @@ from stac_fastapi_ingester.__main__ import (
             "https://test-url/api/catalogs/user-datasets/example/path/to/catalog",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: OK",
-            {"workspace": ["test_workspace"], "is_public": ["false"]},
+            {"workspace": ["test_workspace"]},
             id="create_success_private",
         ),
         pytest.param(
@@ -71,7 +71,7 @@ from stac_fastapi_ingester.__main__ import (
             "https://test-url/api/catalogs",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: OK",
-            {"workspace": ["test_workspace"], "is_public": ["true"]},
+            {"workspace": ["test_workspace"]},
             id="create_success_no_parent_catalog",
         ),
         pytest.param(
@@ -84,7 +84,7 @@ from stac_fastapi_ingester.__main__ import (
             "https://test-url/api/catalogs/example/path/to/catalog",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: CONFLICT",
-            {"workspace": ["test_workspace"], "is_public": ["true"]},
+            {"workspace": ["test_workspace"]},
             id="create_conflict",
         ),
         pytest.param(
@@ -97,7 +97,7 @@ from stac_fastapi_ingester.__main__ import (
             "https://test-url/api/catalogs/example/path/to/catalog",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: NOT_FOUND",
-            {"workspace": ["test_workspace"], "is_public": ["true"]},
+            {"workspace": ["test_workspace"]},
             id="create_not_found",
         ),
         pytest.param(
@@ -110,7 +110,7 @@ from stac_fastapi_ingester.__main__ import (
             "https://test-url/api/catalogs/example/path/to/catalog",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: 400",
-            {"workspace": ["test_workspace"], "is_public": ["true"]},
+            {"workspace": ["test_workspace"]},
             id="create_error",
         ),
         pytest.param(
@@ -299,7 +299,7 @@ def test_handle_catalogs(
             "https://test-url/api/catalogs/example/path/to/catalog",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Catalog: test_catalog_id not created",
-            {"workspace": ["test_workspace"], "is_public": ["true"]},
+            {"workspace": ["test_workspace"]},
             id="create",
         ),
         pytest.param(
@@ -403,7 +403,7 @@ def test_catalog_connection_error(
             "https://test-url/api/catalogs/example/path/to/catalog/collection",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: OK",
-            {"workspace": ["test_workspace"], "is_public": ["true"]},
+            {"workspace": ["test_workspace"]},
             id="create_success_public",
         ),
         pytest.param(
@@ -417,7 +417,7 @@ def test_catalog_connection_error(
             "https://test-url/api/catalogs/user-datasets/example/path/to/catalog/collection",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: OK",
-            {"workspace": ["test_workspace"], "is_public": ["false"]},
+            {"workspace": ["test_workspace"]},
             id="create_success_private",
         ),
         pytest.param(
@@ -431,7 +431,7 @@ def test_catalog_connection_error(
             "https://test-url/api/catalogs/example/path/to/catalog/collection",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: CONFLICT",
-            {"workspace": ["test_workspace"], "is_public": ["true"]},
+            {"workspace": ["test_workspace"]},
             id="create_conflict",
         ),
         pytest.param(
@@ -445,7 +445,7 @@ def test_catalog_connection_error(
             "https://test-url/api/catalogs/example/path/to/catalog/collection",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Catalog: example/path/to/catalog not created",
-            {"workspace": ["test_workspace"], "is_public": ["true"]},
+            {"workspace": ["test_workspace"]},
             id="create_not_found",
         ),
         pytest.param(
@@ -459,7 +459,7 @@ def test_catalog_connection_error(
             "https://test-url/api/catalogs/example/path/to/catalog/collection",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: 400",
-            {"workspace": ["test_workspace"], "is_public": ["true"]},
+            {"workspace": ["test_workspace"]},
             id="create_error",
         ),
         pytest.param(
@@ -624,6 +624,7 @@ def test_handle_collections(
         elif arg == "json":
             assert request.json() == expected_kwargs[arg]
         elif arg == "params":
+            print(request.qs)
             assert request.qs == expected_kwargs[arg]
 
     # Check output log is correct
@@ -644,7 +645,7 @@ def test_handle_collections(
             "https://test-url/api/catalogs/example/path/to/catalog/collection",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Collection: test_collection_id not created",
-            {"workspace": ["test_workspace"], "is_public": ["true"]},
+            {"workspace": ["test_workspace"]},
             id="create",
         ),
         pytest.param(
@@ -1665,34 +1666,43 @@ def test_create_metadata_policy(
     interpret_message(test_msg, api_url)
 
     calls = mock_update_access_policy.call_args_list
-    print(calls)
 
     # Check function called as expected
     assert calls[0].args == (
         api_url,
-        False,
-        ["catalog"],
+        {
+            "path": "catalog/processing-results",
+            "access": {"public": False, "user-list": ["catalog"], "group-list": []},
+        },
         "default_workspace",
-        "catalog",
-        "catalog/processing-results",
     )
 
     assert calls[1].args == (
         api_url,
-        False,
-        ["catalog", "other-workspace"],
+        {
+            "path": "catalog/saved-data",
+            "access": {
+                "public": False,
+                "user-list": ["catalog", "other-workspace"],
+                "group-list": [],
+            },
+        },
         "default_workspace",
-        "catalog",
-        "catalog/saved-data",
     )
 
     assert calls[2].args == (
         api_url,
-        True,
-        ["catalog"],
+        {
+            "path": "catalog/other-data/collection",
+            "access": {
+                "public": True,
+                "user-list": [
+                    "catalog",
+                ],
+                "group-list": [],
+            },
+        },
         "default_workspace",
-        "catalog",
-        "catalog/other-data/collection",
     )
 
 
@@ -1711,21 +1721,21 @@ def test_update_metadata_policy(
                 "path": "catalog/other-data/collection",
                 "access": {
                     "public": True,
-                    "user-list": [
-                        "catalog",
+                    "acl": [
+                        "username",
                     ],
                     "group-list": [],
                 },
             },
             {
                 "path": "catalog/processing-results",
-                "access": {"public": False, "user-list": ["catalog"], "group-list": []},
+                "access": {"public": False, "acl": ["username"], "group-list": []},
             },
             {
                 "path": "catalog/saved-data",
                 "access": {
                     "public": False,
-                    "user-list": ["catalog", "other-workspace"],
+                    "acl": ["username", "other-workspace"],
                     "group-list": [],
                 },
             },
@@ -1763,29 +1773,39 @@ def test_update_metadata_policy(
     # Check function called as expected
     assert calls[0].args == (
         api_url,
-        False,
-        ["catalog"],
+        {
+            "path": "catalog/processing-results",
+            "access": {"public": False, "acl": ["username"], "group-list": []},
+        },
         "default_workspace",
-        "catalog",
-        "catalog/processing-results",
     )
 
     assert calls[1].args == (
         api_url,
-        False,
-        ["catalog", "other-workspace"],
+        {
+            "path": "catalog/saved-data",
+            "access": {
+                "public": False,
+                "acl": ["username", "other-workspace"],
+                "group-list": [],
+            },
+        },
         "default_workspace",
-        "catalog",
-        "catalog/saved-data",
     )
 
     assert calls[2].args == (
         api_url,
-        True,
-        ["catalog"],
+        {
+            "path": "catalog/other-data/collection",
+            "access": {
+                "public": True,
+                "acl": [
+                    "username",
+                ],
+                "group-list": [],
+            },
+        },
         "default_workspace",
-        "catalog",
-        "catalog/other-data/collection",
     )
 
 
@@ -1794,25 +1814,25 @@ def test_update_access_policy_success(mock_requests_put):
 
     # Configure test variables
     api_url = "https://test-url/api"
-    is_public = False
-    access_list = ["catalog"]
-    workspace = "default_workspace"
-    catalog_path = "user-datasets/catalog"
-    path = "catalog/processing-results"
+    policy = {
+        "path": "catalog/processing-results",
+        "access": {"public": False, "acl": ["username"]},
+    }
+    workspace = "username"
 
     # Configure mocks
     mock_requests_put.return_value = mock.Mock(status_code=204)
 
-    success = update_access_policy(api_url, is_public, access_list, workspace, catalog_path, path)
+    success = update_access_policy(api_url, policy, workspace)
 
     # Check function called as expected
 
     assert success
 
     mock_requests_put.assert_called_once_with(
-        f"{api_url}/catalogs/user-datasets/{path}/access",
-        params={"workspace": workspace, "is_public": is_public},
-        data=json.dumps(access_list),
+        f"{api_url}/catalogs/catalog/processing-results/access-policy",
+        params={"workspace": workspace},
+        data=json.dumps(policy["access"]),
         headers={"accept": "application/json", "Content-Type": "application/json"},
     )
 
@@ -1822,25 +1842,25 @@ def test_update_access_policy_not_found(mock_requests_put):
 
     # Configure test variables
     api_url = "https://test-url/api"
-    is_public = False
-    access_list = ["catalog"]
-    workspace = "default_workspace"
-    catalog_path = "user-datasets/catalog"
-    path = "catalog/processing-results"
+    policy = {
+        "path": "catalog/processing-results",
+        "access": {"public": False, "acl": ["username"]},
+    }
+    workspace = "username"
 
     # Configure mocks
     mock_requests_put.return_value = mock.Mock(status_code=404)
 
-    success = update_access_policy(api_url, is_public, access_list, workspace, catalog_path, path)
+    success = update_access_policy(api_url, policy, workspace)
 
     # Check function called as expected
 
     assert not success
 
     mock_requests_put.assert_called_once_with(
-        f"{api_url}/catalogs/user-datasets/{path}/access",
-        params={"workspace": workspace, "is_public": is_public},
-        data=json.dumps(access_list),
+        f"{api_url}/catalogs/catalog/processing-results/access-policy",
+        params={"workspace": workspace},
+        data=json.dumps(policy["access"]),
         headers={"accept": "application/json", "Content-Type": "application/json"},
     )
 
@@ -1850,24 +1870,24 @@ def test_update_access_policy_other_error(mock_requests_put):
 
     # Configure test variables
     api_url = "https://test-url/api"
-    is_public = False
-    access_list = ["catalog"]
-    workspace = "default_workspace"
-    catalog_path = "user-datasets/catalog"
-    path = "catalog/processing-results"
+    policy = {
+        "path": "catalog/processing-results",
+        "access": {"public": False, "acl": ["username"]},
+    }
+    workspace = "username"
 
     # Configure mocks
     mock_requests_put.return_value = mock.Mock(status_code=409)
 
-    success = update_access_policy(api_url, is_public, access_list, workspace, catalog_path, path)
+    success = update_access_policy(api_url, policy, workspace)
 
     # Check function called as expected
 
     assert success
 
     mock_requests_put.assert_called_once_with(
-        f"{api_url}/catalogs/user-datasets/{path}/access",
-        params={"workspace": workspace, "is_public": is_public},
-        data=json.dumps(access_list),
+        f"{api_url}/catalogs/catalog/processing-results/access-policy",
+        params={"workspace": workspace},
+        data=json.dumps(policy["access"]),
         headers={"accept": "application/json", "Content-Type": "application/json"},
     )
