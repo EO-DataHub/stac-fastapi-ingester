@@ -677,7 +677,7 @@ def interpret_message(msg: str, api_url: str):
 
     for file_key in files_to_create:
         count += 1
-        logger.info("Processing %s, %i of %i in list of deleted keys", file_key, count, num_created)
+        logger.info("Processing %s, %i of %i in list of created keys", file_key, count, num_created)
 
         data = load_data_from_s3(client, bucket_name, file_key)
         if not data:
@@ -741,7 +741,7 @@ def interpret_message(msg: str, api_url: str):
 
     for file_key in files_to_update:
         count += 1
-        logger.info("Processing %s, %i of %i in list of deleted keys", file_key, count, num_updated)
+        logger.info("Processing %s, %i of %i in list of updated keys", file_key, count, num_updated)
 
         data = load_data_from_s3(client, bucket_name, file_key)
         if not data:
