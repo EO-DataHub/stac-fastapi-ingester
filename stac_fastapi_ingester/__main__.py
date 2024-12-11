@@ -52,6 +52,62 @@ def cli(ctx, topic: str):
     logger.info(f"Connecting to broker '{pulsar_url}' with topic '{topic}'")
 
 
+############################
+## UPDATE ACCESS POLICIES ##
+############################
+
+
+def update_access_policy(
+    api_url: str,
+    policy: dict,
+    workspace: str,
+) -> bool:
+
+    # Parse policy details
+    path = policy["path"]
+    access_policy = policy["access"]
+
+    headers = {"accept": "application/json", "Content-Type": "application/json"}
+    query_params = {"workspace": workspace}
+
+    resp = requests.put(
+        f"{api_url}/catalogs/{path}/access-policy",
+        headers=headers,
+        params=query_params,
+        data=json.dumps(access_policy),
+    )
+
+    logger.info(
+        f"Sent request to {api_url}/catalogs/{path}/access-policy with inputs {access_policy}"
+    )
+
+    if resp.status_code == HTTPStatus.NO_CONTENT:
+        logger.info(f"Updated access control for data at {path}")
+    elif resp.status_code == HTTPStatus.NOT_FOUND:
+        logger.warning(
+            f"Failed to update access control for data at {path} as catalog or collection does not exist"
+        )
+        return False
+    else:
+        logger.error(
+            f"Failed to update access control for data at {path}, Status Code: "
+            f"{resp.status_code} on url: {api_url}/catalogs/{path} with inputs "
+            f"{access_policy} with message {resp.content}"
+        )
+    return True
+
+
+def handle_access_policy(data: dict, api_url: str, workspace: str):
+    access_policies = data["policies"]
+    # Sort by hierarchy level to ensure that parent catalogs are handle
+    # before subcatalogs and collections
+    access_policies.sort(key=lambda p: p["path"].count("/"))
+    for policy in access_policies:
+        # TODO: Add support for "group-lists" if required
+        # Construct STAC-FastApi request to update policy
+        update_access_policy(api_url, policy, workspace)
+
+
 ##############################
 ## DELETE FROM STAC FASTAPI ##
 ##############################
@@ -351,24 +407,17 @@ def create_catalog(api_url: str, data: dict, workspace: str, catalog_path: Optio
     query_params = {"workspace": workspace}
     try:
         if catalog_path:
-            if catalog_path.startswith("user-datasets"):
-                is_public = False
-            else:
-                is_public = True
             catalog_path = f"/{catalog_path}"
         else:
             # If no catalog path is provided, this is a top level catalog
             catalog_path = ""
-            is_public = True
-
-        query_params.update({"is_public": is_public})
-
         resp = requests.post(
             f"{api_url}/catalogs{catalog_path}",
             headers=headers,
             json=data,
             params=query_params,
         )
+        print(resp)
         if resp.status_code == HTTPStatus.OK:
             logger.info("Status Code: OK")
             logger.info(
@@ -393,7 +442,7 @@ def create_catalog(api_url: str, data: dict, workspace: str, catalog_path: Optio
             logger.warning("data is")
             logger.warning(data)
     except Exception as err:
-        logger.warning(
+        logger.error(
             f"Catalog: {data['id']} not created {f'in {catalog_path}' if catalog_path else 'at top-level'}"
         )
         logger.error(err)
@@ -405,13 +454,6 @@ def create_collection(
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     query_params = {"workspace": workspace}
     try:
-        if catalog_path.startswith("user-datasets/"):
-            is_public = False
-        else:
-            is_public = True
-
-        query_params.update({"is_public": is_public})
-
         resp = requests.post(
             f"{api_url}/catalogs/{catalog_path}/collection",
             headers=headers,
@@ -424,7 +466,7 @@ def create_collection(
             return True
         elif resp.status_code == HTTPStatus.NOT_FOUND:
             # Add files awaiting catalog creation to the end of the list again
-            logger.warning(f"Catalog: {catalog_path} not yet created, will try again in a bit")
+            logger.warning(f"Parent Catalog: {catalog_path} not created")
             return False
         elif resp.status_code == HTTPStatus.CONFLICT:
             logger.warning("Status Code: CONFLICT")
@@ -467,8 +509,7 @@ def create_item(
         elif resp.status_code == HTTPStatus.NOT_FOUND:
             # Add files awaiting catalog/collection creation to the end of the list again
             logger.warning(
-                f"Collection: {collection_id} or Catalog: {catalog_path} not yet created, will "
-                "try again in a bit"
+                f"Parent Collection: {collection_id} or Catalog: {catalog_path} not created"
             )
             return False
         elif resp.status_code == HTTPStatus.CONFLICT:
@@ -557,15 +598,21 @@ def interpret_message(msg: str, api_url: str):
     files_to_delete = updates_json["deleted_keys"] if "deleted_keys" in updates_json.keys() else []
     files_to_create = updates_json["added_keys"] if "added_keys" in updates_json.keys() else []
 
+    # Data counts for logging
+    num_updated = len(files_to_update)
+    num_deleted = len(files_to_delete)
+    num_created = len(files_to_create)
+
     # Sort by key length to ensure that catalogs are created before collections and items
     files_to_update.sort(key=lambda s: s.count("/"))
     files_to_create.sort(key=lambda s: s.count("/"))
 
+    count = 0
+
     # Delete catalogs, collections and items
     for file_key in files_to_delete:
-        # We can track deleted collections as this will also delete all associated items so no need
-        # to call the delete items endpoint as well
-        deleted_collections = set()
+        count += 1
+        logger.info("Processing %s, %i of %i in list of deleted keys", file_key, count, num_deleted)
 
         data = load_data_from_s3(client, bucket_name, file_key)
         if not data:
@@ -592,7 +639,6 @@ def interpret_message(msg: str, api_url: str):
                 f"Deleting collection {collection_id} from "
                 f"Catalog {catalog_path if catalog_path else 'top-level'}"
             )
-            deleted_collections.add(collection_id)
             delete_collection(api_url, collection_id, workspace, catalog_path)
 
         elif data.get("type") == "Feature":
@@ -607,8 +653,10 @@ def interpret_message(msg: str, api_url: str):
             catalog_path_list = catalog_path.split("/")
             catalog_path = catalog_path_list[:-1]  # Remove 'collection' directory
             catalog_path = "/".join(catalog_path)
-            collection_id = data["collection"]
-            if collection_id in deleted_collections:
+            try:
+                collection_id = data["collection"]
+            except KeyError:
+                logging.error(f"Key 'collection' not found in file {file_key}")
                 continue
             logger.info(
                 f"Deleting item {item_id} in collection {collection_id} in "
@@ -625,16 +673,11 @@ def interpret_message(msg: str, api_url: str):
             )
             delete_catalog(api_url, workspace, catalog_path, catalog_id)
 
-    # Create new catalogs, collections and items
-    num_files_to_create = len(files_to_create)
-    limit = num_files_to_create * 3
-    files_count = 0
+    count = 0
 
     for file_key in files_to_create:
-        # Variable to prevent endless looping, limits number of loops to at most 3 to allow
-        # catalogs and collections to be created
-        if files_count >= limit:
-            break
+        count += 1
+        logger.info("Processing %s, %i of %i in list of created keys", file_key, count, num_created)
 
         data = load_data_from_s3(client, bucket_name, file_key)
         if not data:
@@ -651,15 +694,17 @@ def interpret_message(msg: str, api_url: str):
             catalog_path_list = catalog_path_list[1:]
             catalog_path = "/".join(catalog_path_list)
 
+        if file_key.endswith("meta_access_policy.json"):
+            logger.info("Creating access policy for workspace %s", workspace)
+            handle_access_policy(data, api_url, workspace)
+            continue
+
         if data.get("type") == "Collection":
             collection_id = data["id"]
             logger.info(f"Creating Collection {collection_id} in catalog {catalog_path}")
 
             # Handle case in which catalog is not yet created for this collection
-            item_registered = create_collection(
-                api_url, collection_id, data, workspace, catalog_path
-            )
-            files_to_create.append(file_key) if not item_registered else None
+            create_collection(api_url, collection_id, data, workspace, catalog_path)
 
         elif data.get("type") == "Feature":
             item_id = data["id"]
@@ -673,16 +718,17 @@ def interpret_message(msg: str, api_url: str):
             catalog_path_list = catalog_path.split("/")
             catalog_path = catalog_path_list[:-1]  # Remove 'collection' directory
             catalog_path = "/".join(catalog_path)
-            collection_id = data["collection"]
+            try:
+                collection_id = data["collection"]
+            except KeyError:
+                logging.error(f"Key 'collection' not found in file {file_key}")
+                continue
             logger.info(
                 f"Creating Item {item_id} in collection {collection_id} in catalog {catalog_path}"
             )
 
             # Handle case in which catalog and/or collection is not yet created for this item
-            item_registered = create_item(
-                api_url, collection_id, item_id, data, workspace, catalog_path
-            )
-            files_to_create.append(file_key) if not item_registered else None
+            create_item(api_url, collection_id, item_id, data, workspace, catalog_path)
 
         elif data.get("type") == "Catalog":
             if catalog_path:
@@ -691,19 +737,11 @@ def interpret_message(msg: str, api_url: str):
                 logger.info(f"Creating a new base catalog, {data['id']}")
             create_catalog(api_url, data, workspace, catalog_path)
 
-        # Increment loop counter
-        files_count += 1
-
-    # Update catalogs, collections and items
-    num_files_to_update = len(files_to_update)
-    limit = num_files_to_update * 3
-    files_count = 0
+    count = 0
 
     for file_key in files_to_update:
-        # Variable to prevent endless looping, limits number of loops to at most 3 to allow
-        # catalogs and collections to be created
-        if files_count >= limit:
-            break
+        count += 1
+        logger.info("Processing %s, %i of %i in list of updated keys", file_key, count, num_updated)
 
         data = load_data_from_s3(client, bucket_name, file_key)
         if not data:
@@ -720,15 +758,17 @@ def interpret_message(msg: str, api_url: str):
             catalog_path_list = catalog_path_list[1:]
             catalog_path = "/".join(catalog_path_list)
 
+        if file_key.endswith("meta_access_policy.json"):
+            logger.info("Updating access policy for workspace %s", workspace)
+            handle_access_policy(data, api_url, workspace)
+            continue
+
         if data.get("type") == "Collection":
             collection_id = data["id"]
             logger.info(f"Updating Collection {collection_id} in Catalog {catalog_path}")
 
             # Handle case in which catalog is not yet updated/created for this collection
-            collection_updated = update_collection(
-                api_url, collection_id, data, workspace, catalog_path
-            )
-            files_to_update.append(file_key) if not collection_updated else None
+            update_collection(api_url, collection_id, data, workspace, catalog_path)
 
         elif data.get("type") == "Feature":
             item_id = data["id"]
@@ -742,25 +782,23 @@ def interpret_message(msg: str, api_url: str):
             catalog_path_list = catalog_path.split("/")
             catalog_path = catalog_path_list[:-1]  # Remove 'collection' directory
             catalog_path = "/".join(catalog_path)
-            collection_id = data["collection"]
+            try:
+                collection_id = data["collection"]
+            except KeyError:
+                logging.error(f"Key 'collection' not found in file {file_key}")
+                continue
             logger.info(
                 f"Updating Item {item_id} in Collection {collection_id} in Catalog {catalog_path}"
             )
 
             # Handle case in which catalog and/or collection is not yet updated/created for this item
-            item_updated = update_item(
-                api_url, collection_id, item_id, data, workspace, catalog_path
-            )
-            files_to_update.append(file_key) if not item_updated else None
+            update_item(api_url, collection_id, item_id, data, workspace, catalog_path)
 
         elif data.get("type") == "Catalog":
             logger.info(
                 f"Updating Catalog {data['id']} in Catalog {catalog_path if catalog_path else 'top-level'}"
             )
             update_catalog(api_url, data, workspace, catalog_path, data["id"])
-
-        # Increment loop counter
-        files_count += 1
 
 
 @cli.command()
