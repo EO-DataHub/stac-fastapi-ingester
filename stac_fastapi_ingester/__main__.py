@@ -705,8 +705,10 @@ def interpret_message(msg: str, api_url: str):
             logger.info(f"Creating Collection {collection_id} in catalog {catalog_path}")
 
             # Handle case in which catalog is not yet created for this collection
-            response = create_collection(api_url, collection_id, data, workspace, catalog_path)
-            if not response:
+            collection_created = create_collection(
+                api_url, collection_id, data, workspace, catalog_path
+            )
+            if not collection_created:
                 logger.info(f"Updating Collection {collection_id} in catalog {catalog_path}")
                 update_collection(api_url, collection_id, data, workspace, catalog_path)
 
@@ -732,8 +734,10 @@ def interpret_message(msg: str, api_url: str):
             )
 
             # Handle case in which catalog and/or collection is not yet created for this item
-            response = create_item(api_url, collection_id, item_id, data, workspace, catalog_path)
-            if not response:
+            item_created = create_item(
+                api_url, collection_id, item_id, data, workspace, catalog_path
+            )
+            if not item_created:
                 logger.info(
                     f"Updating Item {item_id} in collection {collection_id} in catalog {catalog_path}"
                 )
@@ -743,8 +747,8 @@ def interpret_message(msg: str, api_url: str):
             logger.info(
                 f"Creating Catalog {data['id']} in Catalog {catalog_path if catalog_path else 'top-level'}"
             )
-            response = create_catalog(api_url, data, workspace, catalog_path)
-            if not response:
+            catalog_created = create_catalog(api_url, data, workspace, catalog_path)
+            if not catalog_created:
                 logger.info(
                     f"Updating Catalog {data['id']} in Catalog "
                     f"{catalog_path if catalog_path else 'top-level'}"
@@ -782,8 +786,10 @@ def interpret_message(msg: str, api_url: str):
             logger.info(f"Updating Collection {collection_id} in Catalog {catalog_path}")
 
             # Handle case in which catalog is not yet updated/created for this collection
-            response = update_collection(api_url, collection_id, data, workspace, catalog_path)
-            if not response:
+            collection_updated = update_collection(
+                api_url, collection_id, data, workspace, catalog_path
+            )
+            if not collection_updated:
                 logger.info(f"Creating Collection {collection_id} in Catalog {catalog_path}")
                 create_collection(api_url, collection_id, data, workspace, catalog_path)
 
@@ -809,8 +815,10 @@ def interpret_message(msg: str, api_url: str):
             )
 
             # Handle case in which catalog and/or collection is not yet updated/created for this item
-            response = update_item(api_url, collection_id, item_id, data, workspace, catalog_path)
-            if not response:
+            item_updated = update_item(
+                api_url, collection_id, item_id, data, workspace, catalog_path
+            )
+            if not item_updated:
                 logger.info(
                     f"Creating Item {item_id} in Collection {collection_id} in Catalog {catalog_path}"
                 )
@@ -820,8 +828,8 @@ def interpret_message(msg: str, api_url: str):
             logger.info(
                 f"Updating Catalog {data['id']} in Catalog {catalog_path if catalog_path else 'top-level'}"
             )
-            response = update_catalog(api_url, data, workspace, catalog_path, data["id"])
-            if not response:
+            catalog_updated = update_catalog(api_url, data, workspace, catalog_path, data["id"])
+            if not catalog_updated:
                 logger.info(
                     f"Creating Catalog {data['id']} in Catalog "
                     f"{catalog_path if catalog_path else 'top-level'}"
