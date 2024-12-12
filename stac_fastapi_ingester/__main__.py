@@ -244,7 +244,9 @@ def delete_item(api_url: str, collection_id: str, item_id: str, workspace: str, 
 ############################
 
 
-def update_catalog(api_url: str, data: dict, workspace: str, catalog_path: str, catalog_id: str):
+def update_catalog(
+    api_url: str, data: dict, workspace: str, catalog_path: str, catalog_id: str
+) -> bool:
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     query_params = {"workspace": workspace}
 
@@ -274,6 +276,7 @@ def update_catalog(api_url: str, data: dict, workspace: str, catalog_path: str, 
                 f"Catalog: {catalog_id} {f'at {catalog_path}' if catalog_path else 'at top-level'} "
                 "not updated as doesn't exist."
             )
+            return False
         else:
             logger.warning(f"Catalog: {catalog_path} not updated")
             logger.warning(
@@ -283,12 +286,14 @@ def update_catalog(api_url: str, data: dict, workspace: str, catalog_path: str, 
             logger.warning(f"Status Code: {resp.status_code} on url: {combined_url}")
             logger.warning("data is")
             logger.warning(data)
+        return True
     except Exception as err:
         logger.warning(
             f"Catalog: {catalog_id} {f'at {catalog_path}' if catalog_path else 'at top-level'} "
             "not updated"
         )
         logger.error(err)
+        return True
 
 
 def update_collection(
@@ -306,10 +311,8 @@ def update_collection(
         if resp.status_code == HTTPStatus.OK:
             logger.info("Status Code: OK")
             logger.info(f"Updated Collection {collection_id} in Catalog {catalog_path}")
-            return True
         elif resp.status_code == HTTPStatus.CONFLICT:
             logger.warning("Status Code: CONFLICT")
-            return True
         elif resp.status_code == HTTPStatus.NOT_FOUND:
             logger.warning("Status Code: NOT_FOUND")
             logger.warning(
@@ -326,8 +329,8 @@ def update_collection(
             logger.warning(f"Status message is {resp.content}")
             logger.warning("data is")
             logger.warning(data)
-            # return but don't try again
-            return True
+        # return but don't try again
+        return True
     except Exception as err:
         logger.warning(f"Collection: {collection_id} in Catalog: {catalog_path} not updated")
         logger.error(err)
@@ -335,7 +338,7 @@ def update_collection(
 
 
 def update_item(
-    api_url: str, collection_id: str, item_id, data: dict, workspace: str, catalog_path: str
+    api_url: str, collection_id: str, item_id: str, data: dict, workspace: str, catalog_path: str
 ) -> bool:
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     query_params = {"workspace": workspace}
@@ -351,10 +354,8 @@ def update_item(
             logger.info(
                 f"Updated Item {item_id} in Collection {collection_id} in Catalog {catalog_path}"
             )
-            return True
         elif resp.status_code == HTTPStatus.CONFLICT:
             logger.warning("Status Code: CONFLICT")
-            return True
         elif resp.status_code == HTTPStatus.NOT_FOUND:
             logger.warning("Status Code: NOT_FOUND")
             response_decoded = json.loads(resp.content.decode())
@@ -364,6 +365,7 @@ def update_item(
                     f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} not "
                     "updated as item doesn't exist."
                 )
+                return False
             elif "Collection" in response_decoded_description:
                 logger.warning(
                     f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} not "
@@ -374,7 +376,8 @@ def update_item(
                     f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} not "
                     "updated as catalog doesn't exist."
                 )
-            return False
+            # return but don't try again
+            return True
         else:
             logger.warning(
                 f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} not updated"
@@ -402,7 +405,7 @@ def update_item(
 ############################
 
 
-def create_catalog(api_url: str, data: dict, workspace: str, catalog_path: Optional[str]):
+def create_catalog(api_url: str, data: dict, workspace: str, catalog_path: Optional[str]) -> bool:
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     query_params = {"workspace": workspace}
     try:
@@ -417,7 +420,6 @@ def create_catalog(api_url: str, data: dict, workspace: str, catalog_path: Optio
             json=data,
             params=query_params,
         )
-        print(resp)
         if resp.status_code == HTTPStatus.OK:
             logger.info("Status Code: OK")
             logger.info(
@@ -429,23 +431,26 @@ def create_catalog(api_url: str, data: dict, workspace: str, catalog_path: Optio
                 f"Catalog: {data['id']} already exists in "
                 f"{catalog_path if catalog_path else 'top-level'} catalog"
             )
+            return False
         elif resp.status_code == HTTPStatus.NOT_FOUND:
             logger.warning("Status Code: NOT_FOUND")
             logger.warning(
                 f"Catalog: {data['id']} not created as catalog {catalog_path} doesn't exist"
             )
-            return False
         else:
             logger.warning(f"Catalog: {data['id']} not created in {catalog_path}")
             logger.warning(f"Status Code: {resp.status_code} on url: {api_url}/catalogs")
             logger.warning(f"Status message is {resp.content}")
             logger.warning("data is")
             logger.warning(data)
+        # return but don't try again
+        return True
     except Exception as err:
         logger.error(
             f"Catalog: {data['id']} not created {f'in {catalog_path}' if catalog_path else 'at top-level'}"
         )
         logger.error(err)
+        return True
 
 
 def create_collection(
@@ -463,15 +468,13 @@ def create_collection(
         if resp.status_code == HTTPStatus.OK:
             logger.info("Status Code: OK")
             logger.info(f"Created Collection {collection_id} in Catalog: {catalog_path}")
-            return True
         elif resp.status_code == HTTPStatus.NOT_FOUND:
             # Add files awaiting catalog creation to the end of the list again
             logger.warning(f"Parent Catalog: {catalog_path} not created")
-            return False
         elif resp.status_code == HTTPStatus.CONFLICT:
             logger.warning("Status Code: CONFLICT")
             logger.warning(f"Collection: {collection_id} in Catalog: {catalog_path} already exists")
-            return True
+            return False
         else:
             logger.warning(f"Collection: {collection_id} in Catalog: {catalog_path} not created")
             logger.warning(
@@ -480,8 +483,8 @@ def create_collection(
             logger.warning(f"Status message is {resp.content}")
             logger.warning("data is")
             logger.warning(data)
-            # return but don't try again
-            return True
+        # return but don't try again
+        return True
     except Exception as err:
         logger.warning(f"Collection: {collection_id} not created")
         logger.error(err)
@@ -505,20 +508,18 @@ def create_item(
             logger.info(
                 f"Created Item {item_id} in Collection {collection_id} in Catalog {catalog_path}"
             )
-            return True
         elif resp.status_code == HTTPStatus.NOT_FOUND:
             # Add files awaiting catalog/collection creation to the end of the list again
             logger.warning(
                 f"Parent Collection: {collection_id} or Catalog: {catalog_path} not created"
             )
-            return False
         elif resp.status_code == HTTPStatus.CONFLICT:
             logger.warning("Status Code: CONFLICT")
             logger.warning(
                 f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} "
                 "already exists"
             )
-            return True
+            return False
         else:
             logger.warning(
                 f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} not created"
@@ -530,8 +531,8 @@ def create_item(
             logger.warning(f"Status message is {resp.content}")
             logger.warning("data is")
             logger.warning(data)
-            # return but don't try again
-            return True
+        # return but don't try again
+        return True
     except Exception as err:
         logger.warning(
             f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} "
@@ -704,7 +705,12 @@ def interpret_message(msg: str, api_url: str):
             logger.info(f"Creating Collection {collection_id} in catalog {catalog_path}")
 
             # Handle case in which catalog is not yet created for this collection
-            create_collection(api_url, collection_id, data, workspace, catalog_path)
+            collection_created = create_collection(
+                api_url, collection_id, data, workspace, catalog_path
+            )
+            if not collection_created:
+                logger.info(f"Updating Collection {collection_id} in catalog {catalog_path}")
+                update_collection(api_url, collection_id, data, workspace, catalog_path)
 
         elif data.get("type") == "Feature":
             item_id = data["id"]
@@ -728,14 +734,26 @@ def interpret_message(msg: str, api_url: str):
             )
 
             # Handle case in which catalog and/or collection is not yet created for this item
-            create_item(api_url, collection_id, item_id, data, workspace, catalog_path)
+            item_created = create_item(
+                api_url, collection_id, item_id, data, workspace, catalog_path
+            )
+            if not item_created:
+                logger.info(
+                    f"Updating Item {item_id} in collection {collection_id} in catalog {catalog_path}"
+                )
+                update_item(api_url, collection_id, item_id, data, workspace, catalog_path)
 
         elif data.get("type") == "Catalog":
-            if catalog_path:
-                logger.info(f"Creating Catalog {data['id']} in catalog {catalog_path}")
-            else:
-                logger.info(f"Creating a new base catalog, {data['id']}")
-            create_catalog(api_url, data, workspace, catalog_path)
+            logger.info(
+                f"Creating Catalog {data['id']} in Catalog {catalog_path if catalog_path else 'top-level'}"
+            )
+            catalog_created = create_catalog(api_url, data, workspace, catalog_path)
+            if not catalog_created:
+                logger.info(
+                    f"Updating Catalog {data['id']} in Catalog "
+                    f"{catalog_path if catalog_path else 'top-level'}"
+                )
+                update_catalog(api_url, data, workspace, catalog_path, data["id"])
 
     count = 0
 
@@ -768,7 +786,12 @@ def interpret_message(msg: str, api_url: str):
             logger.info(f"Updating Collection {collection_id} in Catalog {catalog_path}")
 
             # Handle case in which catalog is not yet updated/created for this collection
-            update_collection(api_url, collection_id, data, workspace, catalog_path)
+            collection_updated = update_collection(
+                api_url, collection_id, data, workspace, catalog_path
+            )
+            if not collection_updated:
+                logger.info(f"Creating Collection {collection_id} in Catalog {catalog_path}")
+                create_collection(api_url, collection_id, data, workspace, catalog_path)
 
         elif data.get("type") == "Feature":
             item_id = data["id"]
@@ -792,13 +815,26 @@ def interpret_message(msg: str, api_url: str):
             )
 
             # Handle case in which catalog and/or collection is not yet updated/created for this item
-            update_item(api_url, collection_id, item_id, data, workspace, catalog_path)
+            item_updated = update_item(
+                api_url, collection_id, item_id, data, workspace, catalog_path
+            )
+            if not item_updated:
+                logger.info(
+                    f"Creating Item {item_id} in Collection {collection_id} in Catalog {catalog_path}"
+                )
+                create_item(api_url, collection_id, item_id, data, workspace, catalog_path)
 
         elif data.get("type") == "Catalog":
             logger.info(
                 f"Updating Catalog {data['id']} in Catalog {catalog_path if catalog_path else 'top-level'}"
             )
-            update_catalog(api_url, data, workspace, catalog_path, data["id"])
+            catalog_updated = update_catalog(api_url, data, workspace, catalog_path, data["id"])
+            if not catalog_updated:
+                logger.info(
+                    f"Creating Catalog {data['id']} in Catalog "
+                    f"{catalog_path if catalog_path else 'top-level'}"
+                )
+                create_catalog(api_url, data, workspace, catalog_path)
 
 
 @cli.command()
