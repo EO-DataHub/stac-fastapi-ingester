@@ -239,68 +239,108 @@ def delete_item(api_url: str, collection_id: str, item_id: str, workspace: str, 
         logger.error(err)
 
 
-############################
-## UPDATE IN STAC FASTAPI ##
-############################
+######################################
+## CREATE OR UPDATE IN STAC FASTAPI ##
+######################################
 
 
-def update_catalog(
-    api_url: str, data: dict, workspace: str, catalog_path: str, catalog_id: str
+def log_response(
+    resp: requests.models.Response,
+    data: dict,
+    data_id: str,
+    catalog_path: str,
+    api_url: str,
+    item_type: str,
+):
+    http_method = resp.request.method
+    action = "create" if http_method == "POST" else "update"
+
+    if resp.status_code == HTTPStatus.OK:
+        logger.info("Status Code: OK")
+        logger.info(
+            f"{action}d {item_type} {data_id} in {catalog_path if catalog_path else 'top-level'} catalog"
+        )
+    elif resp.status_code == HTTPStatus.CONFLICT:
+        logger.warning("Status Code: CONFLICT")
+        logger.warning(
+            f"{item_type}: {data_id} already exists in "
+            f"{catalog_path if catalog_path else 'top-level'} catalog"
+        )
+    elif resp.status_code == HTTPStatus.NOT_FOUND:
+        logger.warning("Status Code: NOT_FOUND")
+        logger.warning(
+            f"{item_type}: {data_id} not {action}d as catalog {catalog_path} doesn't exist"
+        )
+    else:
+        logger.warning(f"{item_type}: {data_id} not {action}d in {catalog_path}")
+        logger.warning(f"Status Code: {resp.status_code} on url: {api_url}/catalogs")
+        logger.warning(f"Status message is {resp.content}")
+        logger.warning("data is")
+        logger.warning(data)
+
+
+def create_or_update_catalog(
+    api_url: str,
+    data: dict,
+    workspace: str,
+    catalog_path: Optional[str] = None,
+    catalog_id: Optional[str] = None,
 ) -> bool:
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     query_params = {"workspace": workspace}
-
-    # Handle top-level catalog
-    if catalog_path:
-        combined_url = f"{api_url}/catalogs/{catalog_path}/{catalog_id}"
-    else:
-        combined_url = f"{api_url}/catalogs/{catalog_id}"
-
+    data_type = "Catalogue"
     try:
+
+        if catalog_path:
+            combined_url = f"{api_url}/catalogs/{catalog_path}/{catalog_id}"
+        else:
+            combined_url = f"{api_url}/catalogs/{catalog_id}"
+
         resp = requests.put(
             combined_url,
             headers=headers,
             json=data,
             params=query_params,
         )
-        if resp.status_code == HTTPStatus.OK:
-            logger.info("Status Code: OK")
-            logger.info(
-                f"Updated Catalog {catalog_id} {f'at {catalog_path}' if catalog_path else 'at top-level'}"
+
+        log_response(resp, data, data["id"], catalog_path, api_url, data_type)
+
+        if resp.status_code == HTTPStatus.NOT_FOUND:
+            if catalog_path:
+                catalog_path = f"/{catalog_path}"
+                combined_url = f"{api_url}/catalogs{catalog_path}"
+            else:
+                # If no catalog path is provided, this is a top level catalog
+                catalog_path = ""
+                combined_url = f"{api_url}/catalogs{catalog_path}"
+            resp = requests.post(
+                combined_url,
+                headers=headers,
+                json=data,
+                params=query_params,
             )
-        elif resp.status_code == HTTPStatus.CONFLICT:
-            logger.warning("Status Code: CONFLICT")
-        elif resp.status_code == HTTPStatus.NOT_FOUND:
-            logger.warning("Status Code: NOT_FOUND")
-            logger.warning(
-                f"Catalog: {catalog_id} {f'at {catalog_path}' if catalog_path else 'at top-level'} "
-                "not updated as doesn't exist."
-            )
-            return False
-        else:
-            logger.warning(f"Catalog: {catalog_path} not updated")
-            logger.warning(
-                f"Catalog: {catalog_id} {f'at {catalog_path}' if catalog_path else 'at top-level'} "
-                "not updated"
-            )
-            logger.warning(f"Status Code: {resp.status_code} on url: {combined_url}")
-            logger.warning("data is")
-            logger.warning(data)
+
+        log_response(resp, data, data["id"], catalog_path, api_url, data_type)
+
+        resp.raise_for_status()
+
         return True
+
     except Exception as err:
-        logger.warning(
-            f"Catalog: {catalog_id} {f'at {catalog_path}' if catalog_path else 'at top-level'} "
-            "not updated"
+        logger.error(
+            f"Catalog: {data['id']} not created or updated "
+            f"{f'in {catalog_path}' if catalog_path else 'at top-level'}"
         )
         logger.error(err)
         return True
 
 
-def update_collection(
+def create_or_update_collection(
     api_url: str, collection_id: str, data: dict, workspace: str, catalog_path: str
 ) -> bool:
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     query_params = {"workspace": workspace}
+    data_type = "Collection"
     try:
         resp = requests.put(
             f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}",
@@ -308,40 +348,47 @@ def update_collection(
             json=data,
             params=query_params,
         )
-        if resp.status_code == HTTPStatus.OK:
-            logger.info("Status Code: OK")
-            logger.info(f"Updated Collection {collection_id} in Catalog {catalog_path}")
-        elif resp.status_code == HTTPStatus.CONFLICT:
-            logger.warning("Status Code: CONFLICT")
-        elif resp.status_code == HTTPStatus.NOT_FOUND:
-            logger.warning("Status Code: NOT_FOUND")
-            logger.warning(
-                f"Collection: {collection_id} not updated as doesn't exist in Catalog "
-                f"{catalog_path}."
+
+        log_response(resp, data, collection_id, catalog_path, api_url, data_type)
+
+        if resp.status_code == HTTPStatus.NOT_FOUND:
+            if catalog_path.startswith("user-datasets/"):
+                is_public = False
+            else:
+                is_public = True
+
+            query_params.update({"is_public": is_public})
+
+            resp = requests.post(
+                f"{api_url}/catalogs/{catalog_path}/collections",
+                headers=headers,
+                json=data,
+                params=query_params,
             )
-            return False
-        else:
-            logger.warning(f"Collection: {collection_id} in Catalog: {catalog_path} not updated")
-            logger.warning(
-                f"Status Code: {resp.status_code} on url: "
-                f"{api_url}/catalogs/{catalog_path}/collections"
-            )
-            logger.warning(f"Status message is {resp.content}")
-            logger.warning("data is")
-            logger.warning(data)
-        # return but don't try again
+            if resp.status_code == HTTPStatus.NOT_FOUND:
+                logging.error(f"Collection {collection_id} doesn't exist")
+        log_response(resp, data, collection_id, catalog_path, api_url, data_type)
+
+        resp.raise_for_status()
+
         return True
+
     except Exception as err:
-        logger.warning(f"Collection: {collection_id} in Catalog: {catalog_path} not updated")
+        logger.error(
+            f"Collection: {collection_id} in Catalog: "
+            f"{f'{catalog_path}' if catalog_path else 'at top-level'} "
+            f"not created or updated"
+        )
         logger.error(err)
         return True
 
 
-def update_item(
+def create_or_update_item(
     api_url: str, collection_id: str, item_id: str, data: dict, workspace: str, catalog_path: str
 ) -> bool:
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     query_params = {"workspace": workspace}
+    data_type = "Item"
     try:
         resp = requests.put(
             f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items/{item_id}",
@@ -349,197 +396,334 @@ def update_item(
             json=data,
             params=query_params,
         )
-        if resp.status_code == HTTPStatus.OK:
-            logger.info("Status Code: OK")
-            logger.info(
-                f"Updated Item {item_id} in Collection {collection_id} in Catalog {catalog_path}"
+        log_response(resp, data, item_id, catalog_path, api_url, data_type)
+
+        if resp.status_code == HTTPStatus.NOT_FOUND:
+            resp = requests.post(
+                f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items",
+                headers=headers,
+                json=data,
+                params=query_params,
             )
-        elif resp.status_code == HTTPStatus.CONFLICT:
-            logger.warning("Status Code: CONFLICT")
-        elif resp.status_code == HTTPStatus.NOT_FOUND:
-            logger.warning("Status Code: NOT_FOUND")
-            response_decoded = json.loads(resp.content.decode())
-            response_decoded_description = response_decoded["description"]
-            if "Item" in response_decoded_description:
-                logger.warning(
-                    f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} not "
-                    "updated as item doesn't exist."
-                )
-                return False
-            elif "Collection" in response_decoded_description:
-                logger.warning(
-                    f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} not "
-                    "updated as collection doesn't exist."
-                )
-            elif "Catalog" in response_decoded_description:
-                logger.warning(
-                    f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} not "
-                    "updated as catalog doesn't exist."
-                )
-            # return but don't try again
-            return True
-        else:
-            logger.warning(
-                f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} not updated"
-            )
-            logger.warning(
-                f"Status Code: {resp.status_code} on url: "
-                f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/"
-                f"items/{item_id}"
-            )
-            logger.warning(f"Status message is {resp.content}")
-            logger.warning("data is")
-            logger.warning(data)
-            # return but don't try again
-            return True
-    except Exception as err:
-        logger.warning(
-            f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} not updated"
-        )
-        logger.error(err)
+
+            if resp.status_code == HTTPStatus.NOT_FOUND:
+                logging.error(f"Collection {collection_id} doesn't exist")
+
+        log_response(resp, data, item_id, catalog_path, api_url, data_type)
+        resp.raise_for_status()
+
         return True
 
-
-############################
-## CREATE IN STAC FASTAPI ##
-############################
-
-
-def create_catalog(api_url: str, data: dict, workspace: str, catalog_path: Optional[str]) -> bool:
-    headers = {"accept": "application/json", "Content-Type": "application/json"}
-    query_params = {"workspace": workspace}
-    try:
-        if catalog_path:
-            catalog_path = f"/{catalog_path}"
-        else:
-            # If no catalog path is provided, this is a top level catalog
-            catalog_path = ""
-        resp = requests.post(
-            f"{api_url}/catalogs{catalog_path}",
-            headers=headers,
-            json=data,
-            params=query_params,
-        )
-        if resp.status_code == HTTPStatus.OK:
-            logger.info("Status Code: OK")
-            logger.info(
-                f"Created Catalog {data['id']} in {catalog_path if catalog_path else 'top-level'} catalog"
-            )
-        elif resp.status_code == HTTPStatus.CONFLICT:
-            logger.warning("Status Code: CONFLICT")
-            logger.warning(
-                f"Catalog: {data['id']} already exists in "
-                f"{catalog_path if catalog_path else 'top-level'} catalog"
-            )
-            return False
-        elif resp.status_code == HTTPStatus.NOT_FOUND:
-            logger.warning("Status Code: NOT_FOUND")
-            logger.warning(
-                f"Catalog: {data['id']} not created as catalog {catalog_path} doesn't exist"
-            )
-        else:
-            logger.warning(f"Catalog: {data['id']} not created in {catalog_path}")
-            logger.warning(f"Status Code: {resp.status_code} on url: {api_url}/catalogs")
-            logger.warning(f"Status message is {resp.content}")
-            logger.warning("data is")
-            logger.warning(data)
-        # return but don't try again
-        return True
     except Exception as err:
         logger.error(
-            f"Catalog: {data['id']} not created {f'in {catalog_path}' if catalog_path else 'at top-level'}"
+            f"Item: {item_id} in Collection: {collection_id} in "
+            f"Catalog: {catalog_path} not created or updated"
         )
         logger.error(err)
         return True
 
 
-def create_collection(
-    api_url: str, collection_id: str, data: dict, workspace: str, catalog_path: str
-) -> bool:
-    headers = {"accept": "application/json", "Content-Type": "application/json"}
-    query_params = {"workspace": workspace}
-    try:
-        resp = requests.post(
-            f"{api_url}/catalogs/{catalog_path}/collection",
-            headers=headers,
-            json=data,
-            params=query_params,
-        )
-        if resp.status_code == HTTPStatus.OK:
-            logger.info("Status Code: OK")
-            logger.info(f"Created Collection {collection_id} in Catalog: {catalog_path}")
-        elif resp.status_code == HTTPStatus.NOT_FOUND:
-            # Add files awaiting catalog creation to the end of the list again
-            logger.warning(f"Parent Catalog: {catalog_path} not created")
-        elif resp.status_code == HTTPStatus.CONFLICT:
-            logger.warning("Status Code: CONFLICT")
-            logger.warning(f"Collection: {collection_id} in Catalog: {catalog_path} already exists")
-            return False
-        else:
-            logger.warning(f"Collection: {collection_id} in Catalog: {catalog_path} not created")
-            logger.warning(
-                f"Status Code: {resp.status_code} on url: {api_url}/catalogs/{catalog_path}/collection"
-            )
-            logger.warning(f"Status message is {resp.content}")
-            logger.warning("data is")
-            logger.warning(data)
-        # return but don't try again
-        return True
-    except Exception as err:
-        logger.warning(f"Collection: {collection_id} not created")
-        logger.error(err)
-        return True
-
-
-def create_item(
-    api_url: str, collection_id: str, item_id: str, data: dict, workspace: str, catalog_path: str
-) -> bool:
-    headers = {"accept": "application/json", "Content-Type": "application/json"}
-    query_params = {"workspace": workspace}
-    try:
-        resp = requests.post(
-            f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items",
-            headers=headers,
-            json=data,
-            params=query_params,
-        )
-        if resp.status_code == HTTPStatus.OK:
-            logger.info("Status Code: OK")
-            logger.info(
-                f"Created Item {item_id} in Collection {collection_id} in Catalog {catalog_path}"
-            )
-        elif resp.status_code == HTTPStatus.NOT_FOUND:
-            # Add files awaiting catalog/collection creation to the end of the list again
-            logger.warning(
-                f"Parent Collection: {collection_id} or Catalog: {catalog_path} not created"
-            )
-        elif resp.status_code == HTTPStatus.CONFLICT:
-            logger.warning("Status Code: CONFLICT")
-            logger.warning(
-                f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} "
-                "already exists"
-            )
-            return False
-        else:
-            logger.warning(
-                f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} not created"
-            )
-            logger.warning(
-                f"Status Code: {resp.status_code} on url: {api_url}/catalogs/{catalog_path}/"
-                f"collections/{collection_id}/items"
-            )
-            logger.warning(f"Status message is {resp.content}")
-            logger.warning("data is")
-            logger.warning(data)
-        # return but don't try again
-        return True
-    except Exception as err:
-        logger.warning(
-            f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} "
-            "not created"
-        )
-        logger.error(err)
-        return True
+# ############################
+# ## UPDATE IN STAC FASTAPI ##
+# ############################
+#
+#
+# def update_catalog(
+#     api_url: str, data: dict, workspace: str, catalog_path: str, catalog_id: str
+# ) -> bool:
+#     headers = {"accept": "application/json", "Content-Type": "application/json"}
+#     query_params = {"workspace": workspace}
+#
+#     # Handle top-level catalog
+#     if catalog_path:
+#         combined_url = f"{api_url}/catalogs/{catalog_path}/{catalog_id}"
+#     else:
+#         combined_url = f"{api_url}/catalogs/{catalog_id}"
+#
+#     try:
+#         resp = requests.put(
+#             combined_url,
+#             headers=headers,
+#             json=data,
+#             params=query_params,
+#         )
+#         if resp.status_code == HTTPStatus.OK:
+#             logger.info("Status Code: OK")
+#             logger.info(
+#                 f"Updated Catalog {catalog_id} {f'at {catalog_path}' if catalog_path else 'at top-level'}"
+#             )
+#         elif resp.status_code == HTTPStatus.CONFLICT:
+#             logger.warning("Status Code: CONFLICT")
+#         elif resp.status_code == HTTPStatus.NOT_FOUND:
+#             logger.warning("Status Code: NOT_FOUND")
+#             logger.warning(
+#                 f"Catalog: {catalog_id} {f'at {catalog_path}' if catalog_path else 'at top-level'} "
+#                 "not updated as doesn't exist."
+#             )
+#             return False
+#         else:
+#             logger.warning(f"Catalog: {catalog_path} not updated")
+#             logger.warning(
+#                 f"Catalog: {catalog_id} {f'at {catalog_path}' if catalog_path else 'at top-level'} "
+#                 "not updated"
+#             )
+#             logger.warning(f"Status Code: {resp.status_code} on url: {combined_url}")
+#             logger.warning("data is")
+#             logger.warning(data)
+#         return True
+#     except Exception as err:
+#         logger.warning(
+#             f"Catalog: {catalog_id} {f'at {catalog_path}' if catalog_path else 'at top-level'} "
+#             "not updated"
+#         )
+#         logger.error(err)
+#         return True
+#
+#
+# def update_collection(
+#     api_url: str, collection_id: str, data: dict, workspace: str, catalog_path: str
+# ) -> bool:
+#     headers = {"accept": "application/json", "Content-Type": "application/json"}
+#     query_params = {"workspace": workspace}
+#     try:
+#         resp = requests.put(
+#             f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}",
+#             headers=headers,
+#             json=data,
+#             params=query_params,
+#         )
+#         if resp.status_code == HTTPStatus.OK:
+#             logger.info("Status Code: OK")
+#             logger.info(f"Updated Collection {collection_id} in Catalog {catalog_path}")
+#         elif resp.status_code == HTTPStatus.CONFLICT:
+#             logger.warning("Status Code: CONFLICT")
+#         elif resp.status_code == HTTPStatus.NOT_FOUND:
+#             logger.warning("Status Code: NOT_FOUND")
+#             logger.warning(
+#                 f"Collection: {collection_id} not updated as doesn't exist in Catalog "
+#                 f"{catalog_path}."
+#             )
+#             return False
+#         else:
+#             logger.warning(f"Collection: {collection_id} in Catalog: {catalog_path} not updated")
+#             logger.warning(
+#                 f"Status Code: {resp.status_code} on url: "
+#                 f"{api_url}/catalogs/{catalog_path}/collections"
+#             )
+#             logger.warning(f"Status message is {resp.content}")
+#             logger.warning("data is")
+#             logger.warning(data)
+#         # return but don't try again
+#         return True
+#     except Exception as err:
+#         logger.warning(f"Collection: {collection_id} in Catalog: {catalog_path} not updated")
+#         logger.error(err)
+#         return True
+#
+#
+# def update_item(
+#     api_url: str, collection_id: str, item_id: str, data: dict, workspace: str, catalog_path: str
+# ) -> bool:
+#     headers = {"accept": "application/json", "Content-Type": "application/json"}
+#     query_params = {"workspace": workspace}
+#     try:
+#         resp = requests.put(
+#             f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items/{item_id}",
+#             headers=headers,
+#             json=data,
+#             params=query_params,
+#         )
+#         if resp.status_code == HTTPStatus.OK:
+#             logger.info("Status Code: OK")
+#             logger.info(
+#                 f"Updated Item {item_id} in Collection {collection_id} in Catalog {catalog_path}"
+#             )
+#         elif resp.status_code == HTTPStatus.CONFLICT:
+#             logger.warning("Status Code: CONFLICT")
+#         elif resp.status_code == HTTPStatus.NOT_FOUND:
+#             logger.warning("Status Code: NOT_FOUND")
+#             response_decoded = json.loads(resp.content.decode())
+#             response_decoded_description = response_decoded["description"]
+#             if "Item" in response_decoded_description:
+#                 logger.warning(
+#                     f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} not "
+#                     "updated as item doesn't exist."
+#                 )
+#                 return False
+#             elif "Collection" in response_decoded_description:
+#                 logger.warning(
+#                     f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} not "
+#                     "updated as collection doesn't exist."
+#                 )
+#             elif "Catalog" in response_decoded_description:
+#                 logger.warning(
+#                     f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} not "
+#                     "updated as catalog doesn't exist."
+#                 )
+#             # return but don't try again
+#             return True
+#         else:
+#             logger.warning(
+#                 f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} not updated"
+#             )
+#             logger.warning(
+#                 f"Status Code: {resp.status_code} on url: "
+#                 f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/"
+#                 f"items/{item_id}"
+#             )
+#             logger.warning(f"Status message is {resp.content}")
+#             logger.warning("data is")
+#             logger.warning(data)
+#             # return but don't try again
+#             return True
+#     except Exception as err:
+#         logger.warning(
+#             f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} not updated"
+#         )
+#         logger.error(err)
+#         return True
+#
+#
+# ############################
+# ## CREATE IN STAC FASTAPI ##
+# ############################
+#
+#
+# def create_catalog(api_url: str, data: dict, workspace: str, catalog_path: Optional[str]) -> bool:
+#     headers = {"accept": "application/json", "Content-Type": "application/json"}
+#     query_params = {"workspace": workspace}
+#     try:
+#         if catalog_path:
+#             catalog_path = f"/{catalog_path}"
+#         else:
+#             # If no catalog path is provided, this is a top level catalog
+#             catalog_path = ""
+#         resp = requests.post(
+#             f"{api_url}/catalogs{catalog_path}",
+#             headers=headers,
+#             json=data,
+#             params=query_params,
+#         )
+#         if resp.status_code == HTTPStatus.OK:
+#             logger.info("Status Code: OK")
+#             logger.info(
+#                 f"Created Catalog {data['id']} in {catalog_path if catalog_path else 'top-level'} catalog"
+#             )
+#         elif resp.status_code == HTTPStatus.CONFLICT:
+#             logger.warning("Status Code: CONFLICT")
+#             logger.warning(
+#                 f"Catalog: {data['id']} already exists in "
+#                 f"{catalog_path if catalog_path else 'top-level'} catalog"
+#             )
+#             return False
+#         elif resp.status_code == HTTPStatus.NOT_FOUND:
+#             logger.warning("Status Code: NOT_FOUND")
+#             logger.warning(
+#                 f"Catalog: {data['id']} not created as catalog {catalog_path} doesn't exist"
+#             )
+#         else:
+#             logger.warning(f"Catalog: {data['id']} not created in {catalog_path}")
+#             logger.warning(f"Status Code: {resp.status_code} on url: {api_url}/catalogs")
+#             logger.warning(f"Status message is {resp.content}")
+#             logger.warning("data is")
+#             logger.warning(data)
+#         # return but don't try again
+#         return True
+#     except Exception as err:
+#         logger.error(
+#             f"Catalog: {data['id']} not created {f'in {catalog_path}' if catalog_path else 'at top-level'}"
+#         )
+#         logger.error(err)
+#         return True
+#
+#
+# def create_collection(
+#     api_url: str, collection_id: str, data: dict, workspace: str, catalog_path: str
+# ) -> bool:
+#     headers = {"accept": "application/json", "Content-Type": "application/json"}
+#     query_params = {"workspace": workspace}
+#     try:
+#         resp = requests.post(
+#             f"{api_url}/catalogs/{catalog_path}/collection",
+#             headers=headers,
+#             json=data,
+#             params=query_params,
+#         )
+#         if resp.status_code == HTTPStatus.OK:
+#             logger.info("Status Code: OK")
+#             logger.info(f"Created Collection {collection_id} in Catalog: {catalog_path}")
+#         elif resp.status_code == HTTPStatus.NOT_FOUND:
+#             # Add files awaiting catalog creation to the end of the list again
+#             logger.warning(f"Parent Catalog: {catalog_path} not created")
+#         elif resp.status_code == HTTPStatus.CONFLICT:
+#             logger.warning("Status Code: CONFLICT")
+#             logger.warning(f"Collection: {collection_id} in Catalog: {catalog_path} already exists")
+#             return False
+#         else:
+#             logger.warning(f"Collection: {collection_id} in Catalog: {catalog_path} not created")
+#             logger.warning(
+#                 f"Status Code: {resp.status_code} on url: {api_url}/catalogs/{catalog_path}/collection"
+#             )
+#             logger.warning(f"Status message is {resp.content}")
+#             logger.warning("data is")
+#             logger.warning(data)
+#         # return but don't try again
+#         return True
+#     except Exception as err:
+#         logger.warning(f"Collection: {collection_id} not created")
+#         logger.error(err)
+#         return True
+#
+#
+# def create_item(
+#     api_url: str, collection_id: str, item_id: str, data: dict, workspace: str, catalog_path: str
+# ) -> bool:
+#     headers = {"accept": "application/json", "Content-Type": "application/json"}
+#     query_params = {"workspace": workspace}
+#     try:
+#         resp = requests.post(
+#             f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items",
+#             headers=headers,
+#             json=data,
+#             params=query_params,
+#         )
+#         if resp.status_code == HTTPStatus.OK:
+#             logger.info("Status Code: OK")
+#             logger.info(
+#                 f"Created Item {item_id} in Collection {collection_id} in Catalog {catalog_path}"
+#             )
+#         elif resp.status_code == HTTPStatus.NOT_FOUND:
+#             # Add files awaiting catalog/collection creation to the end of the list again
+#             logger.warning(
+#                 f"Parent Collection: {collection_id} or Catalog: {catalog_path} not created"
+#             )
+#         elif resp.status_code == HTTPStatus.CONFLICT:
+#             logger.warning("Status Code: CONFLICT")
+#             logger.warning(
+#                 f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} "
+#                 "already exists"
+#             )
+#             return False
+#         else:
+#             logger.warning(
+#                 f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} not created"
+#             )
+#             logger.warning(
+#                 f"Status Code: {resp.status_code} on url: {api_url}/catalogs/{catalog_path}/"
+#                 f"collections/{collection_id}/items"
+#             )
+#             logger.warning(f"Status message is {resp.content}")
+#             logger.warning("data is")
+#             logger.warning(data)
+#         # return but don't try again
+#         return True
+#     except Exception as err:
+#         logger.warning(
+#             f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} "
+#             "not created"
+#         )
+#         logger.error(err)
+#         return True
 
 
 def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str) -> dict:
@@ -598,9 +782,9 @@ def interpret_message(msg: str, api_url: str):
     files_to_update = updates_json["updated_keys"] if "updated_keys" in updates_json.keys() else []
     files_to_delete = updates_json["deleted_keys"] if "deleted_keys" in updates_json.keys() else []
     files_to_create = updates_json["added_keys"] if "added_keys" in updates_json.keys() else []
+    file_to_create_or_update = files_to_create + files_to_update
 
     # Data counts for logging
-    num_updated = len(files_to_update)
     num_deleted = len(files_to_delete)
     num_created = len(files_to_create)
 
@@ -608,11 +792,8 @@ def interpret_message(msg: str, api_url: str):
     files_to_update.sort(key=lambda s: s.count("/"))
     files_to_create.sort(key=lambda s: s.count("/"))
 
-    count = 0
-
     # Delete catalogs, collections and items
-    for file_key in files_to_delete:
-        count += 1
+    for count, file_key in enumerate(files_to_delete):
         logger.info("Processing %s, %i of %i in list of deleted keys", file_key, count, num_deleted)
 
         data = load_data_from_s3(client, bucket_name, file_key)
@@ -674,10 +855,7 @@ def interpret_message(msg: str, api_url: str):
             )
             delete_catalog(api_url, workspace, catalog_path, catalog_id)
 
-    count = 0
-
-    for file_key in files_to_create:
-        count += 1
+    for count, file_key in enumerate(file_to_create_or_update):
         logger.info("Processing %s, %i of %i in list of created keys", file_key, count, num_created)
 
         data = load_data_from_s3(client, bucket_name, file_key)
@@ -705,12 +883,7 @@ def interpret_message(msg: str, api_url: str):
             logger.info(f"Creating Collection {collection_id} in catalog {catalog_path}")
 
             # Handle case in which catalog is not yet created for this collection
-            collection_created = create_collection(
-                api_url, collection_id, data, workspace, catalog_path
-            )
-            if not collection_created:
-                logger.info(f"Updating Collection {collection_id} in catalog {catalog_path}")
-                update_collection(api_url, collection_id, data, workspace, catalog_path)
+            create_or_update_collection(api_url, collection_id, data, workspace, catalog_path)
 
         elif data.get("type") == "Feature":
             item_id = data["id"]
@@ -734,107 +907,94 @@ def interpret_message(msg: str, api_url: str):
             )
 
             # Handle case in which catalog and/or collection is not yet created for this item
-            item_created = create_item(
-                api_url, collection_id, item_id, data, workspace, catalog_path
-            )
-            if not item_created:
-                logger.info(
-                    f"Updating Item {item_id} in collection {collection_id} in catalog {catalog_path}"
-                )
-                update_item(api_url, collection_id, item_id, data, workspace, catalog_path)
+            create_or_update_item(api_url, collection_id, item_id, data, workspace, catalog_path)
 
         elif data.get("type") == "Catalog":
             logger.info(
                 f"Creating Catalog {data['id']} in Catalog {catalog_path if catalog_path else 'top-level'}"
             )
-            catalog_created = create_catalog(api_url, data, workspace, catalog_path)
-            if not catalog_created:
-                logger.info(
-                    f"Updating Catalog {data['id']} in Catalog "
-                    f"{catalog_path if catalog_path else 'top-level'}"
-                )
-                update_catalog(api_url, data, workspace, catalog_path, data["id"])
+            create_or_update_catalog(api_url, data, workspace, catalog_path)
 
     count = 0
-
-    for file_key in files_to_update:
-        count += 1
-        logger.info("Processing %s, %i of %i in list of updated keys", file_key, count, num_updated)
-
-        data = load_data_from_s3(client, bucket_name, file_key)
-        if not data:
-            continue
-
-        # Extract catalog path for this file
-        catalog_path_list = file_key.split("/")
-        catalog_path_list = catalog_path_list[:-1]
-        # Remove first key in catalog path (expected to be "transformed")
-        if len(catalog_path_list) == 1:
-            # If only one directory provided, no parent catalog is available
-            catalog_path = ""
-        else:
-            catalog_path_list = catalog_path_list[1:]
-            catalog_path = "/".join(catalog_path_list)
-
-        if file_key.endswith("meta_access_policy.json"):
-            logger.info("Updating access policy for workspace %s", workspace)
-            handle_access_policy(data, api_url, workspace)
-            continue
-
-        if data.get("type") == "Collection":
-            collection_id = data["id"]
-            logger.info(f"Updating Collection {collection_id} in Catalog {catalog_path}")
-
-            # Handle case in which catalog is not yet updated/created for this collection
-            collection_updated = update_collection(
-                api_url, collection_id, data, workspace, catalog_path
-            )
-            if not collection_updated:
-                logger.info(f"Creating Collection {collection_id} in Catalog {catalog_path}")
-                create_collection(api_url, collection_id, data, workspace, catalog_path)
-
-        elif data.get("type") == "Feature":
-            item_id = data["id"]
-            if catalog_path == "":
-                logger.warning(
-                    f"Cannot update Item {item_id} without catalog being specified, skipping."
-                )
-                continue
-            # For items, we need to cut down the catalog path ignoring the 'collection' directory
-            # Expected format is 'catalog/collection/item', we only need 'catalog'
-            catalog_path_list = catalog_path.split("/")
-            catalog_path = catalog_path_list[:-1]  # Remove 'collection' directory
-            catalog_path = "/".join(catalog_path)
-            try:
-                collection_id = data["collection"]
-            except KeyError:
-                logging.error(f"Key 'collection' not found in file {file_key}")
-                continue
-            logger.info(
-                f"Updating Item {item_id} in Collection {collection_id} in Catalog {catalog_path}"
-            )
-
-            # Handle case in which catalog and/or collection is not yet updated/created for this item
-            item_updated = update_item(
-                api_url, collection_id, item_id, data, workspace, catalog_path
-            )
-            if not item_updated:
-                logger.info(
-                    f"Creating Item {item_id} in Collection {collection_id} in Catalog {catalog_path}"
-                )
-                create_item(api_url, collection_id, item_id, data, workspace, catalog_path)
-
-        elif data.get("type") == "Catalog":
-            logger.info(
-                f"Updating Catalog {data['id']} in Catalog {catalog_path if catalog_path else 'top-level'}"
-            )
-            catalog_updated = update_catalog(api_url, data, workspace, catalog_path, data["id"])
-            if not catalog_updated:
-                logger.info(
-                    f"Creating Catalog {data['id']} in Catalog "
-                    f"{catalog_path if catalog_path else 'top-level'}"
-                )
-                create_catalog(api_url, data, workspace, catalog_path)
+    #
+    # for file_key in files_to_update:
+    #     count += 1
+    #     logger.info("Processing %s, %i of %i in list of updated keys", file_key, count, num_updated)
+    #
+    #     data = load_data_from_s3(client, bucket_name, file_key)
+    #     if not data:
+    #         continue
+    #
+    #     # Extract catalog path for this file
+    #     catalog_path_list = file_key.split("/")
+    #     catalog_path_list = catalog_path_list[:-1]
+    #     # Remove first key in catalog path (expected to be "transformed")
+    #     if len(catalog_path_list) == 1:
+    #         # If only one directory provided, no parent catalog is available
+    #         catalog_path = ""
+    #     else:
+    #         catalog_path_list = catalog_path_list[1:]
+    #         catalog_path = "/".join(catalog_path_list)
+    #
+    #     if file_key.endswith("meta_access_policy.json"):
+    #         logger.info("Updating access policy for workspace %s", workspace)
+    #         handle_access_policy(data, api_url, workspace)
+    #         continue
+    #
+    #     if data.get("type") == "Collection":
+    #         collection_id = data["id"]
+    #         logger.info(f"Updating Collection {collection_id} in Catalog {catalog_path}")
+    #
+    #         # Handle case in which catalog is not yet updated/created for this collection
+    #         collection_updated = update_collection(
+    #             api_url, collection_id, data, workspace, catalog_path
+    #         )
+    #         if not collection_updated:
+    #             logger.info(f"Creating Collection {collection_id} in Catalog {catalog_path}")
+    #             create_collection(api_url, collection_id, data, workspace, catalog_path)
+    #
+    #     elif data.get("type") == "Feature":
+    #         item_id = data["id"]
+    #         if catalog_path == "":
+    #             logger.warning(
+    #                 f"Cannot update Item {item_id} without catalog being specified, skipping."
+    #             )
+    #             continue
+    #         # For items, we need to cut down the catalog path ignoring the 'collection' directory
+    #         # Expected format is 'catalog/collection/item', we only need 'catalog'
+    #         catalog_path_list = catalog_path.split("/")
+    #         catalog_path = catalog_path_list[:-1]  # Remove 'collection' directory
+    #         catalog_path = "/".join(catalog_path)
+    #         try:
+    #             collection_id = data["collection"]
+    #         except KeyError:
+    #             logging.error(f"Key 'collection' not found in file {file_key}")
+    #             continue
+    #         logger.info(
+    #             f"Updating Item {item_id} in Collection {collection_id} in Catalog {catalog_path}"
+    #         )
+    #
+    #         # Handle case in which catalog and/or collection is not yet updated/created for this item
+    #         item_updated = update_item(
+    #             api_url, collection_id, item_id, data, workspace, catalog_path
+    #         )
+    #         if not item_updated:
+    #             logger.info(
+    #                 f"Creating Item {item_id} in Collection {collection_id} in Catalog {catalog_path}"
+    #             )
+    #             create_item(api_url, collection_id, item_id, data, workspace, catalog_path)
+    #
+    #     elif data.get("type") == "Catalog":
+    #         logger.info(
+    #             f"Updating Catalog {data['id']} in Catalog {catalog_path if catalog_path else 'top-level'}"
+    #         )
+    #         catalog_updated = update_catalog(api_url, data, workspace, catalog_path, data["id"])
+    #         if not catalog_updated:
+    #             logger.info(
+    #                 f"Creating Catalog {data['id']} in Catalog "
+    #                 f"{catalog_path if catalog_path else 'top-level'}"
+    #             )
+    #             create_catalog(api_url, data, workspace, catalog_path)
 
 
 @cli.command()
