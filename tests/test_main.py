@@ -412,7 +412,7 @@ def test_catalog_connection_error(
             "test_collection_id",
             "example/path/to/catalog",
             2,
-            "https://test-url/api/catalogs/example/path/to/catalog/collections",
+            "https://test-url/api/catalogs/example/path/to/catalog/collection",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: OK",
             {"workspace": ["test_workspace"], "is_public": ["true"]},
@@ -426,7 +426,7 @@ def test_catalog_connection_error(
             "test_collection_id",
             "user-datasets/example/path/to/catalog",
             2,
-            "https://test-url/api/catalogs/user-datasets/example/path/to/catalog/collections",
+            "https://test-url/api/catalogs/user-datasets/example/path/to/catalog/collection",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: OK",
             {"workspace": ["test_workspace"], "is_public": ["false"]},
@@ -440,7 +440,7 @@ def test_catalog_connection_error(
             "test_collection_id",
             "example/path/to/catalog",
             2,
-            "https://test-url/api/catalogs/example/path/to/catalog/collections",
+            "https://test-url/api/catalogs/example/path/to/catalog/collection",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: CONFLICT",
             {"workspace": ["test_workspace"], "is_public": ["true"]},
@@ -454,7 +454,7 @@ def test_catalog_connection_error(
             "test_collection_id",
             "example/path/to/catalog",
             2,
-            "https://test-url/api/catalogs/example/path/to/catalog/collections",
+            "https://test-url/api/catalogs/example/path/to/catalog/collection",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Catalog: example/path/to/catalog not created",
             {"workspace": ["test_workspace"], "is_public": ["true"]},
@@ -468,7 +468,7 @@ def test_catalog_connection_error(
             "test_collection_id",
             "example/path/to/catalog",
             2,
-            "https://test-url/api/catalogs/example/path/to/catalog/collections",
+            "https://test-url/api/catalogs/example/path/to/catalog/collection",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: 400",
             {"workspace": ["test_workspace"], "is_public": ["true"]},
@@ -609,7 +609,7 @@ def test_handle_collections(
         requests_mock.post(expected_url, status_code=status_code)
         requests_mock.post(f"{expected_url}", status_code=status_code)
         requests_mock.put(
-            f"{expected_url}/test_collection_id?workspace=test_workspace",
+            f"{expected_url}s/test_collection_id?workspace=test_workspace",
             status_code=HTTPStatus.NOT_FOUND,
         )
         requests_mock.put(
