@@ -366,7 +366,10 @@ def create_or_update_collection(
                 params=query_params,
             )
             if resp.status_code == HTTPStatus.NOT_FOUND:
-                logging.error(f"Collection {collection_id} doesn't exist")
+                logging.error(
+                    f"Unable to update collection {collection_id} in "
+                    f"catalog {catalog_path}. Catalog doesn't exist"
+                )
         log_response(resp, data, collection_id, catalog_path, api_url, data_type)
 
         resp.raise_for_status()
