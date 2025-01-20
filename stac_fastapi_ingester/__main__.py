@@ -241,7 +241,7 @@ def create_or_update_catalog(
     data_type = "Catalogue"
     try:
 
-        if catalog_path:
+        if catalog_path and catalog_id:
             combined_url = f"{api_url}/catalogs/{catalog_path}/{catalog_id}"
         else:
             combined_url = f"{api_url}/catalogs/{catalog_id}"
@@ -564,7 +564,7 @@ def interpret_message(msg: str, api_url: str):
             logger.info(
                 f"Creating Catalog {data['id']} in Catalog {catalog_path if catalog_path else 'top-level'}"
             )
-            create_or_update_catalog(api_url, data, workspace, catalog_path)
+            create_or_update_catalog(api_url, data, workspace, catalog_path, data["id"])
 
     count = 0
     #
