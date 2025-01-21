@@ -218,9 +218,14 @@ def log_response(
         )
     elif resp.status_code == HTTPStatus.NOT_FOUND:
         logger.warning("Status Code: NOT_FOUND")
-        logger.warning(
-            f"{item_type}: {data_id} not {action}d as catalog {catalog_path} doesn't exist"
-        )
+        if http_method == "PUT":
+            logger.warning(
+                f"{item_type}: {data_id} not {action}d as collection {data_id} doesn't exist"
+            )
+        elif http_method == "POST":
+            logger.warning(
+                f"{item_type}: {data_id} not {action}d as catalog {catalog_path} doesn't exist"
+            )
     else:
         logger.warning(f"{item_type}: {data_id} not {action}d in {catalog_path}")
         logger.warning(f"Status Code: {resp.status_code} on url: {api_url}/catalogs")
@@ -531,7 +536,7 @@ def interpret_message(msg: str, api_url: str):
 
         if data.get("type") == "Collection":
             collection_id = data["id"]
-            logger.info(f"Creating Collection {collection_id} in catalog {catalog_path}")
+            logger.info(f"Creating/updating Collection {collection_id} in catalog {catalog_path}")
 
             # Handle case in which catalog is not yet created for this collection
             create_or_update_collection(api_url, collection_id, data, workspace, catalog_path)
