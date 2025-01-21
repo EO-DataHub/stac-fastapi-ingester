@@ -249,7 +249,8 @@ def test_handle_catalogs(
         # Mock the requests call
         requests_mock.post(expected_url, status_code=status_code)
         requests_mock.put(
-            f"{expected_url}/None?workspace=test_workspace", status_code=HTTPStatus.NOT_FOUND
+            "https://test-url/api/catalogs/None?workspace=test_workspace",
+            status_code=HTTPStatus.NOT_FOUND,
         )
         requests_mock.put(
             f"{expected_url.replace('test_catalog_id', '')}None?workspace=test_workspace",
@@ -357,7 +358,8 @@ def test_catalog_connection_error(
     if http_method == "POST":
         # Mock the requests call
         requests_mock.put(
-            f"{expected_url}/None?workspace=test_workspace", status_code=HTTPStatus.NOT_FOUND
+            "https://test-url/api/catalogs/None?workspace=test_workspace",
+            status_code=HTTPStatus.NOT_FOUND,
         )
         requests_mock.post(expected_url, exc=requests.ConnectionError)
         create_or_update_catalog(api_url, data, "test_workspace", catalog_path)
@@ -1235,13 +1237,13 @@ def test_interpret_message_catalog(
         added_keys = f'["{test_key}"]'
         update_keys = "[]"
         delete_keys = "[]"
-        expected_args = (api_url, test_data, "test_workspace", test_catalog_path)
+        expected_args = (api_url, test_data, "test_workspace", test_catalog_path, test_id)
     elif http_method == "PUT":
         mock_function = mock_create_or_update_catalog
         added_keys = "[]"
         update_keys = f'["{test_key}"]'
         delete_keys = "[]"
-        expected_args = (api_url, test_data, "test_workspace", test_catalog_path)  # , test_id)
+        expected_args = (api_url, test_data, "test_workspace", test_catalog_path, test_id)
     elif http_method == "DELETE":
         mock_function = mock_delete_catalog
         added_keys = "[]"
