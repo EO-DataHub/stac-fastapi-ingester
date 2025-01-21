@@ -316,7 +316,8 @@ def create_or_update_collection(
             query_params.update({"is_public": is_public})
 
             resp = requests.post(
-                f"{api_url}/catalogs/{catalog_path}/collections",
+                f"{api_url}/catalogs/{catalog_path}/collection",
+                # change to `collections` after updating ADES endpoint
                 headers=headers,
                 json=data,
                 params=query_params,
