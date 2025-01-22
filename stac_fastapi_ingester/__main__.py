@@ -598,6 +598,9 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
             create_or_update_catalog(api_url, data, workspace, catalog_path, data["id"])
 
     if files_to_retry and retry_count <= MAX_RETRIES:
+        logger.warning(
+            f"Retries required for {files_to_retry}. {retry_count} attempts currently made"
+        )
         retry_message = make_retry_message(updates_json, files_to_retry)
 
         return retry_message
@@ -627,7 +630,8 @@ def subscribe(ctx, prefix: Optional[str] = None):
             retry_message = interpret_message(msg.data().decode("utf-8"), api_url)
 
             if retry_message:
-                producer.send(retry_message)
+                logger.info(f"Retry {retry_message['retries']}: {retry_message}")
+                producer.send(json.dumps(retry_message).encode("utf-8"))
 
             consumer.acknowledge(msg)
     except pulsar.exceptions.Interrupted:
