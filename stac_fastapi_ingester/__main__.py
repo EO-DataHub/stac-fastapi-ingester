@@ -595,7 +595,10 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
             logger.info(
                 f"Creating Catalog {data['id']} in Catalog {catalog_path if catalog_path else 'top-level'}"
             )
-            create_or_update_catalog(api_url, data, workspace, catalog_path, data["id"])
+            success = create_or_update_catalog(api_url, data, workspace, catalog_path, data["id"])
+
+            if not success:
+                files_to_retry.append(file_key)
 
     if files_to_retry and retry_count < MAX_RETRIES:
         logger.warning(
