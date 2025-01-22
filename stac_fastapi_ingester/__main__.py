@@ -282,7 +282,7 @@ def create_or_update_catalog(
                 params=query_params,
             )
 
-        log_response(resp, data, data["id"], catalog_path, api_url, data_type)
+            log_response(resp, data, data["id"], catalog_path, api_url, data_type)
 
         resp.raise_for_status()
 
@@ -328,13 +328,8 @@ def create_or_update_collection(
                 json=data,
                 params=query_params,
             )
-            if resp.status_code == HTTPStatus.NOT_FOUND:
-                logging.error(
-                    f"Unable to update collection {collection_id} in "
-                    f"catalog {catalog_path}. Catalog doesn't exist"
-                )
 
-        log_response(resp, data, collection_id, catalog_path, api_url, data_type)
+            log_response(resp, data, collection_id, catalog_path, api_url, data_type)
         resp.raise_for_status()
 
         return True
@@ -372,10 +367,7 @@ def create_or_update_item(
                 params=query_params,
             )
 
-            if resp.status_code == HTTPStatus.NOT_FOUND:
-                logging.error(f"Collection {collection_id} doesn't exist")
-
-        log_response(resp, data, item_id, catalog_path, api_url, data_type)
+            log_response(resp, data, item_id, catalog_path, api_url, data_type)
         resp.raise_for_status()
 
         return True
