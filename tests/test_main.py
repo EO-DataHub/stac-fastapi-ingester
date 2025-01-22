@@ -1356,7 +1356,7 @@ def test_interpret_message_collection(
     mock_function.return_value = success  # either success (True) or fail (False)
 
     # Call function
-    interpret_message(test_msg, api_url)
+    output = interpret_message(test_msg, api_url)
 
     if success:
         # Check function called as expected
@@ -1369,6 +1369,9 @@ def test_interpret_message_collection(
         # Ensure all three calls are identical
         calls = mock_function.call_args_list
         assert calls[0].args == expected_args
+
+        assert "retries" in output.keys()
+        assert output["retries"] == 1
 
 
 @pytest.mark.parametrize(
@@ -1397,7 +1400,6 @@ def test_interpret_message_item(
     test_collection_id = "collection_key_1"
     test_key = f"transformed/catalog_key_1/{test_collection_id}/{test_item_id}"
     test_catalog_path = "catalog_key_1"
-    test_data = {"id": test_item_id, "type": "Collection"}
     api_url = "https://test-url/api"
     test_data = {"id": test_item_id, "type": "Feature", "collection": test_collection_id}
 
@@ -1462,7 +1464,7 @@ def test_interpret_message_item(
     mock_function.return_value = success  # either success (True) or fail (False)
 
     # Call function
-    interpret_message(test_msg, api_url)
+    output = interpret_message(test_msg, api_url)
 
     if success:
         # Check function called as expected
@@ -1475,6 +1477,9 @@ def test_interpret_message_item(
         # Ensure all three calls are identical
         calls = mock_function.call_args_list
         assert calls[0].args == expected_args
+
+        assert "retries" in output.keys()
+        assert output["retries"] == 1
 
 
 ##############
