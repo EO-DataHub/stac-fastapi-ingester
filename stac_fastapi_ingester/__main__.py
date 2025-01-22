@@ -222,7 +222,7 @@ def log_response(
         logger.warning("Status Code: NOT_FOUND")
         if http_method == "PUT":
             logger.warning(
-                f"{item_type}: {data_id} not {action}d as collection {data_id} doesn't exist"
+                f"{item_type}: {data_id} not {action}d as collection {catalog_path} doesn't exist"
             )
         elif http_method == "POST":
             logger.warning(
