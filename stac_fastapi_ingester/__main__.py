@@ -226,7 +226,7 @@ def log_response(
             )
         elif http_method == "POST":
             logger.warning(
-                f"{item_type}: {data_id} not {action}d as catalog {catalog_path} doesn't exist"
+                f"{item_type}: {data_id} not {action}d as catalog or collection {catalog_path} doesn't exist"
             )
     else:
         logger.warning(f"{item_type}: {data_id} not {action}d in {catalog_path}")
