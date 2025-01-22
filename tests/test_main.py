@@ -1298,13 +1298,11 @@ def test_interpret_message_catalog(
     ],
 )
 @patch("stac_fastapi_ingester.__main__.delete_collection")
-# @patch("stac_fastapi_ingester.__main__.update_collection")
 @patch("stac_fastapi_ingester.__main__.create_or_update_collection")
 @patch("stac_fastapi_ingester.__main__.load_data_from_s3")
 def test_interpret_message_collection(
     mock_load_data_from_s3,
     mock_create_or_update_collection,
-    # mock_update_collection,
     mock_delete_collection,
     http_method,
     success,
@@ -1384,13 +1382,11 @@ def test_interpret_message_collection(
     ],
 )
 @patch("stac_fastapi_ingester.__main__.delete_item")
-# @patch("stac_fastapi_ingester.__main__.update_item")
 @patch("stac_fastapi_ingester.__main__.create_or_update_item")
 @patch("stac_fastapi_ingester.__main__.load_data_from_s3")
 def test_interpret_message_item(
     mock_load_data_from_s3,
     mock_create_or_update_item,
-    # mock_update_item,
     mock_delete_item,
     http_method,
     success,
