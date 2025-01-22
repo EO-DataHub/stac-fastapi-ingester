@@ -246,30 +246,34 @@ def create_or_update_catalog(
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     query_params = {"workspace": workspace}
     data_type = "Catalogue"
+    catalogue_exists = True
     try:
 
-        if catalog_path and catalog_id:
-            combined_url = f"{api_url}/catalogs/{catalog_path}/{catalog_id}"
-        else:
-            combined_url = f"{api_url}/catalogs/{catalog_id}"
-        logging.info(f"Attempting to update {combined_url}")
-        resp = requests.put(
-            combined_url,
-            headers=headers,
-            json=data,
-            params=query_params,
-        )
-
-        log_response(resp, data, data["id"], catalog_path, api_url, data_type)
-
-        if resp.status_code == HTTPStatus.NOT_FOUND:
+        if catalog_id:
             if catalog_path:
-                catalog_path = f"/{catalog_path}"
-                combined_url = f"{api_url}/catalogs{catalog_path}"
+                combined_url = f"{api_url}/catalogs/{catalog_path}/{catalog_id}"
+            else:
+                combined_url = f"{api_url}/catalogs/{catalog_id}"
+
+            logging.info(f"Attempting to update {combined_url}")
+            resp = requests.put(
+                combined_url,
+                headers=headers,
+                json=data,
+                params=query_params,
+            )
+
+            log_response(resp, data, data["id"], catalog_path, api_url, data_type)
+
+        else:
+            catalogue_exists = False
+
+        if not catalogue_exists or resp.status_code == HTTPStatus.NOT_FOUND:
+            if catalog_path:
+                combined_url = f"{api_url}/catalogs/{catalog_path}"
             else:
                 # If no catalog path is provided, this is a top level catalog
-                catalog_path = ""
-                combined_url = f"{api_url}/catalogs{catalog_path}"
+                combined_url = f"{api_url}/catalogs"
             logging.info(f"Attempting to add {combined_url}")
             resp = requests.post(
                 combined_url,
@@ -453,11 +457,11 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
     files_to_update = updates_json["updated_keys"] if "updated_keys" in updates_json.keys() else []
     files_to_delete = updates_json["deleted_keys"] if "deleted_keys" in updates_json.keys() else []
     files_to_create = updates_json["added_keys"] if "added_keys" in updates_json.keys() else []
-    file_to_create_or_update = files_to_create + files_to_update
+    files_to_create_or_update = files_to_create + files_to_update
 
     # Data counts for logging
     num_deleted = len(files_to_delete)
-    num_created = len(files_to_create)
+    num_created_or_updated = len(files_to_create_or_update)
 
     # Sort by key length to ensure that catalogs are created before collections and items
     files_to_update.sort(key=lambda s: s.count("/"))
@@ -528,8 +532,13 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
             )
             delete_catalog(api_url, workspace, catalog_path, catalog_id)
 
-    for count, file_key in enumerate(file_to_create_or_update):
-        logger.info("Processing %s, %i of %i in list of created keys", file_key, count, num_created)
+    for count, file_key in enumerate(files_to_create_or_update):
+        logger.info(
+            "Processing %s, %i of %i in list of created and updated keys",
+            file_key,
+            count,
+            num_created_or_updated,
+        )
 
         data = load_data_from_s3(client, bucket_name, file_key)
         if not data:
