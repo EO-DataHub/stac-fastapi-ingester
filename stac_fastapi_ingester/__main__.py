@@ -597,7 +597,7 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
             )
             create_or_update_catalog(api_url, data, workspace, catalog_path, data["id"])
 
-    if files_to_retry and retry_count <= MAX_RETRIES:
+    if files_to_retry and retry_count < MAX_RETRIES:
         logger.warning(
             f"Retries required for {files_to_retry}. {retry_count} attempts currently made"
         )
