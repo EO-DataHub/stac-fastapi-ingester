@@ -39,6 +39,8 @@ ch.setFormatter(formatter)
 # add ch to logger
 logger.addHandler(ch)
 
+MAX_RETRIES = int(os.environ["MAX_RETRIES"])
+
 
 @click.group()
 @click.argument("topic", type=str)
@@ -327,6 +329,7 @@ def create_or_update_collection(
                     f"Unable to update collection {collection_id} in "
                     f"catalog {catalog_path}. Catalog doesn't exist"
                 )
+                return False
         log_response(resp, data, collection_id, catalog_path, api_url, data_type)
 
         resp.raise_for_status()
@@ -340,7 +343,7 @@ def create_or_update_collection(
             f"not created or updated"
         )
         logger.error(err)
-        return True
+        return False
 
 
 def create_or_update_item(
@@ -368,6 +371,7 @@ def create_or_update_item(
 
             if resp.status_code == HTTPStatus.NOT_FOUND:
                 logging.error(f"Collection {collection_id} doesn't exist")
+                return False
 
         log_response(resp, data, item_id, catalog_path, api_url, data_type)
         resp.raise_for_status()
@@ -380,7 +384,7 @@ def create_or_update_item(
             f"Catalog: {catalog_path} not created or updated"
         )
         logger.error(err)
-        return True
+        return False
 
 
 def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str) -> dict:
@@ -414,7 +418,16 @@ def load_data_from_s3(client: botocore.client, bucket_name: str, file_key: str) 
         return False
 
 
-def interpret_message(msg: str, api_url: str):
+def make_retry_message(original_message: dict, files_to_retry: list) -> dict:
+    message = original_message.copy()
+    message["updated_keys"] = files_to_retry
+    message["added_keys"] = []
+    message["deleted_keys"] = []
+    message["retries"] = int(message.get("retries"), 0) + 1
+    return message
+
+
+def interpret_message(msg: str, api_url: str) -> Optional[dict]:
     # Configure boto3 client ready for data access
     if os.getenv("AWS_ACCESS_KEY") and os.getenv("AWS_SECRET_ACCESS_KEY"):
         session = boto3.session.Session(
@@ -435,6 +448,9 @@ def interpret_message(msg: str, api_url: str):
     # Extract workspace from message
     workspace = updates_json["workspace"]
 
+    # Extract number of retry attempts, if any:
+    retry_count = updates_json.get("retries")
+
     # Extract file names into actions lists
     files_to_update = updates_json["updated_keys"] if "updated_keys" in updates_json.keys() else []
     files_to_delete = updates_json["deleted_keys"] if "deleted_keys" in updates_json.keys() else []
@@ -448,6 +464,8 @@ def interpret_message(msg: str, api_url: str):
     # Sort by key length to ensure that catalogs are created before collections and items
     files_to_update.sort(key=lambda s: s.count("/"))
     files_to_create.sort(key=lambda s: s.count("/"))
+
+    files_to_retry = []
 
     # Delete catalogs, collections and items
     for count, file_key in enumerate(files_to_delete):
@@ -540,7 +558,11 @@ def interpret_message(msg: str, api_url: str):
             logger.info(f"Creating/updating Collection {collection_id} in catalog {catalog_path}")
 
             # Handle case in which catalog is not yet created for this collection
-            create_or_update_collection(api_url, collection_id, data, workspace, catalog_path)
+            success = create_or_update_collection(
+                api_url, collection_id, data, workspace, catalog_path
+            )
+            if not success:
+                files_to_retry.append(file_key)
 
         elif data.get("type") == "Feature":
             item_id = data["id"]
@@ -564,13 +586,23 @@ def interpret_message(msg: str, api_url: str):
             )
 
             # Handle case in which catalog and/or collection is not yet created for this item
-            create_or_update_item(api_url, collection_id, item_id, data, workspace, catalog_path)
+            success = create_or_update_item(
+                api_url, collection_id, item_id, data, workspace, catalog_path
+            )
+
+            if not success:
+                files_to_retry.append(file_key)
 
         elif data.get("type") == "Catalog":
             logger.info(
                 f"Creating Catalog {data['id']} in Catalog {catalog_path if catalog_path else 'top-level'}"
             )
             create_or_update_catalog(api_url, data, workspace, catalog_path, data["id"])
+
+    if files_to_retry and int(retry_count) <= MAX_RETRIES:
+        retry_message = make_retry_message(updates_json, files_to_retry)
+
+        return retry_message
 
 
 @cli.command()
@@ -583,13 +615,22 @@ def subscribe(ctx, prefix: Optional[str] = None):
     client: pulsar.Client = ctx.obj["CLIENT"]
     topic: str = ctx.obj["TOPIC"]
     consumer = client.subscribe(topic=topic, subscription_name=prefix)
+    producer = client.create_producer(
+        topic=topic,
+        producer_name=prefix,
+        chunking_enabled=True,
+    )
     api_url = os.getenv("FASTAPI_URL", "")
     try:
         while True:
             logger.info("Waiting for message")
             msg = consumer.receive()
             logger.info(msg.data())
-            interpret_message(msg.data().decode("utf-8"), api_url)
+            retry_message = interpret_message(msg.data().decode("utf-8"), api_url)
+
+            if retry_message:
+                producer.send(retry_message)
+
             consumer.acknowledge(msg)
     except pulsar.exceptions.Interrupted:
         pass
