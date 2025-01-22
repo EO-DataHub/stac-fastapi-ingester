@@ -39,7 +39,7 @@ ch.setFormatter(formatter)
 # add ch to logger
 logger.addHandler(ch)
 
-MAX_RETRIES = int(os.environ["MAX_RETRIES"])
+MAX_RETRIES = int(os.environ.get("MAX_RETRIES", 3))
 
 
 @click.group()
@@ -329,9 +329,8 @@ def create_or_update_collection(
                     f"Unable to update collection {collection_id} in "
                     f"catalog {catalog_path}. Catalog doesn't exist"
                 )
-                return False
-        log_response(resp, data, collection_id, catalog_path, api_url, data_type)
 
+        log_response(resp, data, collection_id, catalog_path, api_url, data_type)
         resp.raise_for_status()
 
         return True
@@ -371,7 +370,6 @@ def create_or_update_item(
 
             if resp.status_code == HTTPStatus.NOT_FOUND:
                 logging.error(f"Collection {collection_id} doesn't exist")
-                return False
 
         log_response(resp, data, item_id, catalog_path, api_url, data_type)
         resp.raise_for_status()
@@ -423,7 +421,7 @@ def make_retry_message(original_message: dict, files_to_retry: list) -> dict:
     message["updated_keys"] = files_to_retry
     message["added_keys"] = []
     message["deleted_keys"] = []
-    message["retries"] = int(message.get("retries"), 0) + 1
+    message["retries"] = int(message.get("retries", 0)) + 1
     return message
 
 
@@ -449,7 +447,7 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
     workspace = updates_json["workspace"]
 
     # Extract number of retry attempts, if any:
-    retry_count = updates_json.get("retries")
+    retry_count = updates_json.get("retries", 0)
 
     # Extract file names into actions lists
     files_to_update = updates_json["updated_keys"] if "updated_keys" in updates_json.keys() else []
@@ -599,7 +597,7 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
             )
             create_or_update_catalog(api_url, data, workspace, catalog_path, data["id"])
 
-    if files_to_retry and int(retry_count) <= MAX_RETRIES:
+    if files_to_retry and retry_count <= MAX_RETRIES:
         retry_message = make_retry_message(updates_json, files_to_retry)
 
         return retry_message

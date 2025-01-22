@@ -458,7 +458,7 @@ def test_catalog_connection_error(
             2,
             "https://test-url/api/catalogs/example/path/to/catalog/collections",
             {"accept": "application/json", "Content-Type": "application/json"},
-            "Catalog: example/path/to/catalog not created",
+            "Catalog doesn't exist",
             {"workspace": ["test_workspace"], "is_public": ["true"]},
             id="create_not_found",
         ),
@@ -610,6 +610,14 @@ def test_handle_collections(
         # Mock the requests call
         requests_mock.post(expected_url, status_code=status_code)
         requests_mock.post(f"{expected_url}", status_code=status_code)
+        requests_mock.post(
+            "https://test-url/api/catalogs/example/path/to/catalog/collection?workspace=test_workspace&is_public=True",
+            status_code=status_code,
+        )
+        requests_mock.post(
+            "https://test-url/api/catalogs/user-datasets/example/path/to/catalog/collection?workspace=test_workspace&is_public=False",
+            status_code=status_code,
+        )
         requests_mock.put(
             f"{expected_url}s/test_collection_id?workspace=test_workspace",
             status_code=HTTPStatus.NOT_FOUND,
