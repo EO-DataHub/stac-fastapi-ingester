@@ -462,7 +462,7 @@ def test_catalog_connection_error(
             2,
             "https://test-url/api/catalogs/example/path/to/catalog/collections",
             {"accept": "application/json", "Content-Type": "application/json"},
-            "catalog example/path/to/catalog doesn't exist",
+            "example/path/to/catalog doesn't exist",
             {"workspace": ["test_workspace"], "is_public": ["true"]},
             id="create_not_found",
         ),
