@@ -582,7 +582,7 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
                 logging.error(f"Key 'collection' not found in file {file_key}")
                 continue
             logger.info(
-                f"Creating Item {item_id} in collection {collection_id} in catalog {catalog_path}"
+                f"Creating/updating Item {item_id} in collection {collection_id} in catalog {catalog_path}"
             )
 
             # Handle case in which catalog and/or collection is not yet created for this item
@@ -595,7 +595,8 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
 
         elif data.get("type") == "Catalog":
             logger.info(
-                f"Creating Catalog {data['id']} in Catalog {catalog_path if catalog_path else 'top-level'}"
+                f"Creating/updating Catalog {data['id']} in Catalog"
+                f" {catalog_path if catalog_path else 'top-level'}"
             )
             success = create_or_update_catalog(api_url, data, workspace, catalog_path, data["id"])
 
