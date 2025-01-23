@@ -1,5 +1,6 @@
 import json
 import os
+from http import HTTPStatus
 from io import BytesIO
 from unittest import mock
 from unittest.mock import patch
@@ -12,18 +13,15 @@ from click.testing import CliRunner
 
 from stac_fastapi_ingester.__main__ import (
     cli,
-    create_catalog,
-    create_collection,
-    create_item,
+    create_or_update_catalog,
+    create_or_update_collection,
+    create_or_update_item,
     delete_catalog,
     delete_collection,
     delete_item,
     interpret_message,
     load_data_from_s3,
     update_access_policy,
-    update_catalog,
-    update_collection,
-    update_item,
 )
 
 ###################
@@ -153,7 +151,7 @@ from stac_fastapi_ingester.__main__ import (
             id="update_conflict",
         ),
         pytest.param(
-            "PUT",
+            "POST",
             404,
             "https://test-url/api",
             {"id": "test_catalog_id"},
@@ -250,12 +248,28 @@ def test_handle_catalogs(
     if http_method == "POST":
         # Mock the requests call
         requests_mock.post(expected_url, status_code=status_code)
-        create_catalog(api_url, data, "test_workspace", catalog_path)
+        requests_mock.post(
+            "https://test-url/api/catalogs/example/path/to/catalog?workspace=test_workspace",
+            status_code=status_code,
+        )
+        requests_mock.put(
+            "https://test-url/api/catalogs/None?workspace=test_workspace",
+            status_code=HTTPStatus.NOT_FOUND,
+        )
+        requests_mock.put(
+            f"{expected_url.replace('test_catalog_id', '')}None?workspace=test_workspace",
+            status_code=HTTPStatus.NOT_FOUND,
+        )
+        create_or_update_catalog(api_url, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data, "params": params}
     elif http_method == "PUT":
         # Mock the requests call
         requests_mock.put(expected_url, status_code=status_code)
-        update_catalog(api_url, data, "test_workspace", catalog_path, "test_catalog_id")
+        requests_mock.post(
+            f"{expected_url.replace('/test_catalog_id', '')}?workspace=test_workspace",
+            status_code=status_code,
+        )
+        create_or_update_catalog(api_url, data, "test_workspace", catalog_path, "test_catalog_id")
         expected_kwargs = {"headers": expected_headers, "json": data, "params": params}
     elif http_method == "DELETE":
         # Mock the requests call
@@ -268,7 +282,7 @@ def test_handle_catalogs(
     assert requests_mock.call_count == call_count
 
     # Check requests was made with expected arguments
-    request = requests_mock.request_history[0]
+    request = requests_mock.request_history[-1]
     assert request.method == http_method
 
     for arg in expected_kwargs:
@@ -298,7 +312,7 @@ def test_handle_catalogs(
             1,
             "https://test-url/api/catalogs/example/path/to/catalog",
             {"accept": "application/json", "Content-Type": "application/json"},
-            "Catalog: test_catalog_id not created",
+            "Catalog: test_catalog_id not created or updated",
             {"workspace": ["test_workspace"]},
             id="create",
         ),
@@ -311,7 +325,7 @@ def test_handle_catalogs(
             1,
             "https://test-url/api/catalogs/example/path/to/catalog/test_catalog_id",
             {"accept": "application/json", "Content-Type": "application/json"},
-            "Catalog: test_catalog_id at example/path/to/catalog not updated",
+            "Catalog: test_catalog_id not created or updated in example/path/to/catalog",
             {"workspace": ["test_workspace"]},
             id="update",
         ),
@@ -347,13 +361,17 @@ def test_catalog_connection_error(
 
     if http_method == "POST":
         # Mock the requests call
+        requests_mock.put(
+            "https://test-url/api/catalogs/None?workspace=test_workspace",
+            status_code=HTTPStatus.NOT_FOUND,
+        )
         requests_mock.post(expected_url, exc=requests.ConnectionError)
-        create_catalog(api_url, data, "test_workspace", catalog_path)
+        create_or_update_catalog(api_url, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data, "params": params}
     elif http_method == "PUT":
         # Mock the requests call
         requests_mock.put(expected_url, exc=requests.ConnectionError)
-        update_catalog(api_url, data, "test_workspace", catalog_path, catalog_id)
+        create_or_update_catalog(api_url, data, "test_workspace", catalog_path, catalog_id)
         expected_kwargs = {"headers": expected_headers, "json": data, "params": params}
     elif http_method == "DELETE":
         # Mock the requests call
@@ -366,7 +384,7 @@ def test_catalog_connection_error(
     assert requests_mock.call_count == call_count
 
     # Check requests was made with expected arguments
-    request = requests_mock.request_history[0]
+    request = requests_mock.request_history[-1]
     assert request.method == http_method
 
     for arg in expected_kwargs:
@@ -399,11 +417,11 @@ def test_catalog_connection_error(
             {"id": "test_collection_id"},
             "test_collection_id",
             "example/path/to/catalog",
-            1,
-            "https://test-url/api/catalogs/example/path/to/catalog/collection",
+            2,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: OK",
-            {"workspace": ["test_workspace"]},
+            {"workspace": ["test_workspace"], "is_public": ["true"]},
             id="create_success_public",
         ),
         pytest.param(
@@ -413,11 +431,11 @@ def test_catalog_connection_error(
             {"id": "test_collection_id"},
             "test_collection_id",
             "user-datasets/example/path/to/catalog",
-            1,
-            "https://test-url/api/catalogs/user-datasets/example/path/to/catalog/collection",
+            2,
+            "https://test-url/api/catalogs/user-datasets/example/path/to/catalog/collections",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: OK",
-            {"workspace": ["test_workspace"]},
+            {"workspace": ["test_workspace"], "is_public": ["false"]},
             id="create_success_private",
         ),
         pytest.param(
@@ -427,11 +445,11 @@ def test_catalog_connection_error(
             {"id": "test_collection_id"},
             "test_collection_id",
             "example/path/to/catalog",
-            1,
-            "https://test-url/api/catalogs/example/path/to/catalog/collection",
+            2,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: CONFLICT",
-            {"workspace": ["test_workspace"]},
+            {"workspace": ["test_workspace"], "is_public": ["true"]},
             id="create_conflict",
         ),
         pytest.param(
@@ -441,11 +459,11 @@ def test_catalog_connection_error(
             {"id": "test_collection_id"},
             "test_collection_id",
             "example/path/to/catalog",
-            1,
-            "https://test-url/api/catalogs/example/path/to/catalog/collection",
+            2,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections",
             {"accept": "application/json", "Content-Type": "application/json"},
-            "Catalog: example/path/to/catalog not created",
-            {"workspace": ["test_workspace"]},
+            "example/path/to/catalog doesn't exist",
+            {"workspace": ["test_workspace"], "is_public": ["true"]},
             id="create_not_found",
         ),
         pytest.param(
@@ -455,11 +473,11 @@ def test_catalog_connection_error(
             {"id": "test_collection_id"},
             "test_collection_id",
             "example/path/to/catalog",
-            1,
-            "https://test-url/api/catalogs/example/path/to/catalog/collection",
+            2,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: 400",
-            {"workspace": ["test_workspace"]},
+            {"workspace": ["test_workspace"], "is_public": ["true"]},
             id="create_error",
         ),
         pytest.param(
@@ -491,17 +509,17 @@ def test_catalog_connection_error(
             id="update_conflict",
         ),
         pytest.param(
-            "PUT",
+            "POST",
             404,
             "https://test-url/api",
             {"id": "test_collection_id"},
             "test_collection_id",
             "example/path/to/catalog",
-            1,
+            2,
             "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: NOT_FOUND",
-            {"workspace": ["test_workspace"]},
+            {"workspace": ["test_workspace"], "is_public": ["true"]},
             id="update_not_found",
         ),
         pytest.param(
@@ -595,12 +613,33 @@ def test_handle_collections(
     if http_method == "POST":
         # Mock the requests call
         requests_mock.post(expected_url, status_code=status_code)
-        create_collection(api_url, collection_id, data, "test_workspace", catalog_path)
+        requests_mock.post(f"{expected_url}", status_code=status_code)
+        requests_mock.post(
+            "https://test-url/api/catalogs/example/path/to/catalog/collection?workspace=test_workspace&is_public=True",
+            status_code=status_code,
+        )
+        requests_mock.post(
+            "https://test-url/api/catalogs/user-datasets/example/path/to/catalog/collection?workspace=test_workspace&is_public=False",
+            status_code=status_code,
+        )
+        requests_mock.put(
+            f"{expected_url}s/test_collection_id?workspace=test_workspace",
+            status_code=HTTPStatus.NOT_FOUND,
+        )
+        requests_mock.put(
+            f"{expected_url.replace('/test_collection_id', '')}/test_collection_id?workspace=test_workspace",
+            status_code=HTTPStatus.NOT_FOUND,
+        )
+        create_or_update_collection(api_url, collection_id, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data, "params": params}
     elif http_method == "PUT":
         # Mock the requests call
         requests_mock.put(expected_url, status_code=status_code)
-        update_collection(api_url, collection_id, data, "test_workspace", catalog_path)
+        requests_mock.post(
+            f"{expected_url.replace('/test_collection_id', '')}?workspace=test_workspace&is_public=True",
+            status_code=status_code,
+        )
+        create_or_update_collection(api_url, collection_id, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data, "params": params}
     elif http_method == "DELETE":
         # Mock the requests call
@@ -613,7 +652,7 @@ def test_handle_collections(
     assert requests_mock.call_count == call_count
 
     # Check requests was made with expected arguments
-    request = requests_mock.request_history[0]
+    request = requests_mock.request_history[-1]
     assert request.method == http_method
 
     for arg in expected_kwargs:
@@ -624,7 +663,6 @@ def test_handle_collections(
         elif arg == "json":
             assert request.json() == expected_kwargs[arg]
         elif arg == "params":
-            print(request.qs)
             assert request.qs == expected_kwargs[arg]
 
     # Check output log is correct
@@ -641,11 +679,11 @@ def test_handle_collections(
             {"id": "test_item_id"},
             "test_collection_id",
             "example/path/to/catalog",
-            1,
-            "https://test-url/api/catalogs/example/path/to/catalog/collection",
+            2,
+            "https://test-url/api/catalogs/example/path/to/catalog/collections",
             {"accept": "application/json", "Content-Type": "application/json"},
-            "Collection: test_collection_id not created",
-            {"workspace": ["test_workspace"]},
+            "Collection: test_collection_id in Catalog: example/path/to/catalog not created or updated",
+            {"workspace": ["test_workspace"], "is_public": ["true"]},
             id="create",
         ),
         pytest.param(
@@ -657,7 +695,7 @@ def test_handle_collections(
             1,
             "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id",
             {"accept": "application/json", "Content-Type": "application/json"},
-            "Collection: test_collection_id in Catalog: example/path/to/catalog not updated",
+            "Collection: test_collection_id in Catalog: example/path/to/catalog not created or updated",
             {"workspace": ["test_workspace"]},
             id="update",
         ),
@@ -693,13 +731,17 @@ def test_collection_connection_error(
 
     if http_method == "POST":
         # Mock the requests call
+        requests_mock.put(
+            f"{expected_url}/test_collection_id?workspace=test_workspace",
+            status_code=HTTPStatus.NOT_FOUND,
+        )
         requests_mock.post(expected_url, exc=requests.ConnectionError)
-        create_collection(api_url, collection_id, data, "test_workspace", catalog_path)
+        create_or_update_collection(api_url, collection_id, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data, "params": params}
     elif http_method == "PUT":
         # Mock the requests call
         requests_mock.put(expected_url, exc=requests.ConnectionError)
-        update_collection(api_url, collection_id, data, "test_workspace", catalog_path)
+        create_or_update_collection(api_url, collection_id, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data, "params": params}
     elif http_method == "DELETE":
         # Mock the requests call
@@ -712,7 +754,7 @@ def test_collection_connection_error(
     assert requests_mock.call_count == call_count
 
     # Check requests was made with expected arguments
-    request = requests_mock.request_history[0]
+    request = requests_mock.request_history[-1]
     assert request.method == http_method
 
     for arg in expected_kwargs:
@@ -747,7 +789,7 @@ def test_collection_connection_error(
             "test_collection_id",
             "test_item_id",
             "example/path/to/catalog",
-            1,
+            2,
             "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id/items",
             {"accept": "application/json", "Content-Type": "application/json"},
             ["Status Code: OK"],
@@ -763,7 +805,7 @@ def test_collection_connection_error(
             "test_collection_id",
             "test_item_id",
             "example/path/to/catalog",
-            1,
+            2,
             "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id/items",
             {"accept": "application/json", "Content-Type": "application/json"},
             ["Status Code: CONFLICT"],
@@ -779,10 +821,13 @@ def test_collection_connection_error(
             "test_collection_id",
             "test_item_id",
             "example/path/to/catalog",
-            1,
+            2,
             "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id/items",
             {"accept": "application/json", "Content-Type": "application/json"},
-            ["Collection: test_collection_id or Catalog: example/path/to/catalog not created"],
+            [
+                "Item: test_item_id in Collection: test_collection_id in "
+                "Catalog: example/path/to/catalog not created or updated"
+            ],
             {"workspace": ["test_workspace"]},
             id="create_not_found",
         ),
@@ -795,7 +840,7 @@ def test_collection_connection_error(
             "test_collection_id",
             "test_item_id",
             "example/path/to/catalog",
-            1,
+            2,
             "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id/items",
             {"accept": "application/json", "Content-Type": "application/json"},
             ["Status Code: 400"],
@@ -835,7 +880,7 @@ def test_collection_connection_error(
             id="update_conflict",
         ),
         pytest.param(
-            "PUT",
+            "POST",
             404,
             "Item",
             "https://test-url/api",
@@ -843,15 +888,15 @@ def test_collection_connection_error(
             "test_collection_id",
             "test_item_id",
             "example/path/to/catalog",
-            1,
+            2,
             "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id/items/test_item_id",
             {"accept": "application/json", "Content-Type": "application/json"},
-            ["Status Code: NOT_FOUND", "item doesn't exist"],
+            ["Status Code: NOT_FOUND", "not created", "not updated"],
             {"workspace": ["test_workspace"]},
             id="update_not_found_item",
         ),
         pytest.param(
-            "PUT",
+            "POST",
             404,
             "Collection",
             "https://test-url/api",
@@ -859,15 +904,19 @@ def test_collection_connection_error(
             "test_collection_id",
             "test_item_id",
             "example/path/to/catalog",
-            1,
+            2,
             "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id/items/test_item_id",
             {"accept": "application/json", "Content-Type": "application/json"},
-            ["Status Code: NOT_FOUND", "collection doesn't exist"],
+            [
+                "Status Code: NOT_FOUND",
+                "test_item_id not updated as item test_item_id or collection example/path/to/catalog "
+                "doesn't exist",
+            ],
             {"workspace": ["test_workspace"]},
             id="update_not_found_collection",
         ),
         pytest.param(
-            "PUT",
+            "POST",
             404,
             "Catalog",
             "https://test-url/api",
@@ -875,7 +924,7 @@ def test_collection_connection_error(
             "test_collection_id",
             "test_item_id",
             "example/path/to/catalog",
-            1,
+            2,
             "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id/items/test_item_id",
             {"accept": "application/json", "Content-Type": "application/json"},
             ["Status Code: NOT_FOUND", "catalog doesn't exist"],
@@ -985,14 +1034,33 @@ def test_handle_items(
     if http_method == "POST":
         # Mock the requests call
         requests_mock.post(expected_url, status_code=status_code)
-        create_item(api_url, collection_id, item_id, data, "test_workspace", catalog_path)
+        requests_mock.put(
+            f"{expected_url}/test_item_id?workspace=test_workspace",
+            status_code=HTTPStatus.NOT_FOUND,
+        )
+        requests_mock.put(f"{expected_url}?workspace=test_workspace", status_code=status_code)
+        requests_mock.put(
+            f"{expected_url.replace('/test_item_id', '')}?workspace=test_workspace",
+            status_code=status_code,
+        )
+        requests_mock.post(
+            f"{expected_url.replace('/test_item_id', '')}?workspace=test_workspace",
+            status_code=status_code,
+        )
+
+        create_or_update_item(api_url, collection_id, item_id, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data, "params": params}
     elif http_method == "PUT":
         # Create mock content
         mock_content = f'{{"description": "{error_description}"}}'.encode("utf-8")
         # Mock the requests call
         requests_mock.put(expected_url, status_code=status_code, content=mock_content)
-        update_item(api_url, collection_id, item_id, data, "test_workspace", catalog_path)
+        requests_mock.post(
+            f"{expected_url.replace('/test_item_id', '')}?workspace=test_workspace",
+            status_code=status_code,
+            content=mock_content,
+        )
+        create_or_update_item(api_url, collection_id, item_id, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data, "params": params}
     elif http_method == "DELETE":
         # Mock the requests call
@@ -1005,7 +1073,7 @@ def test_handle_items(
     assert requests_mock.call_count == call_count
 
     # Check requests was made with expected arguments
-    request = requests_mock.request_history[0]
+    request = requests_mock.request_history[-1]
     assert request.method == http_method
 
     for arg in expected_kwargs:
@@ -1034,11 +1102,11 @@ def test_handle_items(
             "test_collection_id",
             "test_item_id",
             "example/path/to/catalog",
-            1,
+            2,
             "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id/items",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Item: test_item_id in Collection: test_collection_id in Catalog: "
-            "example/path/to/catalog not created",
+            "example/path/to/catalog not created or updated",
             {"workspace": ["test_workspace"]},
             id="create",
         ),
@@ -1053,7 +1121,7 @@ def test_handle_items(
             "https://test-url/api/catalogs/example/path/to/catalog/collections/test_collection_id/items/test_item_id",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Item: test_item_id in Collection: test_collection_id in "
-            "Catalog: example/path/to/catalog not updated",
+            "Catalog: example/path/to/catalog not created or updated",
             {"workspace": ["test_workspace"]},
             id="update",
         ),
@@ -1093,13 +1161,17 @@ def test_item_connection_error(
 
     if http_method == "POST":
         # Mock the requests call
+        requests_mock.put(
+            f"{expected_url}/test_item_id?workspace=test_workspace",
+            status_code=HTTPStatus.NOT_FOUND,
+        )
         requests_mock.post(expected_url, exc=requests.ConnectionError)
-        create_item(api_url, collection_id, item_id, data, "test_workspace", catalog_path)
+        create_or_update_item(api_url, collection_id, item_id, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data, "params": params}
     elif http_method == "PUT":
         # Mock the requests call
         requests_mock.put(expected_url, exc=requests.ConnectionError)
-        update_item(api_url, collection_id, item_id, data, "test_workspace", catalog_path)
+        create_or_update_item(api_url, collection_id, item_id, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data, "params": params}
     elif http_method == "DELETE":
         # Mock the requests call
@@ -1112,7 +1184,7 @@ def test_item_connection_error(
     assert requests_mock.call_count == call_count
 
     # Check requests was made with expected arguments
-    request = requests_mock.request_history[0]
+    request = requests_mock.request_history[-1]
     assert request.method == http_method
 
     for arg in expected_kwargs:
@@ -1158,13 +1230,11 @@ def test_item_connection_error(
     ],
 )
 @patch("stac_fastapi_ingester.__main__.delete_catalog")
-@patch("stac_fastapi_ingester.__main__.update_catalog")
-@patch("stac_fastapi_ingester.__main__.create_catalog")
+@patch("stac_fastapi_ingester.__main__.create_or_update_catalog")
 @patch("stac_fastapi_ingester.__main__.load_data_from_s3")
 def test_interpret_message_catalog(
     mock_load_data_from_s3,
-    mock_create_catalog,
-    mock_update_catalog,
+    mock_create_or_update_catalog,
     mock_delete_catalog,
     http_method,
     api_url,
@@ -1179,13 +1249,13 @@ def test_interpret_message_catalog(
 
     # Setup mocks based on the http_method parameter
     if http_method == "POST":
-        mock_function = mock_create_catalog
+        mock_function = mock_create_or_update_catalog
         added_keys = f'["{test_key}"]'
         update_keys = "[]"
         delete_keys = "[]"
-        expected_args = (api_url, test_data, "test_workspace", test_catalog_path)
+        expected_args = (api_url, test_data, "test_workspace", test_catalog_path, test_id)
     elif http_method == "PUT":
-        mock_function = mock_update_catalog
+        mock_function = mock_create_or_update_catalog
         added_keys = "[]"
         update_keys = f'["{test_key}"]'
         delete_keys = "[]"
@@ -1236,13 +1306,11 @@ def test_interpret_message_catalog(
     ],
 )
 @patch("stac_fastapi_ingester.__main__.delete_collection")
-@patch("stac_fastapi_ingester.__main__.update_collection")
-@patch("stac_fastapi_ingester.__main__.create_collection")
+@patch("stac_fastapi_ingester.__main__.create_or_update_collection")
 @patch("stac_fastapi_ingester.__main__.load_data_from_s3")
 def test_interpret_message_collection(
     mock_load_data_from_s3,
-    mock_create_collection,
-    mock_update_collection,
+    mock_create_or_update_collection,
     mock_delete_collection,
     http_method,
     success,
@@ -1257,13 +1325,13 @@ def test_interpret_message_collection(
 
     # Setup mocks based on the http_method parameter
     if http_method == "POST":
-        mock_function = mock_create_collection
+        mock_function = mock_create_or_update_collection
         added_keys = f'["{test_key}"]'
         update_keys = "[]"
         delete_keys = "[]"
         expected_args = (api_url, test_id, test_data, "test_workspace", test_catalog_path)
     elif http_method == "PUT":
-        mock_function = mock_update_collection
+        mock_function = mock_create_or_update_collection
         added_keys = "[]"
         update_keys = f'["{test_key}"]'
         delete_keys = "[]"
@@ -1296,7 +1364,7 @@ def test_interpret_message_collection(
     mock_function.return_value = success  # either success (True) or fail (False)
 
     # Call function
-    interpret_message(test_msg, api_url)
+    output = interpret_message(test_msg, api_url)
 
     if success:
         # Check function called as expected
@@ -1310,6 +1378,9 @@ def test_interpret_message_collection(
         calls = mock_function.call_args_list
         assert calls[0].args == expected_args
 
+        assert "retries" in output.keys()
+        assert output["retries"] == 1
+
 
 @pytest.mark.parametrize(
     "http_method, success",
@@ -1322,13 +1393,11 @@ def test_interpret_message_collection(
     ],
 )
 @patch("stac_fastapi_ingester.__main__.delete_item")
-@patch("stac_fastapi_ingester.__main__.update_item")
-@patch("stac_fastapi_ingester.__main__.create_item")
+@patch("stac_fastapi_ingester.__main__.create_or_update_item")
 @patch("stac_fastapi_ingester.__main__.load_data_from_s3")
 def test_interpret_message_item(
     mock_load_data_from_s3,
-    mock_create_item,
-    mock_update_item,
+    mock_create_or_update_item,
     mock_delete_item,
     http_method,
     success,
@@ -1339,13 +1408,12 @@ def test_interpret_message_item(
     test_collection_id = "collection_key_1"
     test_key = f"transformed/catalog_key_1/{test_collection_id}/{test_item_id}"
     test_catalog_path = "catalog_key_1"
-    test_data = {"id": test_item_id, "type": "Collection"}
     api_url = "https://test-url/api"
     test_data = {"id": test_item_id, "type": "Feature", "collection": test_collection_id}
 
     # Setup mocks based on the http_method parameter
     if http_method == "POST":
-        mock_function = mock_create_item
+        mock_function = mock_create_or_update_item
         added_keys = f'["{test_key}"]'
         update_keys = "[]"
         delete_keys = "[]"
@@ -1358,7 +1426,7 @@ def test_interpret_message_item(
             test_catalog_path,
         )
     elif http_method == "PUT":
-        mock_function = mock_update_item
+        mock_function = mock_create_or_update_item
         added_keys = "[]"
         update_keys = f'["{test_key}"]'
         delete_keys = "[]"
@@ -1404,7 +1472,7 @@ def test_interpret_message_item(
     mock_function.return_value = success  # either success (True) or fail (False)
 
     # Call function
-    interpret_message(test_msg, api_url)
+    output = interpret_message(test_msg, api_url)
 
     if success:
         # Check function called as expected
@@ -1417,6 +1485,9 @@ def test_interpret_message_item(
         # Ensure all three calls are identical
         calls = mock_function.call_args_list
         assert calls[0].args == expected_args
+
+        assert "retries" in output.keys()
+        assert output["retries"] == 1
 
 
 ##############
@@ -1768,7 +1839,6 @@ def test_update_metadata_policy(
     interpret_message(test_msg, api_url)
 
     calls = mock_update_access_policy.call_args_list
-    print(calls)
 
     # Check function called as expected
     assert calls[0].args == (
