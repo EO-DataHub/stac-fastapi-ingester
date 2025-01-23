@@ -221,9 +221,7 @@ def log_response(
     elif resp.status_code == HTTPStatus.NOT_FOUND:
         logger.warning("Status Code: NOT_FOUND")
         if http_method == "PUT":
-            logger.warning(
-                f"{item_type}: {data_id} not {action}d as collection {catalog_path} doesn't exist"
-            )
+            logger.warning(f"{item_type}: {data_id} not {action}d as item {data_id} doesn't exist")
         elif http_method == "POST":
             logger.warning(
                 f"{item_type}: {data_id} not {action}d as catalog or collection {catalog_path} doesn't exist"
