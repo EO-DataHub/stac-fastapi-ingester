@@ -909,7 +909,8 @@ def test_collection_connection_error(
             {"accept": "application/json", "Content-Type": "application/json"},
             [
                 "Status Code: NOT_FOUND",
-                "test_item_id not updated as collection example/path/to/catalog doesn't exist",
+                "test_item_id not updated as item test_item_id or collection example/path/to/catalog "
+                "doesn't exist",
             ],
             {"workspace": ["test_workspace"]},
             id="update_not_found_collection",
