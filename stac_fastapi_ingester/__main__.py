@@ -436,7 +436,6 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
 
     # Extract as JSON dictionary
     updates_json = json.loads(msg)
-
     # Extract bucket name from message
     bucket_name = updates_json["bucket_name"]
 
@@ -451,7 +450,7 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
     files_to_delete = updates_json["deleted_keys"] if "deleted_keys" in updates_json.keys() else []
     files_to_create = updates_json["added_keys"] if "added_keys" in updates_json.keys() else []
     files_to_create_or_update = files_to_create + files_to_update
-
+    logger.info(f"files to delete {files_to_delete}")
     # Data counts for logging
     num_deleted = len(files_to_delete)
     num_created_or_updated = len(files_to_create_or_update)
@@ -486,7 +485,7 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
             catalog_path = "/".join(catalog_path_list)
 
         if data.get("type") == "Collection":
-            collection_id = data["id"]
+            collection_id = file_key.split("/")[-1].split(".")[0]
             logger.info(
                 f"Deleting collection {collection_id} from "
                 f"Catalog {catalog_path if catalog_path else 'top-level'}"
@@ -494,7 +493,8 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
             delete_collection(api_url, collection_id, workspace, catalog_path)
 
         elif data.get("type") == "Feature":
-            item_id = data["id"]
+            item_id = file_key.split("/")[-1].split(".")[0]
+            collection_id = file_key.split("/")[-2]
             if catalog_path == "":
                 logger.warning(
                     f"Cannot delete Item {item_id} without catalog being specified, skipping."
@@ -505,11 +505,11 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
             catalog_path_list = catalog_path.split("/")
             catalog_path = catalog_path_list[:-1]  # Remove 'collection' directory
             catalog_path = "/".join(catalog_path)
-            try:
-                collection_id = data["collection"]
-            except KeyError:
-                logging.error(f"Key 'collection' not found in file {file_key}")
-                continue
+            # try:
+            #     collection_id = data["collection"]
+            # except KeyError:
+            #     logging.error(f"Key 'collection' not found in file {file_key}")
+            #     continue
             logger.info(
                 f"Deleting item {item_id} in collection {collection_id} in "
                 f"Catalog {catalog_path if catalog_path else 'top-level'}"
@@ -517,9 +517,8 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
             delete_item(api_url, collection_id, item_id, workspace, catalog_path)
 
         elif data.get("type") == "Catalog":
-            # TODO: update this to read from file key rather than the STAC file itself,
-            # currently left as is for consistency
-            catalog_id = data["id"]
+            # Extract the ID from the file key
+            catalog_id = file_key.split("/")[-1].split(".")[0]
             logger.info(
                 f"Deleting Catalog {catalog_id} from Catalog {catalog_path if catalog_path else 'top-level'}"
             )
