@@ -436,6 +436,7 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
 
     # Extract as JSON dictionary
     updates_json = json.loads(msg)
+
     # Extract bucket name from message
     bucket_name = updates_json["bucket_name"]
 
@@ -450,7 +451,6 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
     files_to_delete = updates_json["deleted_keys"] if "deleted_keys" in updates_json.keys() else []
     files_to_create = updates_json["added_keys"] if "added_keys" in updates_json.keys() else []
     files_to_create_or_update = files_to_create + files_to_update
-    logger.info(f"files to delete {files_to_delete}")
     # Data counts for logging
     num_deleted = len(files_to_delete)
     num_created_or_updated = len(files_to_create_or_update)
@@ -505,11 +505,6 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
             catalog_path_list = catalog_path.split("/")
             catalog_path = catalog_path_list[:-1]  # Remove 'collection' directory
             catalog_path = "/".join(catalog_path)
-            # try:
-            #     collection_id = data["collection"]
-            # except KeyError:
-            #     logging.error(f"Key 'collection' not found in file {file_key}")
-            #     continue
             logger.info(
                 f"Deleting item {item_id} in collection {collection_id} in "
                 f"Catalog {catalog_path if catalog_path else 'top-level'}"
