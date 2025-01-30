@@ -2065,3 +2065,18 @@ def test_validate_message_missing_keys(caplog):
 
     assert not result
     assert "Message does not contain 'workspace' key" in caplog.text
+
+    result = validate_message(
+        """
+                              {
+                              "bucket_name": "test-bucket",
+                              "workspace": "test-workspace",
+                              "added_keys": [],
+                              "updated_keys": "this-is-not-a-list",
+                              "deleted_keys": []
+                              }
+                              """
+    )
+
+    assert not result
+    assert "Message 'updated_keys' value is not a valid list" in caplog.text
