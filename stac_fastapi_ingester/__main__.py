@@ -423,6 +423,7 @@ def make_retry_message(original_message: dict, files_to_retry: list) -> dict:
 
 
 def validate_message(msg: str) -> bool:
+    is_valid = True
     try:
         updates_json = json.loads(msg)
     except json.decoder.JSONDecodeError:
@@ -431,10 +432,25 @@ def validate_message(msg: str) -> bool:
 
     if "bucket_name" not in updates_json.keys():
         logger.error("Message does not contain 'bucket_name' key")
-        return False
+        is_valid = False
 
     if "workspace" not in updates_json.keys():
         logger.error("Message does not contain 'workspace' key")
+        is_valid = False
+
+    if "updated_keys" in updates_json and not isinstance(updates_json["updated_keys"], list):
+        logger.error("Message 'updated_keys' value is not a valid list")
+        is_valid = False
+
+    if "deleted_keys" in updates_json and not isinstance(updates_json["deleted_keys"], list):
+        logger.error("Message 'deleted_keys' value is not a valid list")
+        is_valid = False
+
+    if "added_keys" in updates_json and not isinstance(updates_json["added_keys"], list):
+        logger.error("Message 'added_keys' value is not a valid list")
+        is_valid = False
+
+    if not is_valid:
         return False
 
     return updates_json
@@ -654,6 +670,7 @@ def subscribe(ctx, prefix: Optional[str] = None):
             msg_dict = validate_message(msg.data().decode("utf-8"))
             if not msg_dict:
                 # If message is not valid, acknowledge so that it is never sent again
+                logger.warning("Invalid message received, acknowledging and moving on")
                 consumer.acknowledge(msg)
                 continue
             retry_message = interpret_message(msg_dict, api_url)
