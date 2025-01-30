@@ -670,7 +670,7 @@ def subscribe(ctx, prefix: Optional[str] = None):
             msg_dict = validate_message(msg.data().decode("utf-8"))
             if not msg_dict:
                 # If message is not valid, acknowledge so that it is never sent again
-                logger.warning("Invalid message received, acknowledging and moving on")
+                logger.error("Invalid message received, acknowledging and moving on")
                 consumer.acknowledge(msg)
                 continue
             retry_message = interpret_message(msg_dict, api_url)
