@@ -124,7 +124,7 @@ def delete_catalog(api_url: str, workspace: str, catalog_path: str, catalog_id: 
         gen_catalog_path = catalog_path.replace("/", "/catalogs/")
         combined_url = f"{api_url}/catalogs/{gen_catalog_path}/catalogs/{catalog_id}"
     else:
-        combined_url = f"{api_url}/catalogs/root/catalogs/{catalog_id}"
+        combined_url = f"{api_url}/catalogs/{catalog_id}"
 
     try:
         resp = requests.delete(
