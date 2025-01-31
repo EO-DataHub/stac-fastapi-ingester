@@ -118,7 +118,7 @@ from stac_fastapi_ingester.__main__ import (
             {"id": "test_catalog_id"},
             "",
             1,
-            "https://test-url/api/catalogs/root/catalogs/test_catalog_id",
+            "https://test-url/api/catalogs/test_catalog_id",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: OK",
             {"workspace": ["test_workspace"]},
