@@ -457,9 +457,8 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
     num_deleted = len(files_to_delete)
     num_created_or_updated = len(files_to_create_or_update)
 
-    # Sort by key length to ensure that catalogs are created before collections and items
-    files_to_update.sort(key=lambda s: s.count("/"))
-    files_to_create.sort(key=lambda s: s.count("/"))
+    # Sort by key length to ensure that catalogs are created before collections before items
+    files_to_create_or_update.sort(key=lambda s: s.count("/"))
 
     files_to_retry = []
 
