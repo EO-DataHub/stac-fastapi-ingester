@@ -456,7 +456,7 @@ def validate_message(msg: str) -> bool:
     return updates_json
 
 
-def interpret_message(msg: dict, api_url: str) -> Optional[dict]:
+def interpret_message(updates_json: dict, api_url: str) -> Optional[dict]:
     # Configure boto3 client ready for data access
     if os.getenv("AWS_ACCESS_KEY") and os.getenv("AWS_SECRET_ACCESS_KEY"):
         session = boto3.session.Session(
@@ -467,9 +467,6 @@ def interpret_message(msg: dict, api_url: str) -> Optional[dict]:
 
     else:
         client = boto3.client("s3")
-
-    # Extract as JSON dictionary
-    updates_json = msg
 
     # Extract bucket name from message
     bucket_name = updates_json["bucket_name"]
