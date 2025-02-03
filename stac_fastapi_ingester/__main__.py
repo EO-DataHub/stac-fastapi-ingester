@@ -485,7 +485,7 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
             catalog_path = "/".join(catalog_path_list)
 
         if data.get("type") == "Collection":
-            collection_id = file_key.split("/")[-1].split(".")[0]
+            collection_id = file_key.rsplit("/", 1)[-1].rsplit(".", 1)[0]
             logger.info(
                 f"Deleting collection {collection_id} from "
                 f"Catalog {catalog_path if catalog_path else 'top-level'}"
@@ -493,8 +493,8 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
             delete_collection(api_url, collection_id, workspace, catalog_path)
 
         elif data.get("type") == "Feature":
-            item_id = file_key.split("/")[-1].split(".")[0]
-            collection_id = file_key.split("/")[-2]
+            item_id = file_key.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+            collection_id = file_key.rsplit("/", 2)[-2]
             if catalog_path == "":
                 logger.warning(
                     f"Cannot delete Item {item_id} without catalog being specified, skipping."
@@ -513,7 +513,7 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
 
         elif data.get("type") == "Catalog":
             # Extract the ID from the file key
-            catalog_id = file_key.split("/")[-1].split(".")[0]
+            catalog_id = file_key.rsplit("/", 1)[-1].rsplit(".", 1)[0]
             logger.info(
                 f"Deleting Catalog {catalog_id} from Catalog {catalog_path if catalog_path else 'top-level'}"
             )
