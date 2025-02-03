@@ -14,6 +14,8 @@ import pulsar
 import pulsar.exceptions
 import requests
 
+from .utils import construct_catalog_url
+
 # configure boto3 logging
 logging.getLogger("botocore").setLevel(logging.CRITICAL)
 logging.getLogger("boto3").setLevel(logging.CRITICAL)
@@ -119,12 +121,9 @@ def delete_catalog(api_url: str, workspace: str, catalog_path: str, catalog_id: 
     headers = {"accept": "application/json"}
     query_params = {"workspace": workspace}
     data_type = "Catalogue"
-    # Handle top-level catalog
-    if catalog_path:
-        gen_catalog_path = catalog_path.replace("/", "/catalogs/")
-        combined_url = f"{api_url}/catalogs/{gen_catalog_path}/catalogs/{catalog_id}"
-    else:
-        combined_url = f"{api_url}/catalogs/{catalog_id}"
+    # Construct URL for catalog deletion
+    gen_catalog_path = catalog_path.replace("/", "/catalogs/")
+    combined_url = construct_catalog_url(api_url, gen_catalog_path, catalog_id)
 
     try:
         resp = requests.delete(
@@ -252,13 +251,9 @@ def create_or_update_catalog(
     data_type = "Catalogue"
     catalogue_exists = True
     try:
-
         if catalog_id:
-            if catalog_path:
-                gen_catalog_path = catalog_path.replace("/", "/catalogs/")
-                combined_url = f"{api_url}/catalogs/{gen_catalog_path}/catalogs/{catalog_id}"
-            else:
-                combined_url = f"{api_url}/catalogs/{catalog_id}"
+            gen_catalog_path = catalog_path.replace("/", "/catalogs/")
+            combined_url = construct_catalog_url(api_url, gen_catalog_path, catalog_id)
 
             logging.info(f"Attempting to update {combined_url}")
             resp = requests.put(
@@ -269,17 +264,12 @@ def create_or_update_catalog(
             )
 
             log_response(resp, data, data["id"], catalog_path, api_url, data_type)
-
         else:
             catalogue_exists = False
 
         if not catalogue_exists or resp.status_code == HTTPStatus.NOT_FOUND:
-            if catalog_path:
-                gen_catalog_path = catalog_path.replace("/", "/catalogs/")
-                combined_url = f"{api_url}/catalogs/{gen_catalog_path}/catalogs"
-            else:
-                # If no catalog path is provided, this is a top level catalog
-                combined_url = f"{api_url}/catalogs/root/catalogs"
+            gen_catalog_path = catalog_path.replace("/", "/catalogs/") if catalog_path else "root"
+            combined_url = construct_catalog_url(api_url, gen_catalog_path, catalog_id)
             logging.info(f"Attempting to add {combined_url}")
             resp = requests.post(
                 combined_url,
