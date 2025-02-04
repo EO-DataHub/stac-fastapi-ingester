@@ -422,7 +422,41 @@ def make_retry_message(original_message: dict, files_to_retry: list) -> dict:
     return message
 
 
-def interpret_message(msg: str, api_url: str) -> Optional[dict]:
+def validate_message(msg: str) -> bool:
+    is_valid = True
+    try:
+        updates_json = json.loads(msg)
+    except json.decoder.JSONDecodeError:
+        logger.error("Message is not a valid JSON string")
+        return False
+
+    if "bucket_name" not in updates_json.keys():
+        logger.error("Message does not contain 'bucket_name' key")
+        is_valid = False
+
+    if "workspace" not in updates_json.keys():
+        logger.error("Message does not contain 'workspace' key")
+        is_valid = False
+
+    if "updated_keys" in updates_json and not isinstance(updates_json["updated_keys"], list):
+        logger.error("Message 'updated_keys' value is not a valid list")
+        is_valid = False
+
+    if "deleted_keys" in updates_json and not isinstance(updates_json["deleted_keys"], list):
+        logger.error("Message 'deleted_keys' value is not a valid list")
+        is_valid = False
+
+    if "added_keys" in updates_json and not isinstance(updates_json["added_keys"], list):
+        logger.error("Message 'added_keys' value is not a valid list")
+        is_valid = False
+
+    if not is_valid:
+        return False
+
+    return updates_json
+
+
+def interpret_message(updates_json: dict, api_url: str) -> Optional[dict]:
     # Configure boto3 client ready for data access
     if os.getenv("AWS_ACCESS_KEY") and os.getenv("AWS_SECRET_ACCESS_KEY"):
         session = boto3.session.Session(
@@ -433,9 +467,6 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
 
     else:
         client = boto3.client("s3")
-
-    # Extract as JSON dictionary
-    updates_json = json.loads(msg)
 
     # Extract bucket name from message
     bucket_name = updates_json["bucket_name"]
@@ -457,8 +488,7 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
     num_created_or_updated = len(files_to_create_or_update)
 
     # Sort by key length to ensure that catalogs are created before collections and items
-    files_to_update.sort(key=lambda s: s.count("/"))
-    files_to_create.sort(key=lambda s: s.count("/"))
+    files_to_create_or_update.sort(key=lambda s: s.count("/"))
 
     files_to_retry = []
 
@@ -633,7 +663,13 @@ def subscribe(ctx, prefix: Optional[str] = None):
             logger.info("Waiting for message")
             msg = consumer.receive()
             logger.info(msg.data())
-            retry_message = interpret_message(msg.data().decode("utf-8"), api_url)
+            msg_dict = validate_message(msg.data().decode("utf-8"))
+            if not msg_dict:
+                # If message is not valid, acknowledge so that it is never sent again
+                logger.error("Invalid message received, acknowledging and moving on")
+                consumer.acknowledge(msg)
+                continue
+            retry_message = interpret_message(msg_dict, api_url)
 
             if retry_message:
                 logger.info(f"Retry {retry_message['retries']}: {retry_message}")

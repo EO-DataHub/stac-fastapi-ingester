@@ -22,6 +22,7 @@ from stac_fastapi_ingester.__main__ import (
     interpret_message,
     load_data_from_s3,
     update_access_policy,
+    validate_message,
 )
 
 ###################
@@ -1250,38 +1251,38 @@ def test_interpret_message_catalog(
     # Setup mocks based on the http_method parameter
     if http_method == "POST":
         mock_function = mock_create_or_update_catalog
-        added_keys = f'["{test_key}"]'
-        update_keys = "[]"
-        delete_keys = "[]"
+        added_keys = [test_key]
+        update_keys = []
+        delete_keys = []
         expected_args = (api_url, test_data, "test_workspace", test_catalog_path, test_id)
     elif http_method == "PUT":
         mock_function = mock_create_or_update_catalog
-        added_keys = "[]"
-        update_keys = f'["{test_key}"]'
-        delete_keys = "[]"
+        added_keys = []
+        update_keys = [test_key]
+        delete_keys = []
         expected_args = (api_url, test_data, "test_workspace", test_catalog_path, test_id)
     elif http_method == "DELETE":
         mock_function = mock_delete_catalog
-        added_keys = "[]"
-        update_keys = "[]"
-        delete_keys = f'["{test_key}"]'
+        added_keys = []
+        update_keys = []
+        delete_keys = [test_key]
         expected_args = (api_url, "test_workspace", test_catalog_path, test_id)
     else:
         raise ValueError("Unsupported HTTP method")
 
     # Construct test Pulsar input message
-    test_msg = f"""{{
+    test_msg = {
         "id": "pulsar-test-id/testing",
         "workspace": "test_workspace",
         "repository": "",
         "branch": "main",
         "bucket_name": "test-bucket",
-        "updated_keys": {update_keys},
-        "added_keys": {added_keys},
-        "deleted_keys": {delete_keys},
+        "updated_keys": update_keys,
+        "added_keys": added_keys,
+        "deleted_keys": delete_keys,
         "source": "https://test-catalog.temp.data.com",
-        "target": "test-datasets/test-catalog"
-    }}"""
+        "target": "test-datasets/test-catalog",
+    }
 
     # Configure mocks
     mock_load_data_from_s3.return_value = test_data
@@ -1326,38 +1327,38 @@ def test_interpret_message_collection(
     # Setup mocks based on the http_method parameter
     if http_method == "POST":
         mock_function = mock_create_or_update_collection
-        added_keys = f'["{test_key}"]'
-        update_keys = "[]"
-        delete_keys = "[]"
+        added_keys = [test_key]
+        update_keys = []
+        delete_keys = []
         expected_args = (api_url, test_id, test_data, "test_workspace", test_catalog_path)
     elif http_method == "PUT":
         mock_function = mock_create_or_update_collection
-        added_keys = "[]"
-        update_keys = f'["{test_key}"]'
-        delete_keys = "[]"
+        added_keys = []
+        update_keys = [test_key]
+        delete_keys = []
         expected_args = (api_url, test_id, test_data, "test_workspace", test_catalog_path)
     elif http_method == "DELETE":
         mock_function = mock_delete_collection
-        added_keys = "[]"
-        update_keys = "[]"
-        delete_keys = f'["{test_key}"]'
+        added_keys = []
+        update_keys = []
+        delete_keys = [test_key]
         expected_args = (api_url, test_id, "test_workspace", test_catalog_path)
     else:
         raise ValueError("Unsupported HTTP method")
 
     # Construct test Pulsar input message
-    test_msg = f"""{{
+    test_msg = {
         "id": "pulsar-test-id/testing",
         "workspace": "test_workspace",
         "repository": "",
         "branch": "main",
         "bucket_name": "test-bucket",
-        "updated_keys": {update_keys},
-        "added_keys": {added_keys},
-        "deleted_keys": {delete_keys},
+        "updated_keys": update_keys,
+        "added_keys": added_keys,
+        "deleted_keys": delete_keys,
         "source": "https://test-catalog.temp.data.com",
-        "target": "test-datasets/test-catalog"
-    }}"""
+        "target": "test-datasets/test-catalog",
+    }
 
     # Configure mocks
     mock_load_data_from_s3.return_value = test_data
@@ -1414,9 +1415,9 @@ def test_interpret_message_item(
     # Setup mocks based on the http_method parameter
     if http_method == "POST":
         mock_function = mock_create_or_update_item
-        added_keys = f'["{test_key}"]'
-        update_keys = "[]"
-        delete_keys = "[]"
+        added_keys = [test_key]
+        update_keys = []
+        delete_keys = []
         expected_args = (
             api_url,
             test_collection_id,
@@ -1427,9 +1428,9 @@ def test_interpret_message_item(
         )
     elif http_method == "PUT":
         mock_function = mock_create_or_update_item
-        added_keys = "[]"
-        update_keys = f'["{test_key}"]'
-        delete_keys = "[]"
+        added_keys = []
+        update_keys = [test_key]
+        delete_keys = []
         expected_args = (
             api_url,
             test_collection_id,
@@ -1440,9 +1441,9 @@ def test_interpret_message_item(
         )
     elif http_method == "DELETE":
         mock_function = mock_delete_item
-        added_keys = "[]"
-        update_keys = "[]"
-        delete_keys = f'["{test_key}"]'
+        added_keys = []
+        update_keys = []
+        delete_keys = [test_key]
         expected_args = (
             api_url,
             test_collection_id,
@@ -1454,18 +1455,18 @@ def test_interpret_message_item(
         raise ValueError("Unsupported HTTP method")
 
     # Construct test Pulsar input message
-    test_msg = f"""{{
+    test_msg = {
         "id": "pulsar-test-id/testing",
         "workspace": "test_workspace",
         "repository": "",
         "branch": "main",
         "bucket_name": "test-bucket",
-        "updated_keys": {update_keys},
-        "added_keys": {added_keys},
-        "deleted_keys": {delete_keys},
+        "updated_keys": update_keys,
+        "added_keys": added_keys,
+        "deleted_keys": delete_keys,
         "source": "https://test-catalog.temp.data.com",
-        "target": "test-datasets/test-catalog"
-    }}"""
+        "target": "test-datasets/test-catalog",
+    }
 
     # Configure mocks
     mock_load_data_from_s3.return_value = test_data
@@ -1497,14 +1498,18 @@ def test_interpret_message_item(
 
 @patch.dict(os.environ, {"PULSAR_URL": "pulsar://test-url", "FASTAPI_URL": "https://test-url/api"})
 @patch("stac_fastapi_ingester.__main__.interpret_message")
+@patch("stac_fastapi_ingester.__main__.validate_message")
 @patch("pulsar.Client")
-def test_cli_with_topic_and_pulsar_url(mock_pulsar_client, mock_interpret_message, caplog):
+def test_cli_with_topic_and_pulsar_url(
+    mock_pulsar_client, mock_validate_message, mock_interpret_message, caplog
+):
 
     # Configure mocks
     mock_pulsar_client_instance = mock.Mock()
     mock_pulsar_client_consumer = mock.Mock()
+    mock_validate_message.return_value = {"key": "valid-data"}
     mock_received_message = mock.Mock()
-    mock_received_message.data.return_value = b"this is a test message"
+    mock_received_message.data.return_value = b"this is a valid test message"
     mock_pulsar_client_consumer.acknowledge.return_value = None
     # This set of returns runs the loop once and then throws an error, to avoid endless looping
     mock_pulsar_client_consumer.receive.side_effect = [mock_received_message, StopIteration]
@@ -1527,13 +1532,59 @@ def test_cli_with_topic_and_pulsar_url(mock_pulsar_client, mock_interpret_messag
     assert "Connecting to broker 'pulsar://test-url' with topic 'test-topic'" in caplog.text
 
     # Check message is received correctly
-    assert "this is a test message" in caplog.text
+    assert "this is a valid test message" in caplog.text
 
     # Check the subsequent calls are correct
     assert (
         mock_pulsar_client_consumer.receive.call_count == 2
     )  # note, this errors on second run to terminate loop
-    mock_interpret_message.assert_called_once_with("this is a test message", "https://test-url/api")
+    mock_interpret_message.assert_called_once_with({"key": "valid-data"}, "https://test-url/api")
+    mock_pulsar_client_consumer.acknowledge.assert_called_once_with(mock_received_message)
+
+
+@patch.dict(os.environ, {"PULSAR_URL": "pulsar://test-url", "FASTAPI_URL": "https://test-url/api"})
+@patch("stac_fastapi_ingester.__main__.interpret_message")
+@patch("stac_fastapi_ingester.__main__.validate_message")
+@patch("pulsar.Client")
+def test_cli_with_topic_and_pulsar_url_invalid_message(
+    mock_pulsar_client, mock_validate_message, mock_interpret_message, caplog
+):
+
+    # Configure mocks
+    mock_pulsar_client_instance = mock.Mock()
+    mock_pulsar_client_consumer = mock.Mock()
+    mock_validate_message.return_value = False
+    mock_received_message = mock.Mock()
+    mock_received_message.data.return_value = b"this is an invalid test message"
+    mock_pulsar_client_consumer.acknowledge.return_value = None
+    # This set of returns runs the loop once and then throws an error, to avoid endless looping
+    mock_pulsar_client_consumer.receive.side_effect = [mock_received_message, StopIteration]
+    mock_pulsar_client_instance.subscribe.return_value = mock_pulsar_client_consumer
+    mock_pulsar_client.return_value = mock_pulsar_client_instance
+    mock_interpret_message.return_value = None
+
+    # Set up the CliRunner
+    runner = CliRunner()
+
+    # Invoke the CLI with a test topic
+    result = runner.invoke(cli, ["test-topic", "subscribe", "--prefix", "test_name"])
+
+    # Assertions
+    # Check the CLI ran successfully
+    assert result.exit_code == 0
+
+    # Check the Pulsar calls and response
+    mock_pulsar_client.assert_called_once_with("pulsar://test-url")
+    assert "Connecting to broker 'pulsar://test-url' with topic 'test-topic'" in caplog.text
+
+    # Check message is received correctly
+    assert "this is an invalid test message" in caplog.text
+
+    # Check the subsequent calls are correct
+    assert (
+        mock_pulsar_client_consumer.receive.call_count == 2
+    )  # note, this errors on second run to terminate loop
+    mock_interpret_message.assert_not_called()
     mock_pulsar_client_consumer.acknowledge.assert_called_once_with(mock_received_message)
 
 
@@ -1711,23 +1762,23 @@ def test_create_metadata_policy(
         ],
     }
 
-    added_keys = '["transformed/catalog/catalog-meta_access_policy.json"]'
-    update_keys = "[]"
-    delete_keys = "[]"
+    added_keys = ["transformed/catalog/catalog-meta_access_policy.json"]
+    update_keys = []
+    delete_keys = []
 
     # Construct test Pulsar input message
-    test_msg = f"""{{
+    test_msg = {
         "id": "pulsar-test-id/testing",
         "workspace": "default_workspace",
         "repository": "",
         "branch": "main",
         "bucket_name": "test-bucket",
-        "updated_keys": {update_keys},
-        "added_keys": {added_keys},
-        "deleted_keys": {delete_keys},
+        "updated_keys": update_keys,
+        "added_keys": added_keys,
+        "deleted_keys": delete_keys,
         "source": "https://test-catalog.temp.data.com",
-        "target": "test-datasets/test-catalog"
-    }}"""
+        "target": "test-datasets/test-catalog",
+    }
 
     # Configure mocks
     mock_load_data_from_s3.return_value = test_data
@@ -1813,23 +1864,23 @@ def test_update_metadata_policy(
         ],
     }
 
-    added_keys = "[]"
-    update_keys = '["transformed/catalog/catalog-meta_access_policy.json"]'
-    delete_keys = "[]"
+    added_keys = []
+    update_keys = ["transformed/catalog/catalog-meta_access_policy.json"]
+    delete_keys = []
 
     # Construct test Pulsar input message
-    test_msg = f"""{{
+    test_msg = {
         "id": "pulsar-test-id/testing",
         "workspace": "default_workspace",
         "repository": "",
         "branch": "main",
         "bucket_name": "test-bucket",
-        "updated_keys": {update_keys},
-        "added_keys": {added_keys},
-        "deleted_keys": {delete_keys},
+        "updated_keys": update_keys,
+        "added_keys": added_keys,
+        "deleted_keys": delete_keys,
         "source": "https://test-catalog.temp.data.com",
-        "target": "test-datasets/test-catalog"
-    }}"""
+        "target": "test-datasets/test-catalog",
+    }
 
     # Configure mocks
     mock_load_data_from_s3.return_value = test_data
@@ -1961,3 +2012,71 @@ def test_update_access_policy_other_error(mock_requests_put):
         data=json.dumps(policy["access"]),
         headers={"accept": "application/json", "Content-Type": "application/json"},
     )
+
+
+def test_validate_message_invalid_message(caplog):
+    result = validate_message("test")
+
+    assert not result
+    assert "Message is not a valid JSON string" in caplog.text
+
+
+def test_validate_message_valid_message(caplog):
+    result = validate_message(
+        """
+                              {
+                              "bucket_name": "test-bucket",
+                              "workspace": "test-workspace",
+                              "added_keys": [],
+                              "updated_keys": [],
+                              "deleted_keys": []
+                              }
+                              """
+    )
+
+    assert result
+
+
+def test_validate_message_missing_keys(caplog):
+    result = validate_message(
+        """
+                              {
+                              "workspace": "test-workspace",
+                              "added_keys": [],
+                              "updated_keys": [],
+                              "deleted_keys": []
+                              }
+                              """
+    )
+
+    assert not result
+    assert "Message does not contain 'bucket_name' key" in caplog.text
+
+    result = validate_message(
+        """
+                              {
+                              "bucket_name": "test-bucket",
+                              "added_keys": [],
+                              "updated_keys": [],
+                              "deleted_keys": []
+                              }
+                              """
+    )
+
+    assert not result
+    assert "Message does not contain 'workspace' key" in caplog.text
+
+    result = validate_message(
+        """
+                              {
+                              "bucket_name": "test-bucket",
+                              "workspace": "test-workspace",
+                              "added_keys": [],
+                              "updated_keys": "this-is-not-a-list",
+                              "deleted_keys": []
+                              }
+                              """
+    )
+
+    assert not result
+    assert "Message 'updated_keys' value is not a valid list" in caplog.text
