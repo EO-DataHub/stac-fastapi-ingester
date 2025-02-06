@@ -14,6 +14,8 @@ import pulsar
 import pulsar.exceptions
 import requests
 
+from .utils import construct_catalog_url
+
 # configure boto3 logging
 logging.getLogger("botocore").setLevel(logging.CRITICAL)
 logging.getLogger("boto3").setLevel(logging.CRITICAL)
@@ -119,11 +121,9 @@ def delete_catalog(api_url: str, workspace: str, catalog_path: str, catalog_id: 
     headers = {"accept": "application/json"}
     query_params = {"workspace": workspace}
     data_type = "Catalogue"
-    # Handle top-level catalog
-    if catalog_path:
-        combined_url = f"{api_url}/catalogs/{catalog_path}/{catalog_id}"
-    else:
-        combined_url = f"{api_url}/catalogs/{catalog_id}"
+    # Construct URL for catalog deletion
+    gen_catalog_path = catalog_path.replace("/", "/catalogs/")
+    combined_url = construct_catalog_url(api_url, gen_catalog_path, catalog_id)
 
     try:
         resp = requests.delete(
@@ -154,8 +154,9 @@ def delete_collection(api_url: str, collection_id: str, workspace: str, catalog_
     query_params = {"workspace": workspace}
     data_type = "Collection"
     try:
+        gen_catalog_path = catalog_path.replace("/", "/catalogs/")
         resp = requests.delete(
-            f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}",
+            f"{api_url}/catalogs/{gen_catalog_path}/collections/{collection_id}",
             headers=headers,
             params=query_params,
         )
@@ -175,8 +176,9 @@ def delete_item(api_url: str, collection_id: str, item_id: str, workspace: str, 
     query_params = {"workspace": workspace}
     data_type = "Item"
     try:
+        gen_catalog_path = catalog_path.replace("/", "/catalogs/")
         resp = requests.delete(
-            f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items/{item_id}",
+            f"{api_url}/catalogs/{gen_catalog_path}/collections/{collection_id}/items/{item_id}",
             headers=headers,
             params=query_params,
         )
@@ -249,12 +251,9 @@ def create_or_update_catalog(
     data_type = "Catalogue"
     catalogue_exists = True
     try:
-
         if catalog_id:
-            if catalog_path:
-                combined_url = f"{api_url}/catalogs/{catalog_path}/{catalog_id}"
-            else:
-                combined_url = f"{api_url}/catalogs/{catalog_id}"
+            gen_catalog_path = catalog_path.replace("/", "/catalogs/")
+            combined_url = construct_catalog_url(api_url, gen_catalog_path, catalog_id)
 
             logging.info(f"Attempting to update {combined_url}")
             resp = requests.put(
@@ -265,16 +264,12 @@ def create_or_update_catalog(
             )
 
             log_response(resp, data, data["id"], catalog_path, api_url, data_type)
-
         else:
             catalogue_exists = False
 
         if not catalogue_exists or resp.status_code == HTTPStatus.NOT_FOUND:
-            if catalog_path:
-                combined_url = f"{api_url}/catalogs/{catalog_path}"
-            else:
-                # If no catalog path is provided, this is a top level catalog
-                combined_url = f"{api_url}/catalogs"
+            gen_catalog_path = catalog_path.replace("/", "/catalogs/") if catalog_path else "root"
+            combined_url = construct_catalog_url(api_url, gen_catalog_path, catalog_id)
             logging.info(f"Attempting to add {combined_url}")
             resp = requests.post(
                 combined_url,
@@ -305,8 +300,9 @@ def create_or_update_collection(
     query_params = {"workspace": workspace}
     data_type = "Collection"
     try:
+        gen_catalog_path = catalog_path.replace("/", "/catalogs/")
         resp = requests.put(
-            f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}",
+            f"{api_url}/catalogs/{gen_catalog_path}/collections/{collection_id}",
             headers=headers,
             json=data,
             params=query_params,
@@ -315,15 +311,9 @@ def create_or_update_collection(
         log_response(resp, data, collection_id, catalog_path, api_url, data_type)
 
         if resp.status_code == HTTPStatus.NOT_FOUND:
-            if catalog_path.startswith("user-datasets/"):
-                is_public = False
-            else:
-                is_public = True
-
-            query_params.update({"is_public": is_public})
 
             resp = requests.post(
-                f"{api_url}/catalogs/{catalog_path}/collection",
+                f"{api_url}/catalogs/{gen_catalog_path}/collections",
                 # change to `collections` after updating ADES endpoint
                 headers=headers,
                 json=data,
@@ -352,8 +342,9 @@ def create_or_update_item(
     query_params = {"workspace": workspace}
     data_type = "Item"
     try:
+        gen_catalog_path = catalog_path.replace("/", "/catalogs/")
         resp = requests.put(
-            f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items/{item_id}",
+            f"{api_url}/catalogs/{gen_catalog_path}/collections/{collection_id}/items/{item_id}",
             headers=headers,
             json=data,
             params=query_params,
@@ -362,7 +353,7 @@ def create_or_update_item(
 
         if resp.status_code == HTTPStatus.NOT_FOUND:
             resp = requests.post(
-                f"{api_url}/catalogs/{catalog_path}/collections/{collection_id}/items",
+                f"{api_url}/catalogs/{gen_catalog_path}/collections/{collection_id}/items",
                 headers=headers,
                 json=data,
                 params=query_params,
@@ -486,7 +477,7 @@ def interpret_message(updates_json: dict, api_url: str) -> Optional[dict]:
     num_deleted = len(files_to_delete)
     num_created_or_updated = len(files_to_create_or_update)
 
-    # Sort by key length to ensure that catalogs are created before collections and items
+    # Sort by key length to ensure that catalogs are created before collections before items
     files_to_create_or_update.sort(key=lambda s: s.count("/"))
 
     files_to_retry = []
