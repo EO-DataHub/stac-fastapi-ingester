@@ -413,7 +413,41 @@ def make_retry_message(original_message: dict, files_to_retry: list) -> dict:
     return message
 
 
-def interpret_message(msg: str, api_url: str) -> Optional[dict]:
+def validate_message(msg: str) -> bool:
+    is_valid = True
+    try:
+        updates_json = json.loads(msg)
+    except json.decoder.JSONDecodeError:
+        logger.error("Message is not a valid JSON string")
+        return False
+
+    if "bucket_name" not in updates_json.keys():
+        logger.error("Message does not contain 'bucket_name' key")
+        is_valid = False
+
+    if "workspace" not in updates_json.keys():
+        logger.error("Message does not contain 'workspace' key")
+        is_valid = False
+
+    if "updated_keys" in updates_json and not isinstance(updates_json["updated_keys"], list):
+        logger.error("Message 'updated_keys' value is not a valid list")
+        is_valid = False
+
+    if "deleted_keys" in updates_json and not isinstance(updates_json["deleted_keys"], list):
+        logger.error("Message 'deleted_keys' value is not a valid list")
+        is_valid = False
+
+    if "added_keys" in updates_json and not isinstance(updates_json["added_keys"], list):
+        logger.error("Message 'added_keys' value is not a valid list")
+        is_valid = False
+
+    if not is_valid:
+        return False
+
+    return updates_json
+
+
+def interpret_message(updates_json: dict, api_url: str) -> Optional[dict]:
     # Configure boto3 client ready for data access
     if os.getenv("AWS_ACCESS_KEY") and os.getenv("AWS_SECRET_ACCESS_KEY"):
         session = boto3.session.Session(
@@ -424,9 +458,6 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
 
     else:
         client = boto3.client("s3")
-
-    # Extract as JSON dictionary
-    updates_json = json.loads(msg)
 
     # Extract bucket name from message
     bucket_name = updates_json["bucket_name"]
@@ -442,7 +473,6 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
     files_to_delete = updates_json["deleted_keys"] if "deleted_keys" in updates_json.keys() else []
     files_to_create = updates_json["added_keys"] if "added_keys" in updates_json.keys() else []
     files_to_create_or_update = files_to_create + files_to_update
-
     # Data counts for logging
     num_deleted = len(files_to_delete)
     num_created_or_updated = len(files_to_create_or_update)
@@ -476,7 +506,7 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
             catalog_path = "/".join(catalog_path_list)
 
         if data.get("type") == "Collection":
-            collection_id = data["id"]
+            collection_id = file_key.rsplit("/", 1)[-1].rsplit(".", 1)[0]
             logger.info(
                 f"Deleting collection {collection_id} from "
                 f"Catalog {catalog_path if catalog_path else 'top-level'}"
@@ -484,7 +514,8 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
             delete_collection(api_url, collection_id, workspace, catalog_path)
 
         elif data.get("type") == "Feature":
-            item_id = data["id"]
+            item_id = file_key.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+            collection_id = file_key.rsplit("/", 2)[-2]
             if catalog_path == "":
                 logger.warning(
                     f"Cannot delete Item {item_id} without catalog being specified, skipping."
@@ -495,11 +526,6 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
             catalog_path_list = catalog_path.split("/")
             catalog_path = catalog_path_list[:-1]  # Remove 'collection' directory
             catalog_path = "/".join(catalog_path)
-            try:
-                collection_id = data["collection"]
-            except KeyError:
-                logging.error(f"Key 'collection' not found in file {file_key}")
-                continue
             logger.info(
                 f"Deleting item {item_id} in collection {collection_id} in "
                 f"Catalog {catalog_path if catalog_path else 'top-level'}"
@@ -507,9 +533,8 @@ def interpret_message(msg: str, api_url: str) -> Optional[dict]:
             delete_item(api_url, collection_id, item_id, workspace, catalog_path)
 
         elif data.get("type") == "Catalog":
-            # TODO: update this to read from file key rather than the STAC file itself,
-            # currently left as is for consistency
-            catalog_id = data["id"]
+            # Extract the ID from the file key
+            catalog_id = file_key.rsplit("/", 1)[-1].rsplit(".", 1)[0]
             logger.info(
                 f"Deleting Catalog {catalog_id} from Catalog {catalog_path if catalog_path else 'top-level'}"
             )
@@ -623,7 +648,13 @@ def subscribe(ctx, prefix: Optional[str] = None):
             logger.info("Waiting for message")
             msg = consumer.receive()
             logger.info(msg.data())
-            retry_message = interpret_message(msg.data().decode("utf-8"), api_url)
+            msg_dict = validate_message(msg.data().decode("utf-8"))
+            if not msg_dict:
+                # If message is not valid, acknowledge so that it is never sent again
+                logger.error("Invalid message received, acknowledging and moving on")
+                consumer.acknowledge(msg)
+                continue
+            retry_message = interpret_message(msg_dict, api_url)
 
             if retry_message:
                 logger.info(f"Retry {retry_message['retries']}: {retry_message}")
