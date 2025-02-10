@@ -269,7 +269,7 @@ def create_or_update_catalog(
 
         if not catalogue_exists or resp.status_code == HTTPStatus.NOT_FOUND:
             gen_catalog_path = catalog_path.replace("/", "/catalogs/") if catalog_path else "root"
-            combined_url = construct_catalog_url(api_url, gen_catalog_path, catalog_id)
+            combined_url = construct_catalog_url(api_url, gen_catalog_path)
             logging.info(f"Attempting to add {combined_url}")
             resp = requests.post(
                 combined_url,
