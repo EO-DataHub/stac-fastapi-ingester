@@ -1107,8 +1107,7 @@ def test_handle_items(
             "test_item_id",
             "example/path/to/catalog",
             1,
-            "https://test-url/api/example/path/to/catalog/"
-            "test_collection_id/items/test_item_id",
+            "https://test-url/api/example/path/to/catalog/" "test_collection_id/items/test_item_id",
             {"accept": "application/json"},
             "Item: test_item_id in Collection: test_collection_id in "
             "Catalog: example/path/to/catalog not deleted",

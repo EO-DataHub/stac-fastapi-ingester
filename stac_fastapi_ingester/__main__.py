@@ -81,9 +81,7 @@ def update_access_policy(
         data=json.dumps(access_policy),
     )
 
-    logger.info(
-        f"Sent request to {api_url}/{path}/access-policy with inputs {access_policy}"
-    )
+    logger.info(f"Sent request to {api_url}/{path}/access-policy with inputs {access_policy}")
 
     if resp.status_code == HTTPStatus.NO_CONTENT:
         logger.info(f"Updated access control for data at {path}")
