@@ -75,14 +75,14 @@ def update_access_policy(
     query_params = {"workspace": workspace}
 
     resp = requests.put(
-        f"{api_url}/catalogs/{path}/access-policy",
+        f"{api_url}/{path}/access-policy",
         headers=headers,
         params=query_params,
         data=json.dumps(access_policy),
     )
 
     logger.info(
-        f"Sent request to {api_url}/catalogs/{path}/access-policy with inputs {access_policy}"
+        f"Sent request to {api_url}/{path}/access-policy with inputs {access_policy}"
     )
 
     if resp.status_code == HTTPStatus.NO_CONTENT:
@@ -95,7 +95,7 @@ def update_access_policy(
     else:
         logger.error(
             f"Failed to update access control for data at {path}, Status Code: "
-            f"{resp.status_code} on url: {api_url}/catalogs/{path} with inputs "
+            f"{resp.status_code} on url: {api_url}/{path} with inputs "
             f"{access_policy} with message {resp.content}"
         )
     return True
@@ -122,8 +122,7 @@ def delete_catalog(api_url: str, workspace: str, catalog_path: str, catalog_id: 
     query_params = {"workspace": workspace}
     data_type = "Catalogue"
     # Construct URL for catalog deletion
-    gen_catalog_path = catalog_path.replace("/", "/catalogs/")
-    combined_url = construct_catalog_url(api_url, gen_catalog_path, catalog_id)
+    combined_url = construct_catalog_url(api_url, catalog_path, catalog_id)
 
     try:
         resp = requests.delete(
@@ -154,9 +153,8 @@ def delete_collection(api_url: str, collection_id: str, workspace: str, catalog_
     query_params = {"workspace": workspace}
     data_type = "Collection"
     try:
-        gen_catalog_path = catalog_path.replace("/", "/catalogs/")
         resp = requests.delete(
-            f"{api_url}/catalogs/{gen_catalog_path}/collections/{collection_id}",
+            f"{api_url}/{catalog_path}/{collection_id}",
             headers=headers,
             params=query_params,
         )
@@ -176,9 +174,8 @@ def delete_item(api_url: str, collection_id: str, item_id: str, workspace: str, 
     query_params = {"workspace": workspace}
     data_type = "Item"
     try:
-        gen_catalog_path = catalog_path.replace("/", "/catalogs/")
         resp = requests.delete(
-            f"{api_url}/catalogs/{gen_catalog_path}/collections/{collection_id}/items/{item_id}",
+            f"{api_url}/{catalog_path}/{collection_id}/{item_id}",
             headers=headers,
             params=query_params,
         )
@@ -252,8 +249,7 @@ def create_or_update_catalog(
     catalogue_exists = True
     try:
         if catalog_id:
-            gen_catalog_path = catalog_path.replace("/", "/catalogs/")
-            combined_url = construct_catalog_url(api_url, gen_catalog_path, catalog_id)
+            combined_url = construct_catalog_url(api_url, catalog_path, catalog_id)
 
             logging.info(f"Attempting to update {combined_url}")
             resp = requests.put(
@@ -268,7 +264,7 @@ def create_or_update_catalog(
             catalogue_exists = False
 
         if not catalogue_exists or resp.status_code == HTTPStatus.NOT_FOUND:
-            gen_catalog_path = catalog_path.replace("/", "/catalogs/") if catalog_path else "root"
+            gen_catalog_path = catalog_path if catalog_path else "root"
             combined_url = construct_catalog_url(api_url, gen_catalog_path)
             logging.info(f"Attempting to add {combined_url}")
             resp = requests.post(
@@ -300,9 +296,8 @@ def create_or_update_collection(
     query_params = {"workspace": workspace}
     data_type = "Collection"
     try:
-        gen_catalog_path = catalog_path.replace("/", "/catalogs/")
         resp = requests.put(
-            f"{api_url}/catalogs/{gen_catalog_path}/collections/{collection_id}",
+            f"{api_url}/{catalog_path}/{collection_id}",
             headers=headers,
             json=data,
             params=query_params,
@@ -313,7 +308,7 @@ def create_or_update_collection(
         if resp.status_code == HTTPStatus.NOT_FOUND:
 
             resp = requests.post(
-                f"{api_url}/catalogs/{gen_catalog_path}/collections",
+                f"{api_url}/{catalog_path}",
                 # change to `collections` after updating ADES endpoint
                 headers=headers,
                 json=data,
@@ -342,9 +337,8 @@ def create_or_update_item(
     query_params = {"workspace": workspace}
     data_type = "Item"
     try:
-        gen_catalog_path = catalog_path.replace("/", "/catalogs/")
         resp = requests.put(
-            f"{api_url}/catalogs/{gen_catalog_path}/collections/{collection_id}/items/{item_id}",
+            f"{api_url}/{catalog_path}/{collection_id}/{item_id}",
             headers=headers,
             json=data,
             params=query_params,
@@ -353,7 +347,7 @@ def create_or_update_item(
 
         if resp.status_code == HTTPStatus.NOT_FOUND:
             resp = requests.post(
-                f"{api_url}/catalogs/{gen_catalog_path}/collections/{collection_id}/items",
+                f"{api_url}/{catalog_path}/{collection_id}",
                 headers=headers,
                 json=data,
                 params=query_params,
