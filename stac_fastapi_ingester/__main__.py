@@ -205,6 +205,11 @@ def log_response(
         logger.info(
             f"{action}d {item_type} {data_id} at location {catalog_path if catalog_path else 'top-level'}"
         )
+    elif action == "delete" and resp.status_code == HTTPStatus.NO_CONTENT:
+        logger.info("Status Code: NO CONTENT")
+        logger.info(
+            f"{action}d {item_type} {data_id} at location {catalog_path if catalog_path else 'top-level'}"
+        )
     elif resp.status_code == HTTPStatus.CONFLICT:
         logger.warning("Status Code: CONFLICT")
         logger.warning(
