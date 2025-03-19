@@ -264,7 +264,7 @@ def create_or_update_catalog(
                 # Remove file name from path
                 new_path = catalog_path.rsplit("/", 1)[0]
                 if new_path == "catalogs":
-                    new_path = "catalogs/root"
+                    new_path = "catalogs/root/catalogs"
             resp = requests.post(
                 f"{api_url}/{new_path}",
                 headers=headers,
