@@ -31,17 +31,18 @@ from stac_fastapi_ingester.__main__ import (
 
 
 @pytest.mark.parametrize(
-    "http_method, status_code, api_url, data, catalog_path, "
+    "http_method, status_code, api_url, catalog_id, data, catalog_path, "
     "call_count, expected_url, expected_headers, expected_log, params",
     [
         pytest.param(  ## create_catalog_success public
             "POST",
             200,
             "https://test-url/api",
+            "test_catalog_id",
             {"id": "test_catalog_id"},
-            "example/path/to/catalog",
-            1,
-            "https://test-url/api/example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs/test_catalog_id",
+            2,
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: OK",
             {"workspace": ["test_workspace"]},
@@ -51,10 +52,11 @@ from stac_fastapi_ingester.__main__ import (
             "POST",
             200,
             "https://test-url/api",
+            "test_catalog_id",
             {"id": "test_catalog_id"},
-            "",
-            1,
-            "https://test-url/api/root",
+            "catalogs/test_catalog_id",
+            2,
+            "https://test-url/api/catalogs",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: OK",
             {"workspace": ["test_workspace"]},
@@ -64,10 +66,11 @@ from stac_fastapi_ingester.__main__ import (
             "POST",
             409,
             "https://test-url/api",
+            "test_catalog_id",
             {"id": "test_catalog_id"},
-            "example/path/to/catalog",
-            1,
-            "https://test-url/api/example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs/test_catalog_id",
+            2,
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: CONFLICT",
             {"workspace": ["test_workspace"]},
@@ -77,10 +80,11 @@ from stac_fastapi_ingester.__main__ import (
             "POST",
             404,
             "https://test-url/api",
+            "test_catalog_id",
             {"id": "test_catalog_id"},
-            "example/path/to/catalog",
-            1,
-            "https://test-url/api/example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs/test_catalog_id",
+            2,
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: NOT_FOUND",
             {"workspace": ["test_workspace"]},
@@ -90,10 +94,11 @@ from stac_fastapi_ingester.__main__ import (
             "POST",
             400,
             "https://test-url/api",
+            "test_catalog_id",
             {"id": "test_catalog_id"},
-            "example/path/to/catalog",
-            1,
-            "https://test-url/api/example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs/test_catalog_id",
+            2,
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: 400",
             {"workspace": ["test_workspace"]},
@@ -103,10 +108,11 @@ from stac_fastapi_ingester.__main__ import (
             "PUT",
             200,
             "https://test-url/api",
+            "test_catalog_id",
             {"id": "test_catalog_id"},
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs/test_catalog_id",
             1,
-            "https://test-url/api/example/path/to/catalog/test_catalog_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs/test_catalog_id",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: OK",
             {"workspace": ["test_workspace"]},
@@ -116,10 +122,11 @@ from stac_fastapi_ingester.__main__ import (
             "PUT",
             200,
             "https://test-url/api",
+            "test_catalog_id",
             {"id": "test_catalog_id"},
-            "",
+            "catalogs/test_catalog_id",
             1,
-            "https://test-url/api/test_catalog_id",
+            "https://test-url/api/catalogs/test_catalog_id",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: OK",
             {"workspace": ["test_workspace"]},
@@ -129,10 +136,11 @@ from stac_fastapi_ingester.__main__ import (
             "PUT",
             409,
             "https://test-url/api",
+            "test_catalog_id",
             {"id": "test_catalog_id"},
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs/test_catalog_id",
             1,
-            "https://test-url/api/example/path/to/catalog/test_catalog_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs/test_catalog_id",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: CONFLICT",
             {"workspace": ["test_workspace"]},
@@ -142,10 +150,11 @@ from stac_fastapi_ingester.__main__ import (
             "POST",
             404,
             "https://test-url/api",
+            "test_catalog_id",
             {"id": "test_catalog_id"},
-            "example/path/to/catalog",
-            1,
-            "https://test-url/api/example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs/test_catalog_id",
+            2,
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: NOT_FOUND",
             {"workspace": ["test_workspace"]},
@@ -155,10 +164,11 @@ from stac_fastapi_ingester.__main__ import (
             "PUT",
             400,
             "https://test-url/api",
+            "test_catalog_id",
             {"id": "test_catalog_id"},
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs/test_catalog_id",
             1,
-            "https://test-url/api/example/path/to/catalog/test_catalog_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs/test_catalog_id",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: 400",
             {"workspace": ["test_workspace"]},
@@ -166,14 +176,15 @@ from stac_fastapi_ingester.__main__ import (
         ),
         pytest.param(
             "DELETE",
-            200,
+            204,
             "https://test-url/api",
+            "test_catalog_id",
             {"id": "test_catalog_id"},
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs/test_catalog_id",
             1,
-            "https://test-url/api/example/path/to/catalog/test_catalog_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs/test_catalog_id",
             {"accept": "application/json"},
-            "Status Code: OK",
+            "Status Code: NO CONTENT",
             {"workspace": ["test_workspace"]},
             id="delete_success",
         ),
@@ -181,10 +192,11 @@ from stac_fastapi_ingester.__main__ import (
             "DELETE",
             409,
             "https://test-url/api",
+            "test_catalog_id",
             {"id": "test_catalog_id"},
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs/test_catalog_id",
             1,
-            "https://test-url/api/example/path/to/catalog/test_catalog_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs/test_catalog_id",
             {"accept": "application/json"},
             "Status Code: CONFLICT",
             {"workspace": ["test_workspace"]},
@@ -194,10 +206,11 @@ from stac_fastapi_ingester.__main__ import (
             "DELETE",
             404,
             "https://test-url/api",
+            "test_catalog_id",
             {"id": "test_catalog_id"},
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs/test_catalog_id",
             1,
-            "https://test-url/api/example/path/to/catalog/test_catalog_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs/test_catalog_id",
             {"accept": "application/json"},
             "Status Code: NOT_FOUND",
             {"workspace": ["test_workspace"]},
@@ -207,10 +220,11 @@ from stac_fastapi_ingester.__main__ import (
             "DELETE",
             400,
             "https://test-url/api",
+            "test_catalog_id",
             {"id": "test_catalog_id"},
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs/test_catalog_id",
             1,
-            "https://test-url/api/example/path/to/catalog/test_catalog_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs/test_catalog_id",
             {"accept": "application/json"},
             "Status Code: 400",
             {"workspace": ["test_workspace"]},
@@ -223,6 +237,7 @@ def test_handle_catalogs(
     http_method,
     status_code,
     api_url,
+    catalog_id,
     data,
     catalog_path,
     call_count,
@@ -236,17 +251,13 @@ def test_handle_catalogs(
     if http_method == "POST":
         # Mock the requests call
         requests_mock.post(expected_url, status_code=status_code)
+        requests_mock.put(
+            f"{expected_url}/{catalog_id}",
+            status_code=HTTPStatus.NOT_FOUND,
+        )
         requests_mock.post(
-            "https://test-url/api/example/path/to/catalog?workspace=test_workspace",
+            "https://test-url/api/catalogs/root",
             status_code=status_code,
-        )
-        requests_mock.put(
-            "https://test-url/api/None?workspace=test_workspace",
-            status_code=HTTPStatus.NOT_FOUND,
-        )
-        requests_mock.put(
-            f"{expected_url.replace('test_catalog_id', '')}None?workspace=test_workspace",
-            status_code=HTTPStatus.NOT_FOUND,
         )
         create_or_update_catalog(api_url, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data, "params": params}
@@ -257,7 +268,7 @@ def test_handle_catalogs(
             f"{expected_url.replace('/test_catalog_id', '')}?workspace=test_workspace",
             status_code=status_code,
         )
-        create_or_update_catalog(api_url, data, "test_workspace", catalog_path, "test_catalog_id")
+        create_or_update_catalog(api_url, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data, "params": params}
     elif http_method == "DELETE":
         # Mock the requests call
@@ -296,11 +307,12 @@ def test_handle_catalogs(
             "https://test-url/api",
             {"id": "test_catalog_id"},
             "test_catalog_id",
-            "example/path/to/catalog",
-            1,
-            "https://test-url/api/example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs/test_catalog_id",
+            2,
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs",
             {"accept": "application/json", "Content-Type": "application/json"},
-            "Catalog: test_catalog_id not created or updated",
+            "Catalog: test_catalog_id not created or updated in catalogs/example/catalogs/path/"
+            "catalogs/to/catalogs/catalog/catalogs/test_catalog_id",
             {"workspace": ["test_workspace"]},
             id="create",
         ),
@@ -309,11 +321,12 @@ def test_handle_catalogs(
             "https://test-url/api",
             {"id": "test_catalog_id"},
             "test_catalog_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs/test_catalog_id",
             1,
-            "https://test-url/api/example/path/to/catalog/test_catalog_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs/test_catalog_id",
             {"accept": "application/json", "Content-Type": "application/json"},
-            "Catalog: test_catalog_id not created or updated in example/path/to/catalog",
+            "Catalog: test_catalog_id not created or updated in catalogs/example/catalogs/path/catalogs"
+            "/to/catalogs/catalog/catalogs/test_catalog_id",
             {"workspace": ["test_workspace"]},
             id="update",
         ),
@@ -322,9 +335,9 @@ def test_handle_catalogs(
             "https://test-url/api",
             {"id": "test_catalog_id"},
             "test_catalog_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/catalogs/test_catalog_id",
             1,
-            "https://test-url/api/example/path/to/catalog/test_catalog_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/test_catalog_id",
             {"accept": "application/json"},
             "Catalog: test_catalog_id not deleted",
             {"workspace": ["test_workspace"]},
@@ -350,7 +363,7 @@ def test_catalog_connection_error(
     if http_method == "POST":
         # Mock the requests call
         requests_mock.put(
-            "https://test-url/api/None?workspace=test_workspace",
+            f"{expected_url}/{catalog_id}",
             status_code=HTTPStatus.NOT_FOUND,
         )
         requests_mock.post(expected_url, exc=requests.ConnectionError)
@@ -359,7 +372,7 @@ def test_catalog_connection_error(
     elif http_method == "PUT":
         # Mock the requests call
         requests_mock.put(expected_url, exc=requests.ConnectionError)
-        create_or_update_catalog(api_url, data, "test_workspace", catalog_path, catalog_id)
+        create_or_update_catalog(api_url, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data, "params": params}
     elif http_method == "DELETE":
         # Mock the requests call
@@ -404,9 +417,9 @@ def test_catalog_connection_error(
             "https://test-url/api",
             {"id": "test_collection_id"},
             "test_collection_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id",
             2,
-            "https://test-url/api/example/path/to/catalog",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: OK",
             {"workspace": ["test_workspace"]},
@@ -418,9 +431,9 @@ def test_catalog_connection_error(
             "https://test-url/api",
             {"id": "test_collection_id"},
             "test_collection_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id",
             2,
-            "https://test-url/api/example/path/to/catalog",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: CONFLICT",
             {"workspace": ["test_workspace"]},
@@ -432,11 +445,12 @@ def test_catalog_connection_error(
             "https://test-url/api",
             {"id": "test_collection_id"},
             "test_collection_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id",
             2,
-            "https://test-url/api/example/path/to/catalog",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections",
             {"accept": "application/json", "Content-Type": "application/json"},
-            "example/path/to/catalog doesn't exist",
+            "Collection: test_collection_id not created at location catalogs/example/"
+            "catalogs/path/catalogs/to/catalogs/catalog/collections",
             {"workspace": ["test_workspace"]},
             id="create_not_found",
         ),
@@ -446,9 +460,9 @@ def test_catalog_connection_error(
             "https://test-url/api",
             {"id": "test_collection_id"},
             "test_collection_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id",
             2,
-            "https://test-url/api/example/path/to/catalog",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: 400",
             {"workspace": ["test_workspace"]},
@@ -460,9 +474,9 @@ def test_catalog_connection_error(
             "https://test-url/api",
             {"id": "test_collection_id"},
             "test_collection_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id",
             1,
-            "https://test-url/api/example/path/to/catalog/test_collection_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: OK",
             {"workspace": ["test_workspace"]},
@@ -474,9 +488,9 @@ def test_catalog_connection_error(
             "https://test-url/api",
             {"id": "test_collection_id"},
             "test_collection_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id",
             1,
-            "https://test-url/api/example/path/to/catalog/test_collection_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: CONFLICT",
             {"workspace": ["test_workspace"]},
@@ -488,9 +502,9 @@ def test_catalog_connection_error(
             "https://test-url/api",
             {"id": "test_collection_id"},
             "test_collection_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id",
             2,
-            "https://test-url/api/example/path/to/catalog/test_collection_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: NOT_FOUND",
             {"workspace": ["test_workspace"]},
@@ -502,9 +516,9 @@ def test_catalog_connection_error(
             "https://test-url/api",
             {"id": "test_collection_id"},
             "test_collection_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id",
             1,
-            "https://test-url/api/example/path/to/catalog/test_collection_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id",
             {"accept": "application/json", "Content-Type": "application/json"},
             "Status Code: 400",
             {"workspace": ["test_workspace"]},
@@ -512,15 +526,15 @@ def test_catalog_connection_error(
         ),
         pytest.param(
             "DELETE",
-            200,
+            204,
             "https://test-url/api",
             {"id": "test_collection_id"},
             "test_collection_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id",
             1,
-            "https://test-url/api/example/path/to/catalog/test_collection_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id",
             {"accept": "application/json"},
-            "Status Code: OK",
+            "Status Code: NO CONTENT",
             {"workspace": ["test_workspace"]},
             id="delete_success",
         ),
@@ -530,9 +544,9 @@ def test_catalog_connection_error(
             "https://test-url/api",
             {"id": "test_collection_id"},
             "test_collection_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id",
             1,
-            "https://test-url/api/example/path/to/catalog/test_collection_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id",
             {"accept": "application/json"},
             "Status Code: CONFLICT",
             {"workspace": ["test_workspace"]},
@@ -544,9 +558,9 @@ def test_catalog_connection_error(
             "https://test-url/api",
             {"id": "test_collection_id"},
             "test_collection_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id",
             1,
-            "https://test-url/api/example/path/to/catalog/test_collection_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id",
             {"accept": "application/json"},
             "Status Code: NOT_FOUND",
             {"workspace": ["test_workspace"]},
@@ -558,9 +572,9 @@ def test_catalog_connection_error(
             "https://test-url/api",
             {"id": "test_collection_id"},
             "test_collection_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id",
             1,
-            "https://test-url/api/example/path/to/catalog/test_collection_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id",
             {"accept": "application/json"},
             "Status Code: 400",
             {"workspace": ["test_workspace"]},
@@ -586,34 +600,18 @@ def test_handle_collections(
 
     if http_method == "POST":
         # Mock the requests call
-        requests_mock.post(expected_url, status_code=status_code)
         requests_mock.post(f"{expected_url}", status_code=status_code)
-        requests_mock.post(
-            "https://test-url/api/example/path/to/catalog?workspace=test_workspace&is_public=True",
-            status_code=status_code,
-        )
-        requests_mock.post(
-            "https://test-url/api/catalogs/user-datasets/example/path/to/catalog/collections?workspace=test_workspace&is_public=False",
-            status_code=status_code,
-        )
         requests_mock.put(
-            f"{expected_url}s/test_collection_id?workspace=test_workspace",
+            f"{expected_url}/{collection_id}",
             status_code=HTTPStatus.NOT_FOUND,
         )
-        requests_mock.put(
-            f"{expected_url.replace('/test_collection_id', '')}/test_collection_id?workspace=test_workspace",
-            status_code=HTTPStatus.NOT_FOUND,
-        )
-        create_or_update_collection(api_url, collection_id, data, "test_workspace", catalog_path)
+
+        create_or_update_collection(api_url, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data, "params": params}
     elif http_method == "PUT":
         # Mock the requests call
         requests_mock.put(expected_url, status_code=status_code)
-        requests_mock.post(
-            f"{expected_url.replace('/test_collection_id', '')}?workspace=test_workspace&is_public=True",
-            status_code=status_code,
-        )
-        create_or_update_collection(api_url, collection_id, data, "test_workspace", catalog_path)
+        create_or_update_collection(api_url, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data, "params": params}
     elif http_method == "DELETE":
         # Mock the requests call
@@ -650,37 +648,39 @@ def test_handle_collections(
         pytest.param(
             "POST",
             "https://test-url/api",
-            {"id": "test_item_id"},
+            {"id": "test_collection_id"},
             "test_collection_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id",
             2,
-            "https://test-url/api/example/path/to/catalog",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections",
             {"accept": "application/json", "Content-Type": "application/json"},
-            "Collection: test_collection_id in Catalog: example/path/to/catalog not created or updated",
+            "Collection: test_collection_id at location: catalogs/example/catalogs/path/"
+            "catalogs/to/catalogs/catalog/collections/test_collection_id not created or updated",
             {"workspace": ["test_workspace"]},
             id="create",
         ),
         pytest.param(
             "PUT",
             "https://test-url/api",
-            {"id": "test_item_id"},
+            {"id": "test_collection_id"},
             "test_collection_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id",
             1,
-            "https://test-url/api/example/path/to/catalog/test_collection_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id",
             {"accept": "application/json", "Content-Type": "application/json"},
-            "Collection: test_collection_id in Catalog: example/path/to/catalog not created or updated",
+            "Collection: test_collection_id at location: catalogs/example/catalogs/path/"
+            "catalogs/to/catalogs/catalog/collections/test_collection_id not created or updated",
             {"workspace": ["test_workspace"]},
             id="update",
         ),
         pytest.param(
             "DELETE",
             "https://test-url/api",
-            {"id": "test_item_id"},
+            {"id": "test_collection_id"},
             "test_collection_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id",
             1,
-            "https://test-url/api/example/path/to/catalog/test_collection_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id",
             {"accept": "application/json"},
             "Collection: test_collection_id not deleted",
             {"workspace": ["test_workspace"]},
@@ -706,19 +706,20 @@ def test_collection_connection_error(
     if http_method == "POST":
         # Mock the requests call
         requests_mock.put(
-            f"{expected_url}/test_collection_id?workspace=test_workspace",
+            f"{expected_url}/{collection_id}",
             status_code=HTTPStatus.NOT_FOUND,
         )
         requests_mock.post(expected_url, exc=requests.ConnectionError)
-        create_or_update_collection(api_url, collection_id, data, "test_workspace", catalog_path)
+        create_or_update_collection(api_url, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data, "params": params}
     elif http_method == "PUT":
         # Mock the requests call
         requests_mock.put(expected_url, exc=requests.ConnectionError)
-        create_or_update_collection(api_url, collection_id, data, "test_workspace", catalog_path)
+        create_or_update_collection(api_url, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data, "params": params}
     elif http_method == "DELETE":
         # Mock the requests call
+        print(catalog_path)
         requests_mock.delete(expected_url, exc=requests.ConnectionError)
         delete_collection(api_url, collection_id, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "params": params}
@@ -759,12 +760,12 @@ def test_collection_connection_error(
             200,
             "",
             "https://test-url/api",
-            {"id": "test_item_id"},
+            {"id": "test_item_id", "collection": "test_collection_id"},
             "test_collection_id",
             "test_item_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items/test_item_id",
             2,
-            "https://test-url/api/example/path/to/catalog/test_collection_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items",
             {"accept": "application/json", "Content-Type": "application/json"},
             ["Status Code: OK"],
             {"workspace": ["test_workspace"]},
@@ -775,12 +776,12 @@ def test_collection_connection_error(
             409,
             "",
             "https://test-url/api",
-            {"id": "test_item_id"},
+            {"id": "test_item_id", "collection": "test_collection_id"},
             "test_collection_id",
             "test_item_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items/test_item_id",
             2,
-            "https://test-url/api/example/path/to/catalog/test_collection_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items",
             {"accept": "application/json", "Content-Type": "application/json"},
             ["Status Code: CONFLICT"],
             {"workspace": ["test_workspace"]},
@@ -791,16 +792,16 @@ def test_collection_connection_error(
             404,
             "",
             "https://test-url/api",
-            {"id": "test_item_id"},
+            {"id": "test_item_id", "collection": "test_collection_id"},
             "test_collection_id",
             "test_item_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items/test_item_id",
             2,
-            "https://test-url/api/example/path/to/catalog/test_collection_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items",
             {"accept": "application/json", "Content-Type": "application/json"},
             [
-                "Item: test_item_id in Collection: test_collection_id in "
-                "Catalog: example/path/to/catalog not created or updated"
+                "Item: test_item_id not created at location catalogs/example/catalogs/path/"
+                "catalogs/to/catalogs/catalog/collections/test_collection_id/items",
             ],
             {"workspace": ["test_workspace"]},
             id="create_not_found",
@@ -810,12 +811,12 @@ def test_collection_connection_error(
             400,
             "",
             "https://test-url/api",
-            {"id": "test_item_id"},
+            {"id": "test_item_id", "collection": "test_collection_id"},
             "test_collection_id",
             "test_item_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items/test_item_id",
             2,
-            "https://test-url/api/example/path/to/catalog/test_collection_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items",
             {"accept": "application/json", "Content-Type": "application/json"},
             ["Status Code: 400"],
             {"workspace": ["test_workspace"]},
@@ -826,12 +827,12 @@ def test_collection_connection_error(
             200,
             "",
             "https://test-url/api",
-            {"id": "test_item_id"},
+            {"id": "test_item_id", "collection": "test_collection_id"},
             "test_collection_id",
             "test_item_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items/test_item_id",
             1,
-            "https://test-url/api/example/path/to/catalog/test_collection_id/test_item_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items/test_item_id",
             {"accept": "application/json", "Content-Type": "application/json"},
             ["Status Code: OK"],
             {"workspace": ["test_workspace"]},
@@ -842,12 +843,12 @@ def test_collection_connection_error(
             409,
             "",
             "https://test-url/api",
-            {"id": "test_item_id"},
+            {"id": "test_item_id", "collection": "test_collection_id"},
             "test_collection_id",
             "test_item_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items/test_item_id",
             1,
-            "https://test-url/api/example/path/to/catalog/test_collection_id/test_item_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items/test_item_id",
             {"accept": "application/json", "Content-Type": "application/json"},
             ["Status Code: CONFLICT"],
             {"workspace": ["test_workspace"]},
@@ -858,12 +859,12 @@ def test_collection_connection_error(
             404,
             "Item",
             "https://test-url/api",
-            {"id": "test_item_id"},
+            {"id": "test_item_id", "collection": "test_collection_id"},
             "test_collection_id",
             "test_item_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items/test_item_id",
             2,
-            "https://test-url/api/example/path/to/catalog/test_collection_id/test_item_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items",
             {"accept": "application/json", "Content-Type": "application/json"},
             ["Status Code: NOT_FOUND", "not created", "not updated"],
             {"workspace": ["test_workspace"]},
@@ -874,16 +875,17 @@ def test_collection_connection_error(
             404,
             "Collection",
             "https://test-url/api",
-            {"id": "test_item_id"},
+            {"id": "test_item_id", "collection": "test_collection_id"},
             "test_collection_id",
             "test_item_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items/test_item_id",
             2,
-            "https://test-url/api/example/path/to/catalog/test_collection_id/test_item_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items",
             {"accept": "application/json", "Content-Type": "application/json"},
             [
                 "Status Code: NOT_FOUND",
-                "test_item_id not updated as item test_item_id or collection example/path/to/catalog "
+                "test_item_id not updated as entry at location catalogs/example/catalogs/path/catalogs"
+                "/to/catalogs/catalog/collections/test_collection_id/items/test_item_id "
                 "doesn't exist",
             ],
             {"workspace": ["test_workspace"]},
@@ -894,14 +896,18 @@ def test_collection_connection_error(
             404,
             "Catalog",
             "https://test-url/api",
-            {"id": "test_item_id"},
+            {"id": "test_item_id", "collection": "test_collection_id"},
             "test_collection_id",
             "test_item_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items/test_item_id",
             2,
-            "https://test-url/api/example/path/to/catalog/test_collection_id/test_item_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items",
             {"accept": "application/json", "Content-Type": "application/json"},
-            ["Status Code: NOT_FOUND", "catalog doesn't exist"],
+            [
+                "Status Code: NOT_FOUND",
+                "catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id"
+                "/items/test_item_id doesn't exist",
+            ],
             {"workspace": ["test_workspace"]},
             id="update_not_found_catalog",
         ),
@@ -910,12 +916,12 @@ def test_collection_connection_error(
             400,
             "",
             "https://test-url/api",
-            {"id": "test_item_id"},
+            {"id": "test_item_id", "collection": "test_collection_id"},
             "test_collection_id",
             "test_item_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items/test_item_id",
             1,
-            "https://test-url/api/example/path/to/catalog/test_collection_id/test_item_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items/test_item_id",
             {"accept": "application/json", "Content-Type": "application/json"},
             ["Status Code: 400"],
             {"workspace": ["test_workspace"]},
@@ -923,17 +929,17 @@ def test_collection_connection_error(
         ),
         pytest.param(
             "DELETE",
-            200,
+            204,
             "",
             "https://test-url/api",
-            {"id": "test_item_id"},
+            {"id": "test_item_id", "collection": "test_collection_id"},
             "test_collection_id",
             "test_item_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items/test_item_id",
             1,
-            "https://test-url/api/example/path/to/catalog/test_collection_id/test_item_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items/test_item_id",
             {"accept": "application/json"},
-            ["Status Code: OK"],
+            ["Status Code: NO CONTENT"],
             {"workspace": ["test_workspace"]},
             id="delete_success",
         ),
@@ -942,12 +948,13 @@ def test_collection_connection_error(
             409,
             "",
             "https://test-url/api",
-            {"id": "test_item_id"},
+            {"id": "test_item_id", "collection": "test_collection_id"},
             "test_collection_id",
             "test_item_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items/test_item_id",
             1,
-            "https://test-url/api/example/path/to/catalog/test_collection_id/test_item_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/"
+            "collections/test_collection_id/items/test_item_id",
             {"accept": "application/json"},
             ["Status Code: CONFLICT"],
             {"workspace": ["test_workspace"]},
@@ -958,12 +965,13 @@ def test_collection_connection_error(
             404,
             "",
             "https://test-url/api",
-            {"id": "test_item_id"},
+            {"id": "test_item_id", "collection": "test_collection_id"},
             "test_collection_id",
             "test_item_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items/test_item_id",
             1,
-            "https://test-url/api/example/path/to/catalog/test_collection_id/test_item_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/"
+            "collections/test_collection_id/items/test_item_id",
             {"accept": "application/json"},
             ["Status Code: NOT_FOUND"],
             {"workspace": ["test_workspace"]},
@@ -974,12 +982,13 @@ def test_collection_connection_error(
             400,
             "",
             "https://test-url/api",
-            {"id": "test_item_id"},
+            {"id": "test_item_id", "collection": "test_collection_id"},
             "test_collection_id",
             "test_item_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items/test_item_id",
             1,
-            "https://test-url/api/example/path/to/catalog/test_collection_id/test_item_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/"
+            "test_collection_id/items/test_item_id",
             {"accept": "application/json"},
             ["Status Code: 400"],
             {"workspace": ["test_workspace"]},
@@ -1008,38 +1017,33 @@ def test_handle_items(
     if http_method == "POST":
         # Mock the requests call
         requests_mock.post(expected_url, status_code=status_code)
-        requests_mock.put(
-            f"{expected_url}/test_item_id?workspace=test_workspace",
-            status_code=HTTPStatus.NOT_FOUND,
-        )
-        requests_mock.put(f"{expected_url}?workspace=test_workspace", status_code=status_code)
-        requests_mock.put(
-            f"{expected_url.replace('/test_item_id', '')}?workspace=test_workspace",
-            status_code=status_code,
-        )
-        requests_mock.post(
-            f"{expected_url.replace('/test_item_id', '')}?workspace=test_workspace",
-            status_code=status_code,
-        )
+        requests_mock.put(f"{expected_url}/{item_id}", status_code=404)
 
-        create_or_update_item(api_url, collection_id, item_id, data, "test_workspace", catalog_path)
+        create_or_update_item(api_url, data, "test_workspace", catalog_path)
+
         expected_kwargs = {"headers": expected_headers, "json": data, "params": params}
+
     elif http_method == "PUT":
         # Create mock content
         mock_content = f'{{"description": "{error_description}"}}'.encode("utf-8")
         # Mock the requests call
         requests_mock.put(expected_url, status_code=status_code, content=mock_content)
         requests_mock.post(
-            f"{expected_url.replace('/test_item_id', '')}?workspace=test_workspace",
+            expected_url,
             status_code=status_code,
             content=mock_content,
         )
-        create_or_update_item(api_url, collection_id, item_id, data, "test_workspace", catalog_path)
+
+        create_or_update_item(api_url, data, "test_workspace", catalog_path)
+
         expected_kwargs = {"headers": expected_headers, "json": data, "params": params}
+
     elif http_method == "DELETE":
         # Mock the requests call
         requests_mock.delete(expected_url, status_code=status_code)
+
         delete_item(api_url, collection_id, item_id, "test_workspace", catalog_path)
+
         expected_kwargs = {"headers": expected_headers, "params": params}
 
     # Assert that the request was made correct number of times
@@ -1072,45 +1076,50 @@ def test_handle_items(
         pytest.param(
             "POST",
             "https://test-url/api",
-            {"id": "test_item_id"},
+            {"id": "test_item_id", "collection": "test_collection_id"},
             "test_collection_id",
             "test_item_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items/test_item_id",
             2,
-            "https://test-url/api/example/path/to/catalog/test_collection_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections"
+            "/test_collection_id/items/test_item_id",
             {"accept": "application/json", "Content-Type": "application/json"},
-            "Item: test_item_id in Collection: test_collection_id in Catalog: "
-            "example/path/to/catalog not created or updated",
+            "Item: test_item_id in Collection: test_collection_id at location: "
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/"
+            "items/test_item_id not created or updated",
             {"workspace": ["test_workspace"]},
             id="create",
         ),
         pytest.param(
             "PUT",
             "https://test-url/api",
-            {"id": "test_item_id"},
+            {"id": "test_item_id", "collection": "test_collection_id"},
             "test_collection_id",
             "test_item_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items/test_item_id",
             1,
-            "https://test-url/api/example/path/to/catalog/test_collection_id/test_item_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items/test_item_id",
             {"accept": "application/json", "Content-Type": "application/json"},
-            "Item: test_item_id in Collection: test_collection_id in "
-            "Catalog: example/path/to/catalog not created or updated",
+            "Item: test_item_id in Collection: test_collection_id at "
+            "location: catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/"
+            "test_collection_id/items/test_item_id not created or updated",
             {"workspace": ["test_workspace"]},
             id="update",
         ),
         pytest.param(
             "DELETE",
             "https://test-url/api",
-            {"id": "test_item_id"},
+            {"id": "test_item_id", "collection": "test_collection_id"},
             "test_collection_id",
             "test_item_id",
-            "example/path/to/catalog",
+            "catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/test_collection_id/items/test_item_id",
             1,
-            "https://test-url/api/example/path/to/catalog/" "test_collection_id/items/test_item_id",
+            "https://test-url/api/catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections"
+            "/test_collection_id/items/test_item_id",
             {"accept": "application/json"},
-            "Item: test_item_id in Collection: test_collection_id in "
-            "Catalog: example/path/to/catalog not deleted",
+            "Item: test_item_id in Collection: test_collection_id at "
+            "location: catalogs/example/catalogs/path/catalogs/to/catalogs/catalog/collections/"
+            "test_collection_id/items/test_item_id not deleted",
             {"workspace": ["test_workspace"]},
             id="delete",
         ),
@@ -1138,13 +1147,14 @@ def test_item_connection_error(
             f"{expected_url}/test_item_id?workspace=test_workspace",
             status_code=HTTPStatus.NOT_FOUND,
         )
+        requests_mock.put(expected_url, status_code=404)
         requests_mock.post(expected_url, exc=requests.ConnectionError)
-        create_or_update_item(api_url, collection_id, item_id, data, "test_workspace", catalog_path)
+        create_or_update_item(api_url, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data, "params": params}
     elif http_method == "PUT":
         # Mock the requests call
         requests_mock.put(expected_url, exc=requests.ConnectionError)
-        create_or_update_item(api_url, collection_id, item_id, data, "test_workspace", catalog_path)
+        create_or_update_item(api_url, data, "test_workspace", catalog_path)
         expected_kwargs = {"headers": expected_headers, "json": data, "params": params}
     elif http_method == "DELETE":
         # Mock the requests call
@@ -1216,8 +1226,8 @@ def test_interpret_message_catalog(
 
     # Configure test variables
     test_id = "test_catalog_id"
-    test_key = f"transformed/catalog_key_1/{test_id}"
-    test_catalog_path = "catalog_key_1"
+    test_key = f"transformed/catalogs/catalog_key_1/catalogs/{test_id}"
+    test_catalog_path = f"catalogs/catalog_key_1/catalogs/{test_id}"
     test_data = {"id": test_id, "type": "Catalog"}
 
     # Setup mocks based on the http_method parameter
@@ -1226,13 +1236,13 @@ def test_interpret_message_catalog(
         added_keys = [test_key]
         update_keys = []
         delete_keys = []
-        expected_args = (api_url, test_data, "test_workspace", test_catalog_path, test_id)
+        expected_args = (api_url, test_data, "test_workspace", test_catalog_path)
     elif http_method == "PUT":
         mock_function = mock_create_or_update_catalog
         added_keys = []
         update_keys = [test_key]
         delete_keys = []
-        expected_args = (api_url, test_data, "test_workspace", test_catalog_path, test_id)
+        expected_args = (api_url, test_data, "test_workspace", test_catalog_path)
     elif http_method == "DELETE":
         mock_function = mock_delete_catalog
         added_keys = []
@@ -1291,8 +1301,8 @@ def test_interpret_message_collection(
 
     # Configure test variables
     test_id = "test_collection_id"
-    test_key = f"transformed/catalog_key_1/{test_id}"
-    test_catalog_path = "catalog_key_1"
+    test_key = f"transformed/catalogs/catalog_key_1/catalogs/{test_id}"
+    test_catalog_path = f"catalogs/catalog_key_1/catalogs/{test_id}"
     test_data = {"id": test_id, "type": "Collection"}
     api_url = "https://test-url/api"
 
@@ -1302,13 +1312,13 @@ def test_interpret_message_collection(
         added_keys = [test_key]
         update_keys = []
         delete_keys = []
-        expected_args = (api_url, test_id, test_data, "test_workspace", test_catalog_path)
+        expected_args = (api_url, test_data, "test_workspace", test_catalog_path)
     elif http_method == "PUT":
         mock_function = mock_create_or_update_collection
         added_keys = []
         update_keys = [test_key]
         delete_keys = []
-        expected_args = (api_url, test_id, test_data, "test_workspace", test_catalog_path)
+        expected_args = (api_url, test_data, "test_workspace", test_catalog_path)
     elif http_method == "DELETE":
         mock_function = mock_delete_collection
         added_keys = []
@@ -1379,8 +1389,12 @@ def test_interpret_message_item(
     # Configure test variables
     test_item_id = "item_key_1"
     test_collection_id = "collection_key_1"
-    test_key = f"transformed/catalog_key_1/{test_collection_id}/{test_item_id}"
-    test_catalog_path = "catalog_key_1"
+    test_key = (
+        f"transformed/catalogs/catalog_key_1/collections/{test_collection_id}/items/{test_item_id}"
+    )
+    test_catalog_path = (
+        f"catalogs/catalog_key_1/collections/{test_collection_id}/items/{test_item_id}"
+    )
     api_url = "https://test-url/api"
     test_data = {"id": test_item_id, "type": "Feature", "collection": test_collection_id}
 
@@ -1392,8 +1406,6 @@ def test_interpret_message_item(
         delete_keys = []
         expected_args = (
             api_url,
-            test_collection_id,
-            test_item_id,
             test_data,
             "test_workspace",
             test_catalog_path,
@@ -1405,8 +1417,6 @@ def test_interpret_message_item(
         delete_keys = []
         expected_args = (
             api_url,
-            test_collection_id,
-            test_item_id,
             test_data,
             "test_workspace",
             test_catalog_path,
