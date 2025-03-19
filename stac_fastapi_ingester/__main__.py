@@ -14,8 +14,6 @@ import pulsar
 import pulsar.exceptions
 import requests
 
-from .utils import construct_catalog_url
-
 # configure boto3 logging
 logging.getLogger("botocore").setLevel(logging.CRITICAL)
 logging.getLogger("boto3").setLevel(logging.CRITICAL)
@@ -119,12 +117,10 @@ def delete_catalog(api_url: str, workspace: str, catalog_path: str, catalog_id: 
     headers = {"accept": "application/json"}
     query_params = {"workspace": workspace}
     data_type = "Catalogue"
-    # Construct URL for catalog deletion
-    combined_url = construct_catalog_url(api_url, catalog_path, catalog_id)
 
     try:
         resp = requests.delete(
-            combined_url,
+            f"{api_url}/{catalog_path}",
             headers=headers,
             params=query_params,
         )
@@ -152,7 +148,7 @@ def delete_collection(api_url: str, collection_id: str, workspace: str, catalog_
     data_type = "Collection"
     try:
         resp = requests.delete(
-            f"{api_url}/{catalog_path}/{collection_id}",
+            f"{api_url}/{catalog_path}",
             headers=headers,
             params=query_params,
         )
@@ -173,7 +169,7 @@ def delete_item(api_url: str, collection_id: str, item_id: str, workspace: str, 
     data_type = "Item"
     try:
         resp = requests.delete(
-            f"{api_url}/{catalog_path}/{collection_id}/{item_id}",
+            f"{api_url}/{catalog_path}",
             headers=headers,
             params=query_params,
         )
@@ -181,7 +177,7 @@ def delete_item(api_url: str, collection_id: str, item_id: str, workspace: str, 
 
     except Exception as err:
         logger.warning(
-            f"Item: {item_id} in Collection: {collection_id} in Catalog: {catalog_path} not deleted"
+            f"Item: {item_id} in Collection: {collection_id} at location: {catalog_path} not deleted"
         )
         logger.error(err)
 
@@ -207,28 +203,28 @@ def log_response(
     if resp.status_code == HTTPStatus.OK:
         logger.info("Status Code: OK")
         logger.info(
-            f"{action}d {item_type} {data_id} in {catalog_path if catalog_path else 'top-level'} catalog"
+            f"{action}d {item_type} {data_id} at location {catalog_path if catalog_path else 'top-level'}"
         )
     elif resp.status_code == HTTPStatus.CONFLICT:
         logger.warning("Status Code: CONFLICT")
         logger.warning(
-            f"{item_type}: {data_id} already exists in "
-            f"{catalog_path if catalog_path else 'top-level'} catalog"
+            f"{item_type}: {data_id} already exists at location "
+            f"{catalog_path if catalog_path else 'top-level'}"
         )
     elif resp.status_code == HTTPStatus.NOT_FOUND:
         logger.warning("Status Code: NOT_FOUND")
         if http_method == "PUT":
             logger.warning(
-                f"{item_type}: {data_id} not {action}d as item {data_id} "
-                f"or collection {catalog_path} doesn't exist"
+                f"{item_type}: {data_id} not {action}d as entry "
+                f"at location {catalog_path} doesn't exist"
             )
         elif http_method == "POST":
             logger.warning(
-                f"{item_type}: {data_id} not {action}d as catalog or collection {catalog_path} doesn't exist"
+                f"{item_type}: {data_id} not {action}d at location {catalog_path}, assume parent is missing"
             )
     else:
-        logger.warning(f"{item_type}: {data_id} not {action}d in {catalog_path}")
-        logger.warning(f"Status Code: {resp.status_code} on url: {api_url}/catalogs")
+        logger.warning(f"{item_type}: {data_id} not {action}d at location {catalog_path}")
+        logger.warning(f"Status Code: {resp.status_code} on url: {api_url}/{catalog_path}")
         logger.warning(f"Status message is {resp.content}")
         logger.warning("data is")
         logger.warning(data)
@@ -239,40 +235,39 @@ def create_or_update_catalog(
     data: dict,
     workspace: str,
     catalog_path: Optional[str] = None,
-    catalog_id: Optional[str] = None,
 ) -> bool:
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     query_params = {"workspace": workspace}
     data_type = "Catalogue"
     catalogue_exists = True
+    id = data["id"]
     try:
-        if catalog_id:
-            combined_url = construct_catalog_url(api_url, catalog_path, catalog_id)
-
-            logging.info(f"Attempting to update {combined_url}")
+        if catalog_path:
             resp = requests.put(
-                combined_url,
+                f"{api_url}/{catalog_path}",
                 headers=headers,
                 json=data,
                 params=query_params,
             )
 
-            log_response(resp, data, data["id"], catalog_path, api_url, data_type)
+            log_response(resp, data, id, catalog_path, api_url, data_type)
         else:
             catalogue_exists = False
 
         if not catalogue_exists or resp.status_code == HTTPStatus.NOT_FOUND:
-            gen_catalog_path = catalog_path if catalog_path else "root"
-            combined_url = construct_catalog_url(api_url, gen_catalog_path)
-            logging.info(f"Attempting to add {combined_url}")
+            if catalog_path:
+                # Remove file name from path
+                new_path = catalog_path.rsplit("/", 1)[0]
+                if new_path == "catalogs":
+                    new_path = "catalogs/root"
             resp = requests.post(
-                combined_url,
+                f"{api_url}/{new_path}",
                 headers=headers,
                 json=data,
                 params=query_params,
             )
 
-            log_response(resp, data, data["id"], catalog_path, api_url, data_type)
+            log_response(resp, data, id, new_path, api_url, data_type)
 
         resp.raise_for_status()
 
@@ -288,39 +283,42 @@ def create_or_update_catalog(
 
 
 def create_or_update_collection(
-    api_url: str, collection_id: str, data: dict, workspace: str, catalog_path: str
+    api_url: str, data: dict, workspace: str, catalog_path: str
 ) -> bool:
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     query_params = {"workspace": workspace}
     data_type = "Collection"
+    id = data["id"]
     try:
         resp = requests.put(
-            f"{api_url}/{catalog_path}/{collection_id}",
+            f"{api_url}/{catalog_path}",
             headers=headers,
             json=data,
             params=query_params,
         )
 
-        log_response(resp, data, collection_id, catalog_path, api_url, data_type)
+        log_response(resp, data, id, catalog_path, api_url, data_type)
 
         if resp.status_code == HTTPStatus.NOT_FOUND:
 
+            # Remove file name from path
+            new_path = catalog_path.rsplit("/", 1)[0]
+
             resp = requests.post(
-                f"{api_url}/{catalog_path}",
-                # change to `collections` after updating ADES endpoint
+                f"{api_url}/{new_path}",
                 headers=headers,
                 json=data,
                 params=query_params,
             )
 
-            log_response(resp, data, collection_id, catalog_path, api_url, data_type)
+            log_response(resp, data, id, new_path, api_url, data_type)
         resp.raise_for_status()
 
         return True
 
     except Exception as err:
         logger.error(
-            f"Collection: {collection_id} in Catalog: "
+            f"Collection: {id} at location: "
             f"{f'{catalog_path}' if catalog_path else 'at top-level'} "
             f"not created or updated"
         )
@@ -328,15 +326,15 @@ def create_or_update_collection(
         return False
 
 
-def create_or_update_item(
-    api_url: str, collection_id: str, item_id: str, data: dict, workspace: str, catalog_path: str
-) -> bool:
+def create_or_update_item(api_url: str, data: dict, workspace: str, catalog_path: str) -> bool:
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     query_params = {"workspace": workspace}
     data_type = "Item"
+    item_id = data["id"]
+    collection_id = data["collection"]
     try:
         resp = requests.put(
-            f"{api_url}/{catalog_path}/{collection_id}/{item_id}",
+            f"{api_url}/{catalog_path}",
             headers=headers,
             json=data,
             params=query_params,
@@ -344,22 +342,25 @@ def create_or_update_item(
         log_response(resp, data, item_id, catalog_path, api_url, data_type)
 
         if resp.status_code == HTTPStatus.NOT_FOUND:
+
+            # Remove file name from path
+            new_path = catalog_path.rsplit("/", 1)[0]
             resp = requests.post(
-                f"{api_url}/{catalog_path}/{collection_id}",
+                f"{api_url}/{new_path}",
                 headers=headers,
                 json=data,
                 params=query_params,
             )
 
-            log_response(resp, data, item_id, catalog_path, api_url, data_type)
+            log_response(resp, data, item_id, new_path, api_url, data_type)
         resp.raise_for_status()
 
         return True
 
     except Exception as err:
         logger.error(
-            f"Item: {item_id} in Collection: {collection_id} in "
-            f"Catalog: {catalog_path} not created or updated"
+            f"Item: {item_id} in Collection: {collection_id} at "
+            f"location: {catalog_path} not created or updated"
         )
         logger.error(err)
         return False
@@ -482,23 +483,14 @@ def interpret_message(updates_json: dict, api_url: str) -> Optional[dict]:
         if not data:
             continue
 
-        # Extract catalog path for this file
-        catalog_path_list = file_key.split("/")
-        catalog_path_list = catalog_path_list[:-1]
+        # Remove prefix from key, often "transformed"
+        catalog_path = file_key.replace("transformed/", "", 1)
 
-        # TODO: In future we can use:
-        # file_id = catalog_path_list[-1] to extract current file name (doesn't work for collections)
-
-        # Remove first key in catalog path (expected to be "transformed")
-        if len(catalog_path_list) == 1:
-            # If only one directory provided, no parent catalog is available
-            catalog_path = ""
-        else:
-            catalog_path_list = catalog_path_list[1:]
-            catalog_path = "/".join(catalog_path_list)
+        # Remove ".json" from key
+        catalog_path = catalog_path.rsplit(".", 1)[0]
 
         if data.get("type") == "Collection":
-            collection_id = file_key.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+            collection_id = catalog_path.rsplit("/", 1)[-1]
             logger.info(
                 f"Deleting collection {collection_id} from "
                 f"Catalog {catalog_path if catalog_path else 'top-level'}"
@@ -506,18 +498,12 @@ def interpret_message(updates_json: dict, api_url: str) -> Optional[dict]:
             delete_collection(api_url, collection_id, workspace, catalog_path)
 
         elif data.get("type") == "Feature":
-            item_id = file_key.rsplit("/", 1)[-1].rsplit(".", 1)[0]
-            collection_id = file_key.rsplit("/", 2)[-2]
-            if catalog_path == "":
-                logger.warning(
-                    f"Cannot delete Item {item_id} without catalog being specified, skipping."
-                )
+            item_id = catalog_path.rsplit("/", 1)[-1]
+            try:
+                collection_id = catalog_path.rsplit("/", 3)[-3]
+            except IndexError:
+                logging.error(f"No collection defined in file key {file_key}")
                 continue
-            # For items, we need to cut down the catalog path ignoring the 'collection' directory
-            # Expected format is 'catalog/collection/item', we only need 'catalog'
-            catalog_path_list = catalog_path.split("/")
-            catalog_path = catalog_path_list[:-1]  # Remove 'collection' directory
-            catalog_path = "/".join(catalog_path)
             logger.info(
                 f"Deleting item {item_id} in collection {collection_id} in "
                 f"Catalog {catalog_path if catalog_path else 'top-level'}"
@@ -544,68 +530,47 @@ def interpret_message(updates_json: dict, api_url: str) -> Optional[dict]:
         if not data:
             continue
 
-        # Extract catalog path for this file
-        catalog_path_list = file_key.split("/")
-        catalog_path_list = catalog_path_list[:-1]
-        # Remove first key in catalog path (expected to be "transformed")
-        if len(catalog_path_list) == 1:
-            # If only one directory provided, no parent catalog is available
-            catalog_path = ""
-        else:
-            catalog_path_list = catalog_path_list[1:]
-            catalog_path = "/".join(catalog_path_list)
-
         if file_key.endswith("meta_access_policy.json"):
             logger.info("Creating access policy for workspace %s", workspace)
             handle_access_policy(data, api_url, workspace)
             continue
 
+        # Remove prefix from key, often "transformed"
+        catalog_path = file_key.replace("transformed/", "", 1)
+
+        # Remove ".json" from key
+        catalog_path = catalog_path.rsplit(".", 1)[0]
+
         if data.get("type") == "Collection":
             collection_id = data["id"]
-            logger.info(f"Creating/updating Collection {collection_id} in catalog {catalog_path}")
+            logger.info(f"Creating/updating Collection {collection_id} in location {catalog_path}")
 
             # Handle case in which catalog is not yet created for this collection
-            success = create_or_update_collection(
-                api_url, collection_id, data, workspace, catalog_path
-            )
+            success = create_or_update_collection(api_url, data, workspace, catalog_path)
             if not success:
                 files_to_retry.append(file_key)
 
         elif data.get("type") == "Feature":
             item_id = data["id"]
-            if catalog_path == "":
-                logger.warning(
-                    f"Cannot create Item {item_id} without catalog being specified, skipping."
-                )
-                continue
-            # For items, we need to cut down the catalog path ignoring the 'collection' directory
-            # Expected format is 'catalog/collection/item', we only need 'catalog'
-            catalog_path_list = catalog_path.split("/")
-            catalog_path = catalog_path_list[:-1]  # Remove 'collection' directory
-            catalog_path = "/".join(catalog_path)
             try:
                 collection_id = data["collection"]
             except KeyError:
                 logging.error(f"Key 'collection' not found in file {file_key}")
                 continue
-            logger.info(
-                f"Creating/updating Item {item_id} in collection {collection_id} in catalog {catalog_path}"
-            )
+            logger.info(f"Creating/updating Item {item_id} in location {catalog_path}")
 
             # Handle case in which catalog and/or collection is not yet created for this item
-            success = create_or_update_item(
-                api_url, collection_id, item_id, data, workspace, catalog_path
-            )
+            success = create_or_update_item(api_url, data, workspace, catalog_path)
 
             if not success:
                 files_to_retry.append(file_key)
 
         elif data.get("type") == "Catalog":
             logger.info(
-                f"Creating/updating Catalog {data['id']} in Catalog"
+                f"Creating/updating Catalog {data['id']} in location"
                 f" {catalog_path if catalog_path else 'top-level'}"
             )
-            success = create_or_update_catalog(api_url, data, workspace, catalog_path, data["id"])
+            success = create_or_update_catalog(api_url, data, workspace, catalog_path)
 
             if not success:
                 files_to_retry.append(file_key)
