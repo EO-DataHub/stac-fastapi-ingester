@@ -256,7 +256,7 @@ def test_handle_catalogs(
             status_code=HTTPStatus.NOT_FOUND,
         )
         requests_mock.post(
-            "https://test-url/api/catalogs/root",
+            "https://test-url/api/catalogs/root/catalogs",
             status_code=status_code,
         )
         create_or_update_catalog(api_url, data, "test_workspace", catalog_path)
