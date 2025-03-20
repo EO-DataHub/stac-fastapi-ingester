@@ -245,7 +245,7 @@ def create_or_update_catalog(
     query_params = {"workspace": workspace}
     data_type = "Catalogue"
     catalogue_exists = True
-    id = data["id"]
+    catalog_id = data["id"]
     try:
         if catalog_path:
             resp = requests.put(
@@ -255,7 +255,7 @@ def create_or_update_catalog(
                 params=query_params,
             )
 
-            log_response(resp, data, id, catalog_path, api_url, data_type)
+            log_response(resp, data, catalog_id, catalog_path, api_url, data_type)
         else:
             catalogue_exists = False
 
@@ -272,7 +272,7 @@ def create_or_update_catalog(
                 params=query_params,
             )
 
-            log_response(resp, data, id, new_path, api_url, data_type)
+            log_response(resp, data, catalog_id, new_path, api_url, data_type)
 
         resp.raise_for_status()
 
@@ -280,7 +280,7 @@ def create_or_update_catalog(
 
     except Exception as err:
         logger.error(
-            f"Catalog: {data['id']} not created or updated "
+            f"Catalog: {catalog_id} not created or updated "
             f"{f'in {catalog_path}' if catalog_path else 'at top-level'}"
         )
         logger.error(err)
@@ -293,7 +293,7 @@ def create_or_update_collection(
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     query_params = {"workspace": workspace}
     data_type = "Collection"
-    id = data["id"]
+    catalog_id = data["id"]
     try:
         resp = requests.put(
             f"{api_url}/{catalog_path}",
@@ -302,7 +302,7 @@ def create_or_update_collection(
             params=query_params,
         )
 
-        log_response(resp, data, id, catalog_path, api_url, data_type)
+        log_response(resp, data, catalog_id, catalog_path, api_url, data_type)
 
         if resp.status_code == HTTPStatus.NOT_FOUND:
 
@@ -316,14 +316,14 @@ def create_or_update_collection(
                 params=query_params,
             )
 
-            log_response(resp, data, id, new_path, api_url, data_type)
+            log_response(resp, data, catalog_id, new_path, api_url, data_type)
         resp.raise_for_status()
 
         return True
 
     except Exception as err:
         logger.error(
-            f"Collection: {id} at location: "
+            f"Collection: {catalog_id} at location: "
             f"{f'{catalog_path}' if catalog_path else 'at top-level'} "
             f"not created or updated"
         )
