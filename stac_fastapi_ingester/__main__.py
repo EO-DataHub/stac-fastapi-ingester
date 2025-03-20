@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 import time
 import traceback
 from http import HTTPStatus
@@ -492,7 +493,8 @@ def interpret_message(updates_json: dict, api_url: str) -> Optional[dict]:
         catalog_path = file_key.replace("transformed/", "", 1)
 
         # Remove ".json" from key
-        catalog_path = catalog_path.rsplit(".", 1)[0]
+        if catalog_path.endswith(".json"):
+            catalog_path = re.sub(".json$", "", catalog_path)
 
         if data.get("type") == "Collection":
             collection_id = catalog_path.rsplit("/", 1)[-1]
@@ -544,7 +546,8 @@ def interpret_message(updates_json: dict, api_url: str) -> Optional[dict]:
         catalog_path = file_key.replace("transformed/", "", 1)
 
         # Remove ".json" from key
-        catalog_path = catalog_path.rsplit(".", 1)[0]
+        if catalog_path.endswith(".json"):
+            catalog_path = re.sub(".json$", "", catalog_path)
 
         if data.get("type") == "Collection":
             collection_id = data["id"]
