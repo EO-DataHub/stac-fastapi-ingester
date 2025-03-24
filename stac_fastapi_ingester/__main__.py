@@ -22,7 +22,6 @@ logging.getLogger("boto3").setLevel(logging.CRITICAL)
 # create logger for stac fastapi ingester
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-logging.basicConfig(filename="stac-fastapi-ingester.log", encoding="utf-8", level=logging.DEBUG)
 
 # create console handler and set level to debug
 ch = logging.StreamHandler()
