@@ -1,9 +1,12 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update \
-    && apt-get -y upgrade
+    apt-get update --yes --quiet \
+    && apt-get install --yes --quiet --no-install-recommends \
+    openssh-client \
+    procps \
+    git
 
 WORKDIR /app
 
