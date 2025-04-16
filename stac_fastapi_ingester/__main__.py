@@ -28,7 +28,6 @@ def main(topic: str, verbose: int, threads: int, prefix: Optional[str]):
 
     ingester_messager = IngesterMessager(
         s3_client=s3_client,
-        cat_output_prefix="transformed/",
     )
 
     if not ingester_messager.api_url:
@@ -37,8 +36,8 @@ def main(topic: str, verbose: int, threads: int, prefix: Optional[str]):
         )
 
     run(
-        {f"{topic}": ingester_messager},
-        subscription_name=f"{prefix}",
+        {topic: ingester_messager},
+        subscription_name=prefix,
         threads=threads,
     )
 
