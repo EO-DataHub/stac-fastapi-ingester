@@ -13,10 +13,8 @@ from .handle_changes import create_or_update_entry, delete_entry, handle_access_
 
 class IngesterMessager(CatalogueChangeBodyMessager):
     """
-    This extends CatalogueChangeMessager so that rather than passing buckets and keys to the
-    processor subclass it passes the file contents. This only works for add/update and not
-    delete.
-
+    This extends CatalogueChangeBodyMessager to handle update and delete messages for the ingester,
+    making changes to datasets and entries in the Resource Catalogue via the handle_changes functions.
     """
 
     def __init__(self, *args, **kwargs):
