@@ -40,7 +40,6 @@ def main(topic: str, verbose: int, threads: int, prefix: Optional[str]):
                 f"{api_url}",
             )
             retry = True
-            logging.error(response.status_code)
             if response.status_code == 200:
                 retry = False
         except requests.ConnectionError:
