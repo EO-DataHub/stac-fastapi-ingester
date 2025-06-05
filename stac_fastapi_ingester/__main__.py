@@ -39,11 +39,10 @@ def main(topic: str, verbose: int, threads: int, prefix: Optional[str]):
             response = requests.get(
                 f"{api_url}",
             )
-            retry = True
             if response.status_code == 200:
                 retry = False
         except requests.ConnectionError:
-            retry = True
+            pass
         if not retry:
             break
         logging.warning("STAC-FastApi is not yet available, retrying in 10 seconds...")
