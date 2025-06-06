@@ -34,7 +34,7 @@ def main(topic: str, verbose: int, threads: int, prefix: Optional[str]):
             "STAC-FastApi URL must be provided in the environment variable 'FASTAPI_URL'"
         )
     retry = True
-    while True:
+    while retry:
         try:
             response = requests.get(
                 f"{api_url}",
@@ -43,10 +43,9 @@ def main(topic: str, verbose: int, threads: int, prefix: Optional[str]):
                 retry = False
         except requests.ConnectionError:
             pass
-        if not retry:
-            break
-        logging.warning("STAC-FastApi is not yet available, retrying in 10 seconds...")
-        time.sleep(10)
+        if retry:
+            logging.warning("STAC-FastApi is not yet available, retrying in 10 seconds...")
+            time.sleep(10)
 
     logging.info("STAC-FastApi is available, starting ingester...")
 
