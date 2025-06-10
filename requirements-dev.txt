@@ -42,7 +42,7 @@ deprecated==1.2.18
     #   opentelemetry-semantic-conventions
 distlib==0.3.9
     # via virtualenv
-eodhp-utils @ git+https://github.com/UKEODHP/eodhp-utils@v0.1.7
+eodhp-utils @ git+https://github.com/EO-DataHub/eodhp-utils@v0.1.10
     # via STAC-Fastapi-Ingester (pyproject.toml)
 execnet==2.1.1
     # via pytest-xdist
@@ -120,6 +120,8 @@ pyproject-hooks==1.2.0
     # via
     #   build
     #   pip-tools
+pysubnettree==0.37
+    # via eodhp-utils
 pytest==8.3.5
     # via
     #   STAC-Fastapi-Ingester (pyproject.toml)
@@ -141,9 +143,10 @@ referencing==0.36.2
     # via
     #   jsonschema
     #   jsonschema-specifications
-requests==2.32.3
+requests==2.32.4
     # via
     #   STAC-Fastapi-Ingester (pyproject.toml)
+    #   eodhp-utils
     #   requests-mock
 requests-mock==1.12.1
     # via STAC-Fastapi-Ingester (pyproject.toml)
