@@ -6,7 +6,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     && apt-get install --yes --quiet --no-install-recommends \
     openssh-client \
     procps \
-    git
+    git \
+    g++
 
 WORKDIR /app
 
