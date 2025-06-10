@@ -1,6 +1,6 @@
 # stac-fastapi-ingester
 
-An ingester to load STAC Collections and Items into STAC-Fastapi, read from S3 bucket, triggered by Pulsar messages.
+An ingester to load STAC Catalogs, Collections and Items into STAC-Fastapi, read from S3 bucket, triggered by Pulsar messages. This application uses the Messagers class defined in the [eodhp-utils](https://github.com/EO-DataHub/eodhp-utils) package, to handle Pulsar messaging via Actions.
 
 ## How to use this repository
 
