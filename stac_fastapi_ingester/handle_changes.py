@@ -118,6 +118,9 @@ def update_entry_access_policy(
 
 def handle_access_policy(api_url: str, data: dict, workspace: str):
     access_policies = data["policies"]
+    if not access_policies:
+        logging.info("No access policies found for workspace %s", workspace)
+        return
     # Sort by hierarchy level to ensure that parent catalogs are handled
     # before subcatalogs and collections
     access_policies.sort(key=lambda p: p["path"].count("/"))
