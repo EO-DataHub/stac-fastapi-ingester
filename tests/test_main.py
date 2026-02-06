@@ -56,9 +56,7 @@ def test_cli_with_topic_and_pulsar_url(
     mock_get_boto3_session.assert_called_once()
 
     # Check message is received correctly
-    mock_run.assert_called_once_with(
-        {"test-topic": mock_ingester_messager}, subscription_name="test_name", threads=1
-    )
+    mock_run.assert_called_once_with({"test-topic": mock_ingester_messager}, subscription_name="test_name", threads=1)
 
 
 @patch.dict(os.environ, {"FASTAPI_URL": "https://test-url/api"})
@@ -111,9 +109,7 @@ def test_cli_with_topic_and_pulsar_url_api_not_available(
     mock_time_sleep.assert_called_once_with(10)
 
     # Check message is received correctly
-    mock_run.assert_called_once_with(
-        {"test-topic": mock_ingester_messager}, subscription_name="test_name", threads=1
-    )
+    mock_run.assert_called_once_with({"test-topic": mock_ingester_messager}, subscription_name="test_name", threads=1)
 
 
 @patch.dict(os.environ, {"FASTAPI_URL": "https://test-url/api"})
@@ -149,7 +145,7 @@ def test_cli_with_topic_and_pulsar_url_test_args(
     runner = CliRunner()
 
     # Invoke the CLI with a test topic
-    result = runner.invoke(main, ["test-topic", "-t", 5, "-p", "test_name", "-v", "-v"])
+    result = runner.invoke(main, ["test-topic", "-t", "5", "-p", "test_name", "-v", "-v"])
 
     # Assertions
     # Check the CLI ran successfully
@@ -161,9 +157,7 @@ def test_cli_with_topic_and_pulsar_url_test_args(
     mock_get_boto3_session.assert_called_once()
 
     # Check message is received correctly
-    mock_run.assert_called_once_with(
-        {"test-topic": mock_ingester_messager}, subscription_name="test_name", threads=5
-    )
+    mock_run.assert_called_once_with({"test-topic": mock_ingester_messager}, subscription_name="test_name", threads=5)
 
 
 @patch("stac_fastapi_ingester.__main__.setup_logging")
@@ -198,14 +192,12 @@ def test_cli_with_missing_api_url(
     runner = CliRunner()
 
     # Invoke the CLI with a test topic
-    result = runner.invoke(main, ["test-topic", "-t", 5, "-p", "test_name", "-v", "-v"])
+    result = runner.invoke(main, ["test-topic", "-t", "5", "-p", "test_name", "-v", "-v"])
 
     # Assertions
     # Check the CLI ran successfully
     assert result.exit_code == 1
-    assert "STAC-FastApi URL must be provided in the environment variable 'FASTAPI_URL'" in str(
-        result.exception
-    )
+    assert "STAC-FastApi URL must be provided in the environment variable 'FASTAPI_URL'" in str(result.exception)
 
     # Check the Pulsar calls and response
     mock_setup_logging.assert_called_once_with(verbosity=2)

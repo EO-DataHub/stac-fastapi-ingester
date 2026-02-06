@@ -8,16 +8,14 @@ from .errors import InvalidSTACException, MissingParentError, SFAPIConnectionErr
 from .logs import log_response, log_response_delete
 
 
-def create_or_update_entry(api_url: str, data: dict, workspace: str, catalog_path: str):
+def create_or_update_entry(api_url: str, data: dict, workspace: str, catalog_path: str) -> None:
     headers = {"accept": "application/json", "Content-Type": "application/json"}
     query_params = {"workspace": workspace}
     data_type = data.get("type")
     if not data_type:
         raise InvalidSTACException(f"STAC entry at {catalog_path} is missing a 'type' field")
     if data_type not in ["Catalog", "Collection", "Feature"]:
-        raise InvalidSTACException(
-            f"STAC entry at {catalog_path} has invalid 'type' field: {data_type}"
-        )
+        raise InvalidSTACException(f"STAC entry at {catalog_path} has invalid 'type' field: {data_type}")
     entry_id = data.get("id")
     if not entry_id:
         raise InvalidSTACException(f"STAC entry at {catalog_path} is missing an 'id' field")
@@ -34,7 +32,6 @@ def create_or_update_entry(api_url: str, data: dict, workspace: str, catalog_pat
         log_response(resp, entry_id, catalog_path, api_url, data_type)
 
         if resp.status_code == HTTPStatus.NOT_FOUND:
-
             # Remove file name from path
             new_path = catalog_path.rsplit("/", 1)[0]
             resp = requests.post(
@@ -58,7 +55,7 @@ def create_or_update_entry(api_url: str, data: dict, workspace: str, catalog_pat
         raise SFAPIConnectionError("Failed to connect to STAC-FastApi Service, retrying.") from err
 
 
-def delete_entry(api_url: str, workspace: str, catalog_path: str):
+def delete_entry(api_url: str, workspace: str, catalog_path: str) -> None:
     headers = {"accept": "application/json"}
     query_params = {"workspace": workspace}
     try:
@@ -79,7 +76,7 @@ def update_entry_access_policy(
     api_url: str,
     policy: dict,
     workspace: str,
-) -> bool:
+) -> None:
 
     # Parse policy details
     path = policy["path"]
@@ -116,13 +113,11 @@ def update_entry_access_policy(
         raise SFAPIConnectionError("Failed to connect to STAC-FastApi Service, retrying.") from err
 
 
-def handle_access_policy(api_url: str, data: dict, workspace: str):
+def handle_access_policy(api_url: str, data: dict, workspace: str) -> None:
     access_policies = data["policies"]
     # Sort by hierarchy level to ensure that parent catalogs are handled
     # before subcatalogs and collections
     access_policies.sort(key=lambda p: p["path"].count("/"))
     for policy in access_policies:
-        logging.info(
-            "Updating access policy for %s in workspace %s", policy.get("path", ""), workspace
-        )
+        logging.info("Updating access policy for %s in workspace %s", policy.get("path", ""), workspace)
         update_entry_access_policy(api_url, policy, workspace)

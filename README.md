@@ -4,8 +4,8 @@ An ingester to load STAC Catalogs, Collections and Items into STAC-Fastapi, read
 
 ## How to use this repository
 
-First install the dependencies by running `pip install -r requirements.txt`, for development work also install `pip install -r requirements-dev.txt`.
-We can now test the ingester with Pulsar messaging.  
+First install the dependencies by running `make setup`.
+We can now test the ingester with Pulsar messaging.
 These instructions assume that a Pulsar client is running on a local port, this can also be forwarded from a remote cluster. An example of this can be found in the [eodhp-argocd-deployment](https://github.com/UKEODHP/eodhp-argocd-deployment) repository using the running EODHP Pulsar client. With the port forwarding active, we now need to configure our environment variables to specify the Pulsar and Fastapi URLs. Do this by running the following
 
 ```console
@@ -19,36 +19,26 @@ To test the messaging service correctly triggers the ingestion, open a new termi
 
 Once this message is sent you can return to the subscriber terminal and see the logging outputs for the data being loaded. This default script will ingest some CMIP6 and Cordex data, update one of the CMIP6 files and then delete the Cordex collection. You can check the ingestion by visiting [https://eodatahub.org.uk/api/catalogue/stac/api.html](https://eodatahub.org.uk/stac-fastapi/api.html).
 
-# Install via makefile
+## Development setup
+
+This project uses [uv](https://docs.astral.sh/uv/) for dependency management.
 
 ```commandline
 make setup
 ```
 
-This will create a virtual environment called `venv`, build `requirements.txt` and
-`requirements-dev.txt` from `pyproject.toml` if they're out of date, install the Python
-and Node dependencies and install `pre-commit`.
+This will install all dependencies (including dev dependencies) via `uv sync` and set up `pre-commit` hooks.
 
-It's safe and fast to run `make setup` repeatedly as it will only update these things if
-they have changed.
+It's safe and fast to run `make setup` repeatedly as it will only update things if they have changed.
 
-After `make setup` you can run `pre-commit` to run pre-commit checks on staged changes and
-`pre-commit run --all-files` to run them on all files. This replicates the linter checks that
-run from GitHub actions.
+### Available make targets
 
-# Install via makefile
-
-```commandline
-make setup
-```
-
-This will create a virtual environment called `venv`, build `requirements.txt` and
-`requirements-dev.txt` from `pyproject.toml` if they're out of date, install the Python
-and Node dependencies and install `pre-commit`.
-
-It's safe and fast to run `make setup` repeatedly as it will only update these things if
-they have changed.
-
-After `make setup` you can run `pre-commit` to run pre-commit checks on staged changes and
-`pre-commit run --all-files` to run them on all files. This replicates the linter checks that
-run from GitHub actions.
+- `make setup` - Install dependencies and pre-commit hooks
+- `make test` - Run tests in watch mode
+- `make testonce` - Run tests once
+- `make format` - Auto-format code with ruff
+- `make check` - Run all linting and type checks (ruff, pyright, validate-pyproject)
+- `make pre-commit` - Run pre-commit checks on staged changes
+- `make pre-commit-all` - Run pre-commit checks on all files
+- `make dockerbuild` - Build Docker image
+- `make dockerpush` - Build and push Docker image
