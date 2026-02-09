@@ -38,12 +38,8 @@ def test_create_or_update_entry_create(mock_log_response, data_type, requests_mo
     new_catalog_path = "test"
 
     # Configure mocks
-    requests_mock.put(
-        f"{api_url}/{catalog_path}", status_code=404, json={"message": "Entry Doesn't Exist"}
-    )
-    requests_mock.post(
-        f"{api_url}/{new_catalog_path}", status_code=200, json={"message": "Entry Created"}
-    )
+    requests_mock.put(f"{api_url}/{catalog_path}", status_code=404, json={"message": "Entry Doesn't Exist"})
+    requests_mock.post(f"{api_url}/{new_catalog_path}", status_code=200, json={"message": "Entry Created"})
     mock_log_response.return_value = None
 
     create_or_update_entry(api_url, data, workspace, catalog_path)
@@ -91,9 +87,7 @@ def test_create_or_update_entry_update(mock_log_response, data_type, requests_mo
     catalog_path = "test/path"
 
     # Configure mocks
-    requests_mock.put(
-        f"{api_url}/{catalog_path}", status_code=200, json={"message": "Entry Updated Successfully"}
-    )
+    requests_mock.put(f"{api_url}/{catalog_path}", status_code=200, json={"message": "Entry Updated Successfully"})
     mock_log_response.return_value = None
 
     create_or_update_entry(api_url, data, workspace, catalog_path)
@@ -123,9 +117,7 @@ def test_create_or_update_entry_wrong_data_type(mock_log_response, requests_mock
     catalog_path = "test/path"
 
     # Configure mocks
-    requests_mock.put(
-        f"{api_url}/{catalog_path}", status_code=200, json={"message": "Entry Updated Successfully"}
-    )
+    requests_mock.put(f"{api_url}/{catalog_path}", status_code=200, json={"message": "Entry Updated Successfully"})
     mock_log_response.return_value = None
 
     with pytest.raises(InvalidSTACException):
@@ -149,9 +141,7 @@ def test_create_or_update_entry_missing_id(mock_log_response, requests_mock):
     catalog_path = "test/path"
 
     # Configure mocks
-    requests_mock.put(
-        f"{api_url}/{catalog_path}", status_code=200, json={"message": "Entry Updated Successfully"}
-    )
+    requests_mock.put(f"{api_url}/{catalog_path}", status_code=200, json={"message": "Entry Updated Successfully"})
     mock_log_response.return_value = None
 
     with pytest.raises(InvalidSTACException):
@@ -212,9 +202,7 @@ def test_delete_entry(mock_log_response_delete, data_type, requests_mock):
     catalog_path = "test/path"
 
     # Configure mocks
-    requests_mock.delete(
-        f"{api_url}/{catalog_path}", status_code=204, json={"message": "Entry Deleted Successfully"}
-    )
+    requests_mock.delete(f"{api_url}/{catalog_path}", status_code=204, json={"message": "Entry Deleted Successfully"})
     mock_log_response_delete.return_value = None
 
     result = delete_entry(api_url, workspace, catalog_path)

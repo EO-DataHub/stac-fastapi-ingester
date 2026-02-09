@@ -1,4 +1,5 @@
-FROM python:3.12-slim
+# syntax=docker/dockerfile:1
+FROM ghcr.io/astral-sh/uv:python3.13-trixie-slim
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
@@ -9,12 +10,21 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     git \
     g++
 
+ENV UV_NO_DEV=1
+
 WORKDIR /app
 
-COPY requirements.txt /app
+# Install dependencies
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --no-install-project
 
-RUN --mount=type=cache,target=/root/.cache/pip python -m pip install -r requirements.txt
+# Copy project files
+COPY . /app
 
-COPY /stac_fastapi_ingester /app/stac_fastapi_ingester
+# Sync the project
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen
 
-CMD ["python", "-m", "stac_fastapi_ingester", "transformed", "subscribe", "--prefix", "stac-fastapi"]
+CMD ["uv", "run", "--no-sync", "python", "-m", "stac_fastapi_ingester", "transformed", "subscribe", "--prefix", "stac-fastapi"]

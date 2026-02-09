@@ -1,7 +1,6 @@
 import logging
 import os
 import time
-from typing import Optional
 
 import click
 import requests
@@ -20,7 +19,7 @@ from .ingester_messager import IngesterMessager
 @click.option("-v", "--verbose", count=True)
 @click.option("-t", "--threads", type=int, default=1)
 @click.option("-p", "--prefix", type=str, default=None)
-def main(topic: str, verbose: int, threads: int, prefix: Optional[str]):
+def main(topic: str, verbose: int, threads: int, prefix: str | None) -> None:
     """
     Subscribe to messages from a Pulsar broker.
     """
@@ -30,9 +29,7 @@ def main(topic: str, verbose: int, threads: int, prefix: Optional[str]):
     # Check STAC-FastApi is running
     api_url = os.getenv("FASTAPI_URL", "")
     if not api_url:
-        raise Exception(
-            "STAC-FastApi URL must be provided in the environment variable 'FASTAPI_URL'"
-        )
+        raise Exception("STAC-FastApi URL must be provided in the environment variable 'FASTAPI_URL'")
     retry = True
     while retry:
         try:
@@ -58,7 +55,7 @@ def main(topic: str, verbose: int, threads: int, prefix: Optional[str]):
 
     run(
         {topic: ingester_messager},
-        subscription_name=prefix,
+        subscription_name=prefix or "",
         threads=threads,
     )
 

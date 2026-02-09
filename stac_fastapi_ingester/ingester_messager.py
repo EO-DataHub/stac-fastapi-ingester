@@ -1,6 +1,7 @@
 import os
 import re
-from typing import Sequence, Union
+from collections.abc import Sequence
+from typing import Any
 
 from eodhp_utils.messagers import (
     CatalogueChangeBodyMessager,
@@ -17,15 +18,16 @@ class IngesterMessager(CatalogueChangeBodyMessager):
     making changes to datasets and entries in the Resource Catalogue via the handle_changes functions.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         # Initialise the API URL from environment variable
         self.api_url = os.getenv("FASTAPI_URL", "")
 
     def process_update_body(
-        self, entry_body: Union[dict, str], cat_path: str, source: str, target: str
+        self, entry_body: dict | str, cat_path: str, source: str, target: str
     ) -> Sequence[CatalogueChangeMessager.Action]:
 
+        assert isinstance(entry_body, dict)
         workspace = self.get_workspace_from_msg()
 
         # Handle updates to access policy
@@ -57,5 +59,5 @@ class IngesterMessager(CatalogueChangeBodyMessager):
         delete_entry(self.api_url, workspace, cat_path)
         return []
 
-    def get_workspace_from_msg(self):
-        return self.input_change_msg.get("workspace")
+    def get_workspace_from_msg(self) -> str:
+        return self.input_change_msg.get("workspace", "")

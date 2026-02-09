@@ -3,7 +3,6 @@ import os
 from random import choice
 from string import ascii_uppercase
 from time import sleep
-from typing import Optional
 
 import click
 import pulsar
@@ -27,7 +26,7 @@ def cli(ctx, topic: str):
 @click.option("--prefix", type=str, default=None)
 @click.option("-n", type=int, default=100, show_default=True)
 @click.pass_context
-def publish(ctx, prefix: Optional[str] = None, n: Optional[int] = 100):
+def publish(ctx, prefix: str | None = None, n: int | None = 100):
     """
     Publish n messages to Pulsar broker.
     """

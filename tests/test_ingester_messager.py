@@ -72,9 +72,7 @@ def test_process_update_body_access_policy(mock_handle_access_policy, ingester_m
 
     # Assertions
     assert result == []
-    mock_handle_access_policy.assert_called_once_with(
-        "https://test-url/api", entry_body, "test_workspace"
-    )
+    mock_handle_access_policy.assert_called_once_with("https://test-url/api", entry_body, "test_workspace")
 
 
 @patch("stac_fastapi_ingester.ingester_messager.delete_entry")
