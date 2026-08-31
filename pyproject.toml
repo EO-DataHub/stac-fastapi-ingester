@@ -86,6 +86,7 @@ fallback-version = "0.0.0"
 packages = ["stac_fastapi_ingester"]
 
 [tool.uv]
+exclude-newer = "7 days"
 package = true
 
 [tool.uv.sources]
