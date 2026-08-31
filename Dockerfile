@@ -11,6 +11,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     g++
 
 ENV UV_NO_DEV=1
+ENV PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app
 
